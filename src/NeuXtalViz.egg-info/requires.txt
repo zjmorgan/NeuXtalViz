@@ -1,2 +1,0 @@
-mantidworkbench>=6.7.20230830
-pyoncat~=1.6
