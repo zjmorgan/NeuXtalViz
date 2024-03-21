@@ -1,0 +1,17 @@
+name: nxv
+channels:
+  - conda-forge
+  - mantid/label/nightly
+  - oncat
+dependencies:
+  - python
+  - numpy
+  - scipy
+  - matplotlib
+  - pycifrw
+  - h5py
+  - pyvista>=0.34.2
+  - pyvistaqt
+  - pytest
+  - mantidworkbench
+  - scikit-learn
