@@ -11,7 +11,7 @@ from qtpy.QtWidgets import (QWidget,
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import Qt
 
-from garnet.config.atoms import indexing, groups
+from NeuXtalViz.config.atoms import indexing, groups
 
 colors = {'Transition Metals': '#A1C9F4', # blue
           'Alkaline Earth Metals': '#FFB482', # orange

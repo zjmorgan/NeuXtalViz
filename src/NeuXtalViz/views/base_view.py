@@ -17,9 +17,10 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 import numpy as np
+import pyvista as pv
 from pyvistaqt import QtInteractor
 
-class NeuXVizWidget(QWidget):
+class NeuXtalVizWidget(QWidget):
 
     def __init__(self, parent=None):
 
@@ -113,6 +114,10 @@ class NeuXVizWidget(QWidget):
         self.setLayout(layout)
 
     def change_proj(self):
+        """
+        Enable or disable parallel projection.
+
+        """
 
         if self.proj_box.isChecked():
             self.plotter.enable_parallel_projection()
@@ -120,11 +125,24 @@ class NeuXVizWidget(QWidget):
             self.plotter.disable_parallel_projection()
 
     def reset_view(self):
+        """
+        Reset the camera view.
+
+        """
 
         self.plotter.reset_camera()
         self.plotter.view_isometric()
 
     def set_transform(self, T):
+        """
+        Apply the crystal axis transform to the axes.
+
+        Parameters
+        ----------
+        T : 3x3 2d array
+            Trasformation matrix.
+
+        """        
 
         if T is not None:
 
@@ -139,7 +157,16 @@ class NeuXVizWidget(QWidget):
             actor.SetUserMatrix(b)
 
     def view_vector(self, vecs):
+        """
+        Set the camera according to given vector(s).
 
+        Parameters
+        ----------
+        vecs : list of 2 or single 3 element 1d array-like 
+            Cameram direction and optional upward vector.
+
+        """
+        
         if len(vecs) == 2:
             vec = np.cross(vecs[0],vecs[1])
             self.plotter.view_vector(vecs[0],vec)
@@ -147,6 +174,10 @@ class NeuXVizWidget(QWidget):
             self.plotter.view_vector(vecs)
 
     def update_axis_labels(self):
+        """
+        Change the axes labels between Miller and fractional notation.
+
+        """
 
         axes_type = self.view_combo.currentText()
 
@@ -159,20 +190,18 @@ class NeuXVizWidget(QWidget):
             self.axis2_label.setText('v')
             self.axis3_label.setText('w')
 
-    def update_normal_labels(self):
-
-        axes_type = self.slice_combo.currentText()
-
-        if axes_type == '[hkl]':
-            self.normal1_label.setText('h')
-            self.normal2_label.setText('k')
-            self.normal3_label.setText('l')
-        else:
-            self.normal1_label.setText('u')
-            self.normal2_label.setText('v')
-            self.normal3_label.setText('w')
-
     def get_manual_axis_indices(self):
+        """
+        Indices of manually entered direction components.
+
+        Returns
+        -------
+        axes_type : str, [hkl] or [uvw]
+            Miller index or fractional coordinate.
+        ind : 3-element 1d array-like
+            Indices.
+
+        """
 
         axes_type = self.view_combo.currentText()
 
@@ -194,7 +223,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        widget = VisWidget()
+        widget = NeuXtalVizWidget()
         self.setCentralWidget(widget)
 
 if __name__ == '__main__':

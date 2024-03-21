@@ -1,5 +1,3 @@
-from mantid.simpleapi import LoadNexus, FindUBUsingIndexedPeaks
-
 class NeuXVizWidgetViewer:
 
     def __init__(self, view, model):
@@ -26,41 +24,70 @@ class NeuXVizWidgetViewer:
         self.view.c_button.clicked.connect(self.view_ab)
 
     def view_ab_star(self):
+        """
+        :math:`c`-axis view.
+
+        """
 
         vecs = self.model.ab_star_axes()
         if vecs is not None:
             self.view.view_vector(vecs)
 
     def view_bc_star(self):
+        """
+        :math:`a`-axis view.
+
+        """
 
         vecs = self.model.bc_star_axes()
         if vecs is not None:
             self.view.view_vector(vecs)
 
     def view_ca_star(self):
+        """
+        :math:`b`-axis view.
+
+        """
+
         vecs = self.model.ca_star_axes()
         if vecs is not None:
             self.view.view_vector(vecs)
 
     def view_ab(self):
+        """
+        :math:`c^\ast`-axis view.
+
+        """
 
         vecs = self.model.ab_axes()
         if vecs is not None:
             self.view.view_vector(vecs)
 
     def view_bc(self):
+        """
+        :math:`a^\ast`-axis view.
+
+        """
 
         vecs = self.model.bc_axes()
         if vecs is not None:
             self.view.view_vector(vecs)
 
     def view_ca(self):
+        """
+        :math:`b^\ast`-axis view.
+
+        """
 
         vecs = self.model.ca_axes()
         if vecs is not None:
             self.view.view_vector(vecs)
 
     def view_manual(self):
+        """
+        Manual axis view.
+
+        """
 
         indices = self.view.get_manual_indices()
 
