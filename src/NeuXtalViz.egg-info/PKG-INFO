@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: NeuXtalViz
+Version: 0.1.0.dev1
+Summary: Neutron Scattering Single Crystal Visualization
+License: GPL3.0
+Requires-Python: >=3.10
+License-File: LICENSE
+Requires-Dist: mantidworkbench>=6.7.20230830
+Requires-Dist: pyoncat~=1.6
