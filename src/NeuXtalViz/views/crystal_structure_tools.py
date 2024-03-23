@@ -14,6 +14,7 @@ from qtpy.QtWidgets import (QWidget,
                             QVBoxLayout,
                             QGridLayout,
                             QFrame,
+                            QTabWidget,
                             QFileDialog)
 
 from PyQt5.QtWidgets import QApplication, QMainWindow
@@ -22,39 +23,29 @@ from qtpy.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtCore import Qt
 
 import pyvista as pv
-from pyvistaqt import QtInteractor
 
 import matplotlib.colors
 
-from garnet.config.atoms import colors, radii
+from NeuXtalViz.config.atoms import colors, radii
+from NeuXtalViz.views.base_view import NeuXtalVizWidget
 
-class CrystalStructureView(QWidget):
+class CrystalStructureView(NeuXtalVizWidget):
 
     def __init__(self, parent=None):
 
         super().__init__(parent)
 
-        structure_layout = self.__init_structure()
-        viewer_layout = self.__init_viewer()
-        factors_layout = self.__init_factors()
+        self.tab_widget = QTabWidget(self)
 
-        vert_sep_left = QFrame()
-        vert_sep_right = QFrame()
+        self.structure_tab()
+        self.factors_tab()
 
-        vert_sep_left.setFrameShape(QFrame.VLine)
-        vert_sep_right.setFrameShape(QFrame.VLine)
+        self.layout().addWidget(self.tab_widget)
 
-        layout = QHBoxLayout()
+    def structure_tab(self):
 
-        layout.addLayout(structure_layout)
-        layout.addWidget(vert_sep_left)
-        layout.addLayout(viewer_layout)
-        layout.addWidget(vert_sep_right)
-        layout.addLayout(factors_layout)
-
-        self.setLayout(layout)
-
-    def __init_structure(self):
+        struct_tab = QWidget()
+        self.tab_widget.addTab(struct_tab, 'Structure')
 
         structure_layout = QVBoxLayout()
 
@@ -206,9 +197,12 @@ class CrystalStructureView(QWidget):
         structure_layout.addLayout(scatterer_layout)
         structure_layout.addLayout(sample_layout)
 
-        return structure_layout
+        struct_tab.setLayout(structure_layout)
 
-    def __init_factors(self):
+    def factors_tab(self):
+
+        fact_tab = QWidget()
+        self.tab_widget.addTab(fact_tab, 'Factors')        
 
         factors_layout = QVBoxLayout()
 
@@ -272,86 +266,48 @@ class CrystalStructureView(QWidget):
         factors_layout.addWidget(self.f2_table)
         factors_layout.addLayout(indivdual_layout)
 
-        return factors_layout
+        fact_tab.setLayout(factors_layout)
 
-    def __init_viewer(self):
+    def connect_group_generator(self, generate_groups):
 
-        self.proj_box = QCheckBox('Parallel Projection', self)
+        self.crystal_system_combo.activated.connect(generate_groups)
 
-        self.reset_button = QPushButton('Reset View', self)
+    def connect_setting_generator(self, generate_settings):
 
-        self.view_combo = QComboBox(self)
-        self.view_combo.addItem('[hkl]')
-        self.view_combo.addItem('[uvw]')
+        self.space_group_combo.activated.connect(generate_settings)
 
-        notation = QDoubleValidator.StandardNotation
+    def connect_F2_calculator(self, calculate_F2):
 
-        validator = QDoubleValidator(-100, 100, 5, notation=notation)
+        self.calculate_button.clicked.connect(calculate_F2)
 
-        self.axis1_line = QLineEdit()
-        self.axis2_line = QLineEdit()
-        self.axis3_line = QLineEdit()
+    def connect_hkl_calculator(self, calculate_hkl):
 
-        self.axis1_line.setValidator(validator)
-        self.axis2_line.setValidator(validator)
-        self.axis3_line.setValidator(validator)
+        self.individual_button.clicked.connect(calculate_hkl)
 
-        self.axis1_label = QLabel('h', self)
-        self.axis2_label = QLabel('k', self)
-        self.axis3_label = QLabel('l', self)
+    def connect_row_highligter(self, highlight_row):
 
-        self.manual_button = QPushButton('View Axis', self)
+        self.atm_table.itemSelectionChanged.connect(highlight_row)
 
-        self.a_star_button = QPushButton('a*', self)
-        self.b_star_button = QPushButton('b*', self)
-        self.c_star_button = QPushButton('c*', self)
+    def connect_lattice_parameters(self, update_parameters):
 
-        self.a_button = QPushButton('a', self)
-        self.b_button = QPushButton('b', self)
-        self.c_button = QPushButton('c', self)
+        self.a_line.editingFinished.connect(update_parameters)
+        self.b_line.editingFinished.connect(update_parameters)
+        self.c_line.editingFinished.connect(update_parameters)
+        self.alpha_line.editingFinished.connect(update_parameters)
+        self.beta_line.editingFinished.connect(update_parameters)
+        self.gamma_line.editingFinished.connect(update_parameters)
 
-        self.frame = QFrame()
+    def connect_atom_table(self, set_atom_table):
 
-        self.plotter = QtInteractor(self.frame)
+        self.x_line.editingFinished.connect(set_atom_table)
+        self.y_line.editingFinished.connect(set_atom_table)
+        self.z_line.editingFinished.connect(set_atom_table)
+        self.occ_line.editingFinished.connect(set_atom_table)
+        self.Uiso_line.editingFinished.connect(set_atom_table)
 
-        viewer_layout = QVBoxLayout()
-        camera_layout = QGridLayout()
+    def connect_load_CIF(self, load_CIF):
 
-        camera_layout.addWidget(self.proj_box, 0, 0)
-        camera_layout.addWidget(self.reset_button, 1, 0)
-        camera_layout.addWidget(self.a_star_button, 0, 1)
-        camera_layout.addWidget(self.b_star_button, 0, 2)
-        camera_layout.addWidget(self.c_star_button, 0, 3)
-        camera_layout.addWidget(self.a_button, 1, 1)
-        camera_layout.addWidget(self.b_button, 1, 2)
-        camera_layout.addWidget(self.c_button, 1, 3)
-        camera_layout.addWidget(self.axis1_label, 0, 4, Qt.AlignCenter)
-        camera_layout.addWidget(self.axis2_label, 0, 5, Qt.AlignCenter)
-        camera_layout.addWidget(self.axis3_label, 0, 6, Qt.AlignCenter)
-        camera_layout.addWidget(self.axis1_line, 1, 4)
-        camera_layout.addWidget(self.axis2_line, 1, 5)
-        camera_layout.addWidget(self.axis3_line, 1, 6)
-        camera_layout.addWidget(self.view_combo, 0, 7)
-        camera_layout.addWidget(self.manual_button, 1, 7)
-
-        viewer_layout.addLayout(camera_layout)
-        viewer_layout.addWidget(self.plotter.interactor)
-
-        return viewer_layout
-
-    def set_transform(self, T):
-
-        if T is not None:
-
-            a = pv._vtk.vtkMatrix4x4()
-            for i in range(3):
-                for j in range(3):
-                    a.SetElement(i,j,T[i,j])
-
-            actor = self.plotter.add_axes(xlabel='a',
-                                          ylabel='b',
-                                          zlabel='c')
-            actor.SetUserMatrix(a)
+        self.load_CIF_button.clicked.connect(load_CIF)
 
     def draw_cell(self, A):
 
@@ -366,44 +322,6 @@ class CrystalStructureView(QWidget):
                               style='wireframe',
                               render_lines_as_tubes=True)
 
-    def view_vector(self, vecs):
-
-        if len(vecs) == 2:
-            vec = np.cross(vecs[0],vecs[1])
-            self.plotter.view_vector(vecs[0],vec)
-        else:
-            self.plotter.view_vector(vecs)
-
-    def update_axis_labels(self):
-
-        axes_type = self.view_combo.currentText()
-
-        if axes_type == '[hkl]':
-            self.axis1_label.setText('h')
-            self.axis2_label.setText('k')
-            self.axis3_label.setText('l')
-        else:
-            self.axis1_label.setText('u')
-            self.axis2_label.setText('v')
-            self.axis3_label.setText('w')
-
-    def get_manual_indices(self):
-
-        axes_type = self.view_combo.currentText()
-
-        axes = [self.axis1_line, self.axis2_line, self.axis3_line]
-        valid_axes = all([axis.hasAcceptableInput() for axis in axes])
-
-        if valid_axes:
-
-            axis1 = float(self.axis1_line.text())
-            axis2 = float(self.axis2_line.text())
-            axis3 = float(self.axis3_line.text())
-
-            ind = np.array([axis1,axis2,axis3])
-
-            return axes_type, ind
-
     def load_CIF_file_dialog(self):
 
         options = QFileDialog.Options()
@@ -412,7 +330,7 @@ class CrystalStructureView(QWidget):
         filename, _ = QFileDialog.getOpenFileName(self,
                                                   'Load CIF file',
                                                   '',
-                                                  'CIf files (*.cif)',
+                                                  'CF files (*.cif)',
                                                   options=options)
 
         return filename
@@ -486,6 +404,7 @@ class CrystalStructureView(QWidget):
 
     def set_scatterers(self, scatterers):
 
+        self.atm_table.clearSelection()
         self.atm_table.setRowCount(0)
         self.atm_table.setRowCount(len(scatterers))
 
@@ -525,7 +444,7 @@ class CrystalStructureView(QWidget):
 
     def get_scatterers(self):
 
-        n = self.atm_table.getRowCount()
+        n = self.atm_table.rowCount()
 
         scatterers = []
         for row in range(n):
@@ -578,18 +497,6 @@ class CrystalStructureView(QWidget):
         for fixed, param in zip(const, params):
             param.setDisabled(fixed)
 
-    def change_proj(self):
-
-        if self.proj_box.isChecked():
-            self.plotter.enable_parallel_projection()
-        else:
-            self.plotter.disable_parallel_projection()
-
-    def reset_view(self):
-
-        self.plotter.reset_camera()
-        self.plotter.view_isometric()
-
     def add_atoms(self, atom_dict):
 
         self.plotter.clear_actors()
@@ -598,24 +505,24 @@ class CrystalStructureView(QWidget):
 
         geoms, cmap, self.indexing = [], [], {}
 
-        sphere = pv.Icosphere(radius=1, nsub=1)
+        sphere = pv.Icosphere(radius=1, nsub=2)
 
         atm_ind = 0
 
-        for ind, atom in enumerate(atom_dict.keys()):
+        for i_atm, atom in enumerate(atom_dict.keys()):
 
             color = colors[atom]
             radius = radii[atom][0]
 
             coordinates, opacities, indices = atom_dict[atom]
 
-            for i_atm, (coord, occ) in enumerate(zip(coordinates, opacities)):
+            for coord, occ, ind in zip(coordinates, opacities, indices):
                 T[0,0] = T[1,1] = T[2,2] = radius
                 T[:3,3] = coord
                 atm = sphere.copy().transform(T)
-                atm['scalars'] = np.full(sphere.n_cells, ind+1.)
+                atm['scalars'] = np.full(sphere.n_cells, i_atm+1.)
                 geoms.append(atm)
-                self.indexing[atm_ind] = atom
+                self.indexing[atm_ind] = ind
                 atm_ind += 1
 
             cmap.append(color)
@@ -636,22 +543,25 @@ class CrystalStructureView(QWidget):
         self.plotter.enable_block_picking(callback=self.highlight,
                                           side='right')
 
-        self.change_proj()
+        self.reset_view()
 
     def highlight(self, index, dataset):
 
         color = self.mapper.block_attr[index].color
 
+        self.atm_table.clearSelection()
+
         if color == 'pink':
-            color, select = None, False
+            color = None
         else:
-            color, select = 'pink', True
+            color = 'pink'
 
         self.mapper.block_attr[index].color = color
-        
-        print('atom = {}'.format(self.indexing[index]))
 
-        return self.indexing[index], select
+        ind = self.indexing[index]
+
+        if color == 'pink':
+            self.atm_table.selectRow(ind)
 
     def set_factors(self, hkls, ds, F2s):
 

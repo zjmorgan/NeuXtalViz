@@ -1,10 +1,16 @@
+from mantid.simpleapi import HasUB, mtd
+
 import numpy as np
 
-class NeuXVizWidgetModel():
+class NeuXtalVizModel():
 
     def __init__(self):
 
         self.UB = None
+
+    def has_UB(self, ws):
+
+        return HasUB(Workspace=ws)
 
     def set_UB(self, UB):
         """
@@ -19,22 +25,33 @@ class NeuXVizWidgetModel():
 
         self.UB = UB
 
-    def get_transform(self):
+    def get_transform(self, reciprocal=True):
         """
-        Transformation matrix describing the crystal axes.
+        Transformation matrix describing the reciprocal or crystal axes.
+
+        Parameters
+        ----------
+        reciprocal : bool
+            Option for the reciprocal or crystal lattice axes.
+            Default is ``True``.
 
         Returns
         -------
         T : 3x3 element 2d array
-            Normalized transformation matrix.
+            Normalized transformation matrix.            
 
         """
 
         if self.UB is not None:
 
-            T = self.UB/np.linalg.norm(self.UB , axis=0)
+            if reciprocal:
+                T = self.UB.copy()
+            else:
+                T = np.column_stack([np.cross(self.UB[:,1], self.UB[:,2]),
+                                     np.cross(self.UB[:,2], self.UB[:,0]),
+                                     np.cross(self.UB[:,0], self.UB[:,1])])
 
-            return T
+            return T/np.linalg.norm(T, axis=0)
 
     def ab_star_axes(self):
         """
@@ -149,7 +166,7 @@ class NeuXVizWidgetModel():
         ----------
         axes_type : str, [hkl] or [uvw]
             Miller index or fractional coordinate.
-        ind : 3d-element 1d array-like
+        ind : 3-element 1d array-like
             Indices.
 
         Returns

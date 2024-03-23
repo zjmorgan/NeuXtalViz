@@ -1,15 +1,16 @@
-from mantid.simpleapi import (CreatePeaksWorkspace,
-                              HasUB,
-                              mtd)
+from mantid.simpleapi import (CreatePeaksWorkspace, mtd)
 
 import numpy as np
-import scipy.linalg
 
-class ReciprocalSpaceViewerModel():
+from NeuXtalViz.models.base_model import NeuXtalVizModel
+
+class ReciprocalSpaceViewerModel(NeuXtalVizModel):
 
     def __init__(self):
 
-        peaks_ws = '__init_rsv'
+        super(NeuXtalVizModel, self).__init__()
+
+        peaks_ws = 'rsv'
 
         CreatePeaksWorkspace(OutputType='LeanElasticPeak',
                              OutputWorkspace=peaks_ws)
@@ -22,13 +23,11 @@ class ReciprocalSpaceViewerModel():
 
         self.peaks_ws = mtd[peaks_ws]
 
-        self.set_UB()
+        if self.has_UB(peaks_ws):
 
-    def set_UB(self):
+            UB = self.peaks_ws.sample().getOrientedLattice().getUB().copy()
 
-        if HasUB(Workspace=self.peaks_ws):
-
-            self.UB = self.peaks_ws.sample().getOrientedLattice().getUB().copy()
+            self.set_UB(UB)
 
     def get_peak_info(self):
 
@@ -76,16 +75,6 @@ class ReciprocalSpaceViewerModel():
 
         return peak_dict
 
-    def get_transform(self):
-
-        if self.UB is not None:
-
-            UB = self.peaks_ws.sample().getOrientedLattice().getUB()
-
-            ub = UB/np.linalg.norm(UB, axis=0)
-
-            return ub
-
     def get_peak(self, pk_no):
 
         cols = self.peaks_ws.getColumnNames()
@@ -94,56 +83,3 @@ class ReciprocalSpaceViewerModel():
         row = self.peaks_ws.column(col).index(pk_no)
 
         return self.peaks_ws.row(row)
-
-    def ab_star_axes(self):
-
-        if self.UB is not None:
-
-            return np.dot(self.UB, [0,0,1]), np.dot(self.UB, [1,0,0])
-
-    def bc_star_axes(self):
-
-        if self.UB is not None:
-
-            return np.dot(self.UB, [1,0,0]), np.dot(self.UB, [0,1,0])
-
-    def ca_star_axes(self):
-
-        if self.UB is not None:
-
-            return np.dot(self.UB, [0,1,0]), np.dot(self.UB, [0,0,1])
-
-    def ab_axes(self):
-
-        if self.UB is not None:
-
-            return np.cross(*self.bc_star_axes()), \
-                   np.cross(*self.ca_star_axes())
-
-    def bc_axes(self):
-
-        if self.UB is not None:
-
-            return np.cross(*self.ca_star_axes()), \
-                   np.cross(*self.ab_star_axes())
-
-    def ca_axes(self):
-
-        if self.UB is not None:
-
-            return np.cross(*self.ab_star_axes()), \
-                   np.cross(*self.bc_star_axes())
-
-    def get_vector(self, axes_type, ind):
-
-        if self.UB is not None:
-
-            if axes_type == '[hkl]':
-                matrix = self.UB
-            else:
-                matrix = np.cross(np.dot(self.UB, np.roll(np.eye(3),2,1)).T,
-                                  np.dot(self.UB, np.roll(np.eye(3),1,1)).T).T
-
-            vec = np.dot(matrix, ind)
-
-            return vec

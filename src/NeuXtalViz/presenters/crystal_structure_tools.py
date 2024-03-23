@@ -1,44 +1,20 @@
-class CrystalStructure:
+from NeuXtalViz.presenters.base_presenter import NeuXtalVizPresenter
+
+class CrystalStructure(NeuXtalVizPresenter):
 
     def __init__(self, view, model):
 
-        self.view = view
-        self.model = model
+        super(CrystalStructure, self).__init__(view, model)
 
-        self.view.crystal_system_combo.activated.connect(self.generate_groups)
-        self.view.space_group_combo.activated.connect(self.generate_settings)
-        self.view.calculate_button.clicked.connect(self.calculate_F2)
-        self.view.individual_button.clicked.connect(self.calculate_hkl)
-        self.view.atm_table.itemSelectionChanged.connect(self.highlight_row)
+        self.view.connect_group_generator(self.generate_groups)
+        self.view.connect_setting_generator(self.generate_settings)
+        self.view.connect_F2_calculator(self.calculate_F2)
+        self.view.connect_hkl_calculator(self.calculate_hkl)
+        self.view.connect_row_highligter(self.highlight_row)
+        self.view.connect_lattice_parameters(self.update_parameters)
+        self.view.connect_atom_table(self.set_atom_table)
 
-        self.view.a_line.editingFinished.connect(self.update_parameters)
-        self.view.b_line.editingFinished.connect(self.update_parameters)
-        self.view.c_line.editingFinished.connect(self.update_parameters)
-        self.view.alpha_line.editingFinished.connect(self.update_parameters)
-        self.view.beta_line.editingFinished.connect(self.update_parameters)
-        self.view.gamma_line.editingFinished.connect(self.update_parameters)
-
-        self.view.x_line.editingFinished.connect(self.set_atom_table)
-        self.view.y_line.editingFinished.connect(self.set_atom_table)
-        self.view.z_line.editingFinished.connect(self.set_atom_table)
-        self.view.occ_line.editingFinished.connect(self.set_atom_table)
-        self.view.Uiso_line.editingFinished.connect(self.set_atom_table)
-
-        self.view.load_CIF_button.clicked.connect(self.load_CIF)
-
-        self.view.manual_button.clicked.connect(self.view_manual)
-
-        self.view.a_star_button.clicked.connect(self.view_bc_star)
-        self.view.b_star_button.clicked.connect(self.view_ca_star)
-        self.view.c_star_button.clicked.connect(self.view_ab_star)
-
-        self.view.a_button.clicked.connect(self.view_bc)
-        self.view.b_button.clicked.connect(self.view_ca)
-        self.view.c_button.clicked.connect(self.view_ab)
-
-        self.view.view_combo.currentIndexChanged.connect(self.update_labels)
-        self.view.proj_box.clicked.connect(self.change_proj)
-        self.view.reset_button.clicked.connect(self.reset_view)
+        self.view.connect_load_CIF(self.load_CIF)
 
         self.generate_groups()
         self.generate_settings()
@@ -51,6 +27,7 @@ class CrystalStructure:
     def set_atom_table(self):
 
         self.view.set_atom_table()
+        self.update_atoms()
 
     def update_parameters(self):
 
@@ -61,61 +38,11 @@ class CrystalStructure:
         vol = self.model.get_unit_cell_volume()
         self.view.set_unit_cell_volume(vol)
 
-    def update_labels(self):
+        atom_dict = self.model.generate_atom_positions()
+        self.view.add_atoms(atom_dict)
 
-        self.view.update_axis_labels()
-
-    def change_proj(self):
-
-        self.view.change_proj()
-
-    def reset_view(self):
-
-        self.view.reset_view()
-
-    def view_ab_star(self):
-
-        vecs = self.model.ab_star_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
-
-    def view_bc_star(self):
-
-        vecs = self.model.bc_star_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
-
-    def view_ca_star(self):
-        vecs = self.model.ca_star_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
-
-    def view_ab(self):
-
-        vecs = self.model.ab_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
-
-    def view_bc(self):
-
-        vecs = self.model.bc_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
-
-    def view_ca(self):
-
-        vecs = self.model.ca_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
-
-    def view_manual(self):
-
-        indices = self.view.get_manual_indices()
-
-        if indices is not None:
-            vec = self.model.get_vector(*indices)
-            if vec is not None:
-                self.view.view_vector(vec)
+        self.view.draw_cell(self.model.get_unit_cell_transform())
+        self.view.set_transform(self.model.get_transform())
 
     def generate_groups(self):
 
@@ -143,7 +70,7 @@ class CrystalStructure:
             space_group = self.model.get_space_group()
             setting = self.model.get_setting()
             params = self.model.get_lattice_constants()
-            scatters = self.model.get_scatterers()
+            scatterers = self.model.get_scatterers()
 
             self.view.set_crystal_system(crystal_system)
             self.generate_groups()
@@ -151,7 +78,7 @@ class CrystalStructure:
             self.generate_settings()
             self.view.set_setting(setting)
             self.view.set_lattice_constants(params)
-            self.view.set_scatterers(scatters)
+            self.view.set_scatterers(scatterers)
 
             params = self.model.constrain_parameters()
             self.view.constrain_parameters(params)
@@ -164,6 +91,9 @@ class CrystalStructure:
 
             form, z = self.model.get_chemical_formula_z_parameter()
             self.view.set_formula_z(form, z)
+
+            vol = self.model.get_unit_cell_volume()
+            self.view.set_unit_cell_volume(vol)
 
     def update_atoms(self):
 

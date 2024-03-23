@@ -5,6 +5,7 @@ from qtpy.QtWidgets import (QWidget,
                             QPushButton,
                             QLabel,
                             QHBoxLayout,
+                            QVBoxLayout,
                             QGridLayout,
                             QSizePolicy)
 
@@ -63,7 +64,30 @@ class PeriodicTable(QWidget):
             self.atom_buttons.append(button)
             table.addWidget(button, row, col)
 
+        for button in self.atom_buttons:
+            button.clicked.connect(self.atom_info)
+
         return table
+
+    def atom_info(self):
+
+        self.widget = Atom()
+        self.widget.show()
+
+
+class Atom(QWidget):
+
+    def __init__(self):
+
+        super().__init__()
+
+        self.setWindowTitle("New Widget")
+
+        layout = QVBoxLayout(self)
+
+        label = QLabel("This is a new QWidget!")
+        layout.addWidget(label)
+
 
 class MainWindow(QMainWindow):
 

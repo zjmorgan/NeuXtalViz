@@ -2,7 +2,6 @@ name: nxv
 channels:
   - conda-forge
   - mantid/label/nightly
-  - oncat
 dependencies:
   - python
   - numpy

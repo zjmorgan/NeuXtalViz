@@ -1,27 +1,57 @@
-class NeuXVizWidgetViewer:
+class NeuXtalVizPresenter:
 
     def __init__(self, view, model):
 
         self.view = view
         self.model = model
 
-        self.view.manual_button.clicked.connect(self.view_manual)
+        self.view.connect_manual_axis(self.view_manual)
 
-        self.view.px_button.clicked.connect(self.view.view_yz)
-        self.view.py_button.clicked.connect(self.view.view_zx)
-        self.view.pz_button.clicked.connect(self.view.view_xy)
+        self.view.connect_reciprocal_axes(self.view_bc_star,
+                                          self.view_ca_star,
+                                          self.view_ab_star)
 
-        self.view.mx_button.clicked.connect(self.view.view_zy)
-        self.view.my_button.clicked.connect(self.view.view_xz)
-        self.view.mz_button.clicked.connect(self.view.view_yx)
+        self.view.connect_real_axes(self.view_bc,
+                                    self.view_ca,
+                                    self.view_ab)
 
-        self.view.a_star_button.clicked.connect(self.view_bc_star)
-        self.view.b_star_button.clicked.connect(self.view_ca_star)
-        self.view.c_star_button.clicked.connect(self.view_ab_star)
+        self.view.connect_save_screenshot(self.save_screenshot)
+        self.view.connect_reciprocal_real_compass(self.change_lattice)
 
-        self.view.a_button.clicked.connect(self.view_bc)
-        self.view.b_button.clicked.connect(self.view_ca)
-        self.view.c_button.clicked.connect(self.view_ab)
+    def change_lattice(self):
+        """
+        Enable or disable reciprocal lattice.
+
+        """
+
+        T = self.model.get_transform(self.view.reciprocal_lattice())
+
+        self.view.set_transform(T)
+
+    def save_screenshot(self):
+        """
+        Save image.
+
+        """        
+
+        filename = self.view.save_screenshot_file_dialog()
+
+        if filename:
+
+            self.view.save_screenshot(filename)
+
+    def view_manual(self):
+        """
+        Manual axis view.
+
+        """
+
+        indices = self.view.get_manual_axis_indices()
+
+        if indices is not None:
+            vec = self.model.get_vector(*indices)
+            if vec is not None:
+                self.view.view_vector(vec)
 
     def view_ab_star(self):
         """
@@ -82,16 +112,3 @@ class NeuXVizWidgetViewer:
         vecs = self.model.ca_axes()
         if vecs is not None:
             self.view.view_vector(vecs)
-
-    def view_manual(self):
-        """
-        Manual axis view.
-
-        """
-
-        indices = self.view.get_manual_indices()
-
-        if indices is not None:
-            vec = self.model.get_vector(*indices)
-            if vec is not None:
-                self.view.view_vector(vec)

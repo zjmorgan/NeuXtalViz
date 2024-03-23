@@ -9,7 +9,8 @@ from qtpy.QtWidgets import (QWidget,
                             QLabel,
                             QCheckBox,
                             QComboBox,
-                            QLineEdit)
+                            QLineEdit,
+                            QFileDialog)
 
 from qtpy.QtGui import QDoubleValidator
 from PyQt5.QtCore import Qt
@@ -27,7 +28,7 @@ class NeuXtalVizWidget(QWidget):
         super().__init__(parent)
 
         self.proj_box = QCheckBox('Parallel Projection', self)
-        self.proj_box.clicked.connect(self.change_proj)
+        self.proj_box.clicked.connect(self.change_projection)
 
         self.reset_button = QPushButton('Reset View', self)
         self.reset_button.clicked.connect(self.reset_view)
@@ -35,6 +36,7 @@ class NeuXtalVizWidget(QWidget):
         self.view_combo = QComboBox(self)
         self.view_combo.addItem('[hkl]')
         self.view_combo.addItem('[uvw]')
+        self.view_combo.currentIndexChanged.connect(self.update_labels)
 
         notation = QDoubleValidator.StandardNotation
 
@@ -62,6 +64,14 @@ class NeuXtalVizWidget(QWidget):
         self.my_button = QPushButton('-Qy', self)
         self.mz_button = QPushButton('-Qz', self)
 
+        self.px_button.clicked.connect(self.view_yz)
+        self.py_button.clicked.connect(self.view_zx)
+        self.pz_button.clicked.connect(self.view_xy)
+
+        self.mx_button.clicked.connect(self.view_zy)
+        self.my_button.clicked.connect(self.view_xz)
+        self.mz_button.clicked.connect(self.view_yx)
+
         self.a_star_button = QPushButton('a*', self)
         self.b_star_button = QPushButton('b*', self)
         self.c_star_button = QPushButton('c*', self)
@@ -70,11 +80,17 @@ class NeuXtalVizWidget(QWidget):
         self.b_button = QPushButton('b', self)
         self.c_button = QPushButton('c', self)
 
+        self.recip_box = QCheckBox('Reciprocal Lattice', self)
+        self.recip_box.setChecked(True)
+
+        self.save_button = QPushButton('Save Screenshot', self)
+
         self.frame = QFrame()
 
         self.plotter = QtInteractor(self.frame)
 
-        layout = QVBoxLayout()
+        layout = QHBoxLayout()
+        vis_layout = QVBoxLayout()
         camera_layout = QGridLayout()
         plot_layout = QHBoxLayout()
 
@@ -106,14 +122,96 @@ class NeuXtalVizWidget(QWidget):
         camera_layout.addWidget(self.view_combo, 0, 10)
         camera_layout.addWidget(self.manual_button, 1, 10)
 
+        camera_layout.addWidget(self.recip_box, 0, 11)
+        camera_layout.addWidget(self.save_button, 1, 11)
+
         plot_layout.addWidget(self.plotter.interactor)
 
-        layout.addLayout(camera_layout)
-        layout.addLayout(plot_layout)
+        vis_layout.addLayout(camera_layout)
+        vis_layout.addLayout(plot_layout)
+
+        layout.addLayout(vis_layout)
 
         self.setLayout(layout)
 
-    def change_proj(self):
+    def connect_manual_axis(self, view_manual):
+        """
+        Manual axis view connection.
+
+        Parameters
+        ----------
+        view_manual : function
+            Manual axis view handler.
+
+        """
+
+        self.manual_button.clicked.connect(view_manual)
+
+    def connect_reciprocal_axes(self, view_a_star, view_b_star, view_c_star):
+        """
+        Reciprocal axes view connections.
+
+        Parameters
+        ----------
+        view_a_star : function
+            :math:`a^\ast`-axis view handler.
+        view_b_star : function
+            :math:`b^\ast`-axis view handler.
+        view_c_star : function
+            :math:`c^\ast`-axis view handler.
+
+        """
+
+        self.a_star_button.clicked.connect(view_a_star)
+        self.b_star_button.clicked.connect(view_b_star)
+        self.c_star_button.clicked.connect(view_c_star)
+
+    def connect_real_axes(self, view_a, view_b, view_c):
+        """
+        Real axes view connections.
+
+        Parameters
+        ----------
+        view_a : function
+            :math:`a`-axis view handler.
+        view_b : function
+            :math:`b`-axis view handler.
+        view_c : function
+            :math:`c`-axis view handler.
+
+        """
+
+        self.a_button.clicked.connect(view_a)
+        self.b_button.clicked.connect(view_b)
+        self.c_button.clicked.connect(view_c)
+
+    def connect_save_screenshot(self, save_screenshot):
+        """
+        Screenshot connection.
+
+        Parameters
+        ----------
+        save_screenshot : function
+            Screenshot handler.
+
+        """
+
+        self.save_button.clicked.connect(save_screenshot)
+
+    def connect_reciprocal_real_compass(self, change_lattice):
+        """
+        Reciprocal/real axis compass
+
+        Parameters
+        ----------
+        change_lattice : function
+            Lattice handler.
+
+        """
+
+        self.recip_box.clicked.connect(change_lattice)
+
+    def change_projection(self):
         """
         Enable or disable parallel projection.
 
@@ -133,28 +231,68 @@ class NeuXtalVizWidget(QWidget):
         self.plotter.reset_camera()
         self.plotter.view_isometric()
 
+    def save_screenshot(self, filename):
+        """
+        Save plotter screenshot.
+
+        Parameters
+        ----------
+        filename : str
+            Filename with .png extension.
+
+        """
+
+        self.plotter.screenshot(filename)
+
+    def save_screenshot_file_dialog(self):
+
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        filename, _ = QFileDialog.getSaveFileName(self,
+                                                  'Save PNG file',
+                                                  '',
+                                                  'PNG files (*.png)',
+                                                  options=options)
+
+        return filename
+
     def set_transform(self, T):
         """
-        Apply the crystal axis transform to the axes.
+        Apply a transform to the axes.
 
         Parameters
         ----------
         T : 3x3 2d array
             Trasformation matrix.
 
-        """        
+        """
 
         if T is not None:
 
-            b = pv._vtk.vtkMatrix4x4()
+            t = pv._vtk.vtkMatrix4x4()
+
             for i in range(3):
                 for j in range(3):
-                    b.SetElement(i,j,T[i,j])
+                    t.SetElement(i,j,T[i,j])
 
-            actor = self.plotter.add_axes(xlabel='a*',
-                                          ylabel='b*',
-                                          zlabel='c*')
-            actor.SetUserMatrix(b)
+            if self.reciprocal_lattice():
+
+                actor = self.plotter.add_axes(xlabel='a*',
+                                              ylabel='b*',
+                                              zlabel='c*')
+
+            else:
+
+                actor = self.plotter.add_axes(xlabel='a',
+                                              ylabel='b',
+                                              zlabel='c')
+
+            actor.SetUserMatrix(t)
+
+    def reciprocal_lattice(self):
+
+        return self.recip_box.isChecked()
 
     def view_vector(self, vecs):
         """
@@ -162,18 +300,18 @@ class NeuXtalVizWidget(QWidget):
 
         Parameters
         ----------
-        vecs : list of 2 or single 3 element 1d array-like 
+        vecs : list of 2 or single 3 element 1d array-like
             Cameram direction and optional upward vector.
 
         """
-        
+
         if len(vecs) == 2:
-            vec = np.cross(vecs[0],vecs[1])
-            self.plotter.view_vector(vecs[0],vec)
+            vec = np.cross(vecs[0], vecs[1])
+            self.plotter.view_vector(vecs[0], vec)
         else:
             self.plotter.view_vector(vecs)
 
-    def update_axis_labels(self):
+    def update_labels(self):
         """
         Change the axes labels between Miller and fractional notation.
 
@@ -218,16 +356,50 @@ class NeuXtalVizWidget(QWidget):
 
             return axes_type, ind
 
-class MainWindow(QMainWindow):
+    def view_xy(self):
+        """
+        View :math:`xy`-plane.
 
-    def __init__(self):
-        super(MainWindow, self).__init__()
+        """
 
-        widget = NeuXtalVizWidget()
-        self.setCentralWidget(widget)
+        self.plotter.view_xy()
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+    def view_yz(self):
+        """
+        View :math:`yz`-plane.
+
+        """
+
+        self.plotter.view_yz()
+
+    def view_zx(self):
+        """
+        View :math:`zx`-plane.
+
+        """
+
+        self.plotter.view_zx()
+
+    def view_yx(self):
+        """
+        View :math:`yx`-plane.
+
+        """
+
+        self.plotter.view_yx()
+
+    def view_zy(self):
+        """
+        View :math:`zy`-plane.
+
+        """
+
+        self.plotter.view_zy()
+
+    def view_xz(self):
+        """
+        View :math:`xz`-plane.
+
+        """
+
+        self.plotter.view_xz()
