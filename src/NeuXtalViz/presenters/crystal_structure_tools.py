@@ -13,7 +13,6 @@ class CrystalStructure(NeuXtalVizPresenter):
         self.view.connect_row_highligter(self.highlight_row)
         self.view.connect_lattice_parameters(self.update_parameters)
         self.view.connect_atom_table(self.set_atom_table)
-
         self.view.connect_load_CIF(self.load_CIF)
 
         self.generate_groups()

@@ -18,7 +18,9 @@ from NeuXtalViz.models.base_model import NeuXtalVizModel
 
 class CrystalStructureModel(NeuXtalVizModel):
 
-    def __init__(self, ref_ws=None):
+    def __init__(self):
+
+        super(CrystalStructureModel, self).__init__()
 
         CreateSampleWorkspace(OutputWorkspace='crystal')
 

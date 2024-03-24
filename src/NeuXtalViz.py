@@ -34,6 +34,10 @@ from NeuXtalViz.views.sample_tools import SampleView
 from NeuXtalViz.models.sample_tools import SampleModel
 from NeuXtalViz.presenters.sample_tools import Sample
 
+from NeuXtalViz.views.modulation_tools import ModulationView
+from NeuXtalViz.models.modulation_tools import ModulationModel
+from NeuXtalViz.presenters.modulation_tools import Modulation
+
 class NeuXtalViz(QMainWindow):
 
     __instance = None
@@ -66,6 +70,10 @@ class NeuXtalViz(QMainWindow):
         s_action.triggered.connect(lambda: self.stack.setCurrentIndex(1))
         app_menu.addAction(s_action)
 
+        m_action = QAction('Modulation', self)
+        m_action.triggered.connect(lambda: self.stack.setCurrentIndex(2))
+        app_menu.addAction(m_action)
+
         cs_view = CrystalStructureView(self)
         cs_model = CrystalStructureModel()
         self.cs = CrystalStructure(cs_view, cs_model)
@@ -75,6 +83,11 @@ class NeuXtalViz(QMainWindow):
         s_model = SampleModel()
         self.s = Sample(s_view, s_model)
         self.stack.addWidget(s_view)
+
+        m_view = ModulationView(self)
+        m_model = ModulationModel()
+        self.s = Modulation(m_view, m_model)
+        self.stack.addWidget(m_view)
 
         layout.addWidget(self.stack)
 

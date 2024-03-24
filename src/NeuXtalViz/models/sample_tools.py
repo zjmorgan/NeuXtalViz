@@ -26,6 +26,7 @@ class SampleModel(NeuXtalVizModel):
     def get_volume(self):
 
         if self.has_UB('sample'):
+
             return mtd['sample'].sample().getOrientedLattice().volume()
 
     def get_euler_angles(self, u_vector, v_vector):

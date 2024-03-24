@@ -9,8 +9,24 @@ class NeuXtalVizModel():
         self.UB = None
 
     def has_UB(self, ws):
+        """
+        Check if the oriented lattice exists on a workspace.
 
-        return HasUB(Workspace=ws)
+        Parameters
+        ----------
+        ws : str
+            Name of workspace.
+
+        Returns
+        -------
+        ol : bool
+            Oriented lattice exists or not.
+
+        """
+
+        ol = HasUB(Workspace=ws)
+
+        return ol
 
     def set_UB(self, UB):
         """
