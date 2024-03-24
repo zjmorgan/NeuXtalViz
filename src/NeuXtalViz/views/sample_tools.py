@@ -13,50 +13,37 @@ from qtpy.QtWidgets import (QWidget,
                             QHBoxLayout,
                             QVBoxLayout,
                             QGridLayout,
-                            QFrame,
+                            QTabWidget,
                             QFileDialog)
 
-from PyQt5.QtWidgets import QApplication, QMainWindow
-
-from qtpy.QtGui import QDoubleValidator, QIntValidator
-from PyQt5.QtCore import Qt
+from qtpy.QtGui import QDoubleValidator, QIntValidator, QRegExpValidator
+from PyQt5.QtCore import Qt, QRegExp
 
 import pyvista as pv
-from pyvistaqt import QtInteractor
 
-from matplotlib.backends.backend_qtagg import FigureCanvas
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
-from matplotlib.figure import Figure
+# from matplotlib.backends.backend_qtagg import FigureCanvas
+# from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
+# from matplotlib.figure import Figure
 
-from garnet.config.atoms import colors, radii
+from NeuXtalViz.config.atoms import colors, radii
+from NeuXtalViz.views.base_view import NeuXtalVizWidget
 
-class SampleView(QWidget):
+class SampleView(NeuXtalVizWidget):
 
     def __init__(self, parent=None):
 
         super().__init__(parent)
 
-        sample_layout = self.__init_sample()
-        viewer_layout = self.__init_viewer()
-        peaks_layout = self.__init_peaks()
+        self.tab_widget = QTabWidget(self)
 
-        vert_sep_left = QFrame()
-        vert_sep_right = QFrame()
+        self.sample_tab()
 
-        vert_sep_left.setFrameShape(QFrame.VLine)
-        vert_sep_right.setFrameShape(QFrame.VLine)
+        self.layout().addWidget(self.tab_widget)
 
-        layout = QHBoxLayout()
+    def sample_tab(self):
 
-        layout.addLayout(sample_layout)
-        layout.addWidget(vert_sep_left)
-        layout.addLayout(viewer_layout)
-        layout.addWidget(vert_sep_right)
-        layout.addLayout(peaks_layout)
-
-        self.setLayout(layout)
-
-    def __init_sample(self):
+        samp_tab = QWidget()
+        self.tab_widget.addTab(samp_tab, 'Sample')
 
         self.sample_combo = QComboBox(self)
         self.sample_combo.addItem('Sphere')
@@ -64,7 +51,7 @@ class SampleView(QWidget):
         self.sample_combo.addItem('Plate')
 
         self.add_sample_button = QPushButton('Add Sample', self)
-        self.copy_material_button = QPushButton('Copy Material', self)
+        self.load_UB_button = QPushButton('Load UB', self)
 
         notation = QDoubleValidator.StandardNotation
 
@@ -76,9 +63,12 @@ class SampleView(QWidget):
 
         unit_label = QLabel('cm', self)
 
-        self.param1_line = QLineEdit('0.05')
-        self.param2_line = QLineEdit('0.05')
-        self.param3_line = QLineEdit('0.05')
+        self.param1_line = QLineEdit('0.50')
+        self.param2_line = QLineEdit('0.50')
+        self.param3_line = QLineEdit('0.50')
+
+        self.param2_line.setDisabled(True)
+        self.param3_line.setDisabled(True)
 
         self.param1_line.setValidator(validator)
         self.param2_line.setValidator(validator)
@@ -88,9 +78,9 @@ class SampleView(QWidget):
         generate_layout = QHBoxLayout()
 
         generate_layout.addWidget(self.sample_combo)
-        generate_layout.addWidget(self.copy_material_button)
+        generate_layout.addWidget(self.load_UB_button)
         generate_layout.addWidget(self.add_sample_button)
-    
+
         param_layout.addWidget(param1_label)
         param_layout.addWidget(self.param1_line)
 
@@ -107,6 +97,20 @@ class SampleView(QWidget):
         self.chem_line = QLineEdit()
         self.Z_line = QLineEdit()
         self.V_line = QLineEdit()
+
+        exp = '-^((\(\d+[A-Z][a-z]?\)|[DT]|[A-Z][a-z]?)(\d+(\.\d+)?)?)'+\
+              '(-((\(\d+[A-Z][a-z]?\)|[DT]|[A-Z][a-z]?)(\d+(\.\d+)?)?))*$'
+
+        regexp = QRegExp(exp)
+        validator = QRegExpValidator(regexp)
+
+        validator = QIntValidator(1, 10000, self)
+
+        self.Z_line.setValidator(validator)
+
+        validator = QDoubleValidator(0, 100000, 4, notation=notation)
+
+        self.V_line.setValidator(validator)
 
         Z_label = QLabel('Z')
         V_label = QLabel('Ω')
@@ -159,28 +163,28 @@ class SampleView(QWidget):
         M_label = QLabel('M', self)
         n_label = QLabel('n', self)
         rho_label = QLabel('rho', self)
-        V_label = QLabel('V', self)
+        v_label = QLabel('V', self)
         m_label = QLabel('m', self)
 
         N_unit_label = QLabel('atoms', self)
         M_unit_label = QLabel('g/mol', self)
         n_unit_label = QLabel('1/Å^3', self)
         rho_unit_label = QLabel('g/cm^3', self)
-        V_unit_label = QLabel('cm^3', self)
+        v_unit_label = QLabel('cm^3', self)
         m_unit_label = QLabel('g', self)
 
         self.N_line = QLineEdit()
         self.M_line = QLineEdit()
         self.n_line = QLineEdit()
         self.rho_line = QLineEdit()
-        self.V_line = QLineEdit()
+        self.v_line = QLineEdit()
         self.m_line = QLineEdit()
 
         self.N_line.setEnabled(False)
         self.M_line.setEnabled(False)
         self.n_line.setEnabled(False)
         self.rho_line.setEnabled(False)
-        self.V_line.setEnabled(False)
+        self.v_line.setEnabled(False)
         self.m_line.setEnabled(False)
 
         cryst_layout.addWidget(N_label, 3, 0)
@@ -199,9 +203,9 @@ class SampleView(QWidget):
         cryst_layout.addWidget(self.rho_line, 6, 1, 1, 2)
         cryst_layout.addWidget(rho_unit_label, 6, 3)
 
-        cryst_layout.addWidget(V_label, 7, 0)
-        cryst_layout.addWidget(self.V_line, 7, 1, 1, 2)
-        cryst_layout.addWidget(V_unit_label, 7, 3)
+        cryst_layout.addWidget(v_label, 7, 0)
+        cryst_layout.addWidget(self.v_line, 7, 1, 1, 2)
+        cryst_layout.addWidget(v_unit_label, 7, 3)
 
         cryst_layout.addWidget(m_label, 8, 0)
         cryst_layout.addWidget(self.m_line, 8, 1, 1, 2)
@@ -212,7 +216,7 @@ class SampleView(QWidget):
         a_star_label = QLabel('a*', self)
         b_star_label = QLabel('b*', self)
         c_star_label = QLabel('c*', self)
-       
+
         face_index_label = QLabel('Face Index', self)
         u_label = QLabel('Along Thickness:', self)
         v_label = QLabel('In-plane Lateral:', self)
@@ -241,218 +245,272 @@ class SampleView(QWidget):
         orient_layout.addWidget(self.kv_line, 2, 2)
         orient_layout.addWidget(self.lv_line, 2, 3)
 
-        sample_layout.addLayout(generate_layout)
-        sample_layout.addLayout(param_layout)
-        sample_layout.addStretch(1)
-        sample_layout.addLayout(orient_layout)
-        sample_layout.addStretch(1)
-        sample_layout.addLayout(material_layout)
-        sample_layout.addStretch(1)
-        sample_layout.addLayout(cryst_layout)
-
-        return sample_layout
-
-    def __init_peaks(self):
-
-        peaks_layout = QVBoxLayout()
-
         stretch = QHeaderView.Stretch
 
-        self.peaks_table = QTableWidget()
+        self.gon_table = QTableWidget()
 
-        self.peaks_table.setRowCount(0)
-        self.peaks_table.setColumnCount(6)
+        self.gon_table.setRowCount(3)
+        self.gon_table.setColumnCount(6)
 
-        self.peaks_table.horizontalHeader().setSectionResizeMode(stretch)
-        self.peaks_table.setHorizontalHeaderLabels(['h','k','l','d','λ','T'])
-        self.peaks_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        labels = ['name','x','y','z','sense','angle']
 
-        plot_layout = QVBoxLayout()
+        self.gon_table.horizontalHeader().setSectionResizeMode(stretch)
+        self.gon_table.setHorizontalHeaderLabels(labels)
+        self.gon_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.gon_table.setSelectionBehavior(QTableWidget.SelectRows)
 
-        self.canvas = FigureCanvas(Figure())
+        data = [['ω', 0, 1, 0, 1, 0.0],
+                ['χ', 0, 0, 1, 1, 0.0],
+                ['φ', 0, 1, 0, 1, 0.0]]
 
-        plot_layout.addLayout(plot_layout)
-        plot_layout.addWidget(NavigationToolbar2QT(self.canvas, self))
-        plot_layout.addWidget(self.canvas)
+        for row, gon in enumerate(data):
+            for col, val in enumerate(gon):
+                item = QTableWidgetItem(str(val))
+                item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+                self.gon_table.setItem(row, col, item)
 
-        peaks_layout.addWidget(self.peaks_table)
-        peaks_layout.addLayout(plot_layout)
+        goniometer_layout = QHBoxLayout()
 
-        return peaks_layout
+        self.name_line = QLineEdit()
+        self.x_line = QLineEdit()
+        self.y_line = QLineEdit()
+        self.z_line = QLineEdit()
+        self.sense_line = QLineEdit()
+        self.angle_line = QLineEdit()
 
-    def __init_viewer(self):
+        self.name_line.setReadOnly(True)
 
-        self.proj_box = QCheckBox('Parallel Projection', self)
+        validator = QIntValidator(-1, 1, self)
 
-        self.reset_button = QPushButton('Reset View', self)
+        self.x_line.setValidator(validator)
+        self.y_line.setValidator(validator)
+        self.z_line.setValidator(validator)
 
-        self.view_combo = QComboBox(self)
-        self.view_combo.addItem('[hkl]')
-        self.view_combo.addItem('[uvw]')
+        regexp = QRegExp('^-1$|^1$')
+        validator = QRegExpValidator(regexp)
 
-        notation = QDoubleValidator.StandardNotation
+        self.sense_line.setValidator(validator)
 
-        validator = QDoubleValidator(-100, 100, 5, notation=notation)
+        validator = QDoubleValidator(-360, 360, 1, notation=notation)
 
-        self.axis1_line = QLineEdit()
-        self.axis2_line = QLineEdit()
-        self.axis3_line = QLineEdit()
+        self.angle_line.setValidator(validator)
 
-        self.axis1_line.setValidator(validator)
-        self.axis2_line.setValidator(validator)
-        self.axis3_line.setValidator(validator)
+        goniometer_layout.addWidget(self.name_line)
+        goniometer_layout.addWidget(self.x_line)
+        goniometer_layout.addWidget(self.y_line)
+        goniometer_layout.addWidget(self.z_line)
+        goniometer_layout.addWidget(self.sense_line)
+        goniometer_layout.addWidget(self.angle_line)
 
-        self.axis1_label = QLabel('h', self)
-        self.axis2_label = QLabel('k', self)
-        self.axis3_label = QLabel('l', self)
+        sample_layout.addLayout(generate_layout)
+        sample_layout.addLayout(param_layout)
+        sample_layout.addWidget(self.gon_table)
+        sample_layout.addLayout(goniometer_layout)
+        sample_layout.addLayout(orient_layout)
+        sample_layout.addLayout(material_layout)
+        sample_layout.addLayout(cryst_layout)
 
-        self.manual_button = QPushButton('View Axis', self)
+        samp_tab.setLayout(sample_layout)
 
-        self.a_star_button = QPushButton('a*', self)
-        self.b_star_button = QPushButton('b*', self)
-        self.c_star_button = QPushButton('c*', self)
+    def connect_sample_parameters(self, update_parameters):
 
-        self.a_button = QPushButton('a', self)
-        self.b_button = QPushButton('b', self)
-        self.c_button = QPushButton('c', self)
+        self.sample_combo.activated.connect(update_parameters)
 
-        self.frame = QFrame()
+        self.param1_line.editingFinished.connect(update_parameters)
+        self.param2_line.editingFinished.connect(update_parameters)
+        self.param3_line.editingFinished.connect(update_parameters)
 
-        self.plotter = QtInteractor(self.frame)
+    def connect_row_highligter(self, highlight_row):
 
-        viewer_layout = QVBoxLayout()
-        camera_layout = QGridLayout()
+        self.gon_table.itemSelectionChanged.connect(highlight_row)
 
-        camera_layout.addWidget(self.proj_box, 0, 0)
-        camera_layout.addWidget(self.reset_button, 1, 0)
-        camera_layout.addWidget(self.a_star_button, 0, 1)
-        camera_layout.addWidget(self.b_star_button, 0, 2)
-        camera_layout.addWidget(self.c_star_button, 0, 3)
-        camera_layout.addWidget(self.a_button, 1, 1)
-        camera_layout.addWidget(self.b_button, 1, 2)
-        camera_layout.addWidget(self.c_button, 1, 3)
-        camera_layout.addWidget(self.axis1_label, 0, 4, Qt.AlignCenter)
-        camera_layout.addWidget(self.axis2_label, 0, 5, Qt.AlignCenter)
-        camera_layout.addWidget(self.axis3_label, 0, 6, Qt.AlignCenter)
-        camera_layout.addWidget(self.axis1_line, 1, 4)
-        camera_layout.addWidget(self.axis2_line, 1, 5)
-        camera_layout.addWidget(self.axis3_line, 1, 6)
-        camera_layout.addWidget(self.view_combo, 0, 7)
-        camera_layout.addWidget(self.manual_button, 1, 7)
+    def connect_load_UB(self, load_UB):
 
-        viewer_layout.addLayout(camera_layout)
-        viewer_layout.addWidget(self.plotter.interactor)
+        self.load_UB_button.clicked.connect(load_UB)
 
-        return viewer_layout
+    def connect_goniometer_table(self, set_gonioneter_table):
 
-    def set_transform(self, T):
+        self.name_line.editingFinished.connect(set_gonioneter_table)
+        self.x_line.editingFinished.connect(set_gonioneter_table)
+        self.y_line.editingFinished.connect(set_gonioneter_table)
+        self.z_line.editingFinished.connect(set_gonioneter_table)
+        self.sense_line.editingFinished.connect(set_gonioneter_table)
+        self.angle_line.editingFinished.connect(set_gonioneter_table)
 
-        if T is not None:
+    def connect_add_sample(self, add_sample):
 
-            a = pv._vtk.vtkMatrix4x4()
-            for i in range(3):
-                for j in range(3):
-                    a.SetElement(i,j,T[i,j])
+        self.add_sample_button.clicked.connect(add_sample)
 
-            actor = self.plotter.add_axes(xlabel='a',
-                                          ylabel='b',
-                                          zlabel='c')
-            actor.SetUserMatrix(a)
+    def load_UB_file_dialog(self):
 
-    def view_vector(self, vecs):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
 
-        if len(vecs) == 2:
-            vec = np.cross(vecs[0],vecs[1])
-            self.plotter.view_vector(vecs[0],vec)
-        else:
-            self.plotter.view_vector(vecs)
+        filename, _ = QFileDialog.getOpenFileName(self,
+                                                  'Load UB file',
+                                                  '',
+                                                  'UB files (*.mat)',
+                                                  options=options)
 
-    def update_axis_labels(self):
+        return filename
 
-        axes_type = self.view_combo.currentText()
+    def get_sample_shape(self):
 
-        if axes_type == '[hkl]':
-            self.axis1_label.setText('h')
-            self.axis2_label.setText('k')
-            self.axis3_label.setText('l')
-        else:
-            self.axis1_label.setText('u')
-            self.axis2_label.setText('v')
-            self.axis3_label.setText('w')
+        return self.sample_combo.currentText()
 
-    def get_manual_indices(self):
+    def set_sample_constants(self, params):
 
-        axes_type = self.view_combo.currentText()
+        self.param1_line.setText('{:.2f}'.format(params[0]))
+        self.param2_line.setText('{:.2f}'.format(params[1]))
+        self.param3_line.setText('{:.2f}'.format(params[2]))
 
-        axes = [self.axis1_line, self.axis2_line, self.axis3_line]
-        valid_axes = all([axis.hasAcceptableInput() for axis in axes])
+    def get_sample_constants(self):
 
-        if valid_axes:
+        params = self.param1_line, self.param2_line, self.param3_line
 
-            axis1 = float(self.axis1_line.text())
-            axis2 = float(self.axis2_line.text())
-            axis3 = float(self.axis3_line.text())
+        valid_params = all([param.hasAcceptableInput() for param in params])
 
-            ind = np.array([axis1,axis2,axis3])
+        if valid_params:
 
-            return axes_type, ind
+            return [float(param.text()) for param in params]
 
-    def change_proj(self):
+    def constrain_size(self, const):
 
-        if self.proj_box.isChecked():
-            self.plotter.enable_parallel_projection()
-        else:
-            self.plotter.disable_parallel_projection()
+        params = self.param1_line, self.param2_line, self.param3_line
 
-    def reset_view(self):
+        for fixed, param in zip(const, params):
+            param.setDisabled(fixed)
 
-        self.plotter.reset_camera()
-        self.plotter.view_isometric()
+    def set_goniometer(self, row, goniometer):
 
-    def add_sample(self, atom_dict):
+        for col, val in enumerate(goniometer):
+            item = QTableWidgetItem(str(val))
+            item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+            self.gon_table.setItem(row, col, item)
+
+    def get_goniometer(self):
+
+        row = self.gon_table.currentRow()
+        if row is not None:
+            return self.get_goniometer_angle(row)
+
+    def set_angle(self, goniometer):
+
+        self.name_line.setText(goniometer[0])
+        self.x_line.setText(str(goniometer[1]))
+        self.y_line.setText(str(goniometer[2]))
+        self.z_line.setText(str(goniometer[3]))
+        self.sense_line.setText(str(goniometer[4]))
+        self.angle_line.setText(str(goniometer[5]))
+
+    def get_goniometer_angle(self, row):
+
+        name = self.gon_table.item(row, 0).text()
+        x = self.gon_table.item(row, 1).text()
+        y = self.gon_table.item(row, 2).text()
+        z = self.gon_table.item(row, 3).text()
+        sense = self.gon_table.item(row, 4).text()
+        angle = self.gon_table.item(row, 5).text()
+        axis = [int(val) for val in [x, y, z, sense]]
+        goniometer = [name, *axis, float(angle)]
+
+        return goniometer
+
+    def get_goniometers(self):
+
+        n = self.gon_table.rowCount()
+
+        goniometers = []
+        for row in range(n):
+            goniometer = self.get_goniometer_angle(row)
+            goniometers.append(goniometer)
+
+        return goniometers
+
+    def set_goniometer_table(self):
+
+        row = self.gon_table.currentRow()
+
+        params = self.name_line, self.x_line, self.y_line, self.z_line, \
+                 self.sense_line, self.angle_line
+
+        valid_params = all([param.hasAcceptableInput() for param in params])
+
+        if valid_params and row:
+
+            goniometer = [params[0].text(), \
+                          *[int(param.text()) for param in params[1:-1]],
+                          float(params[-1].text())]
+
+            self.set_goniometer(row, goniometer)
+
+    def set_unit_cell_volume(self, vol):
+
+        self.V_line.setText('{:.4f}'.format(vol))
+
+    def get_material_paremters(self):
+
+        params = self.chem_line, self.Z_line, self.V_line,
+
+        valid_params = all([param.hasAcceptableInput() for param in params])
+
+        if valid_params:
+
+            vals = [params[0].text(),
+                    float(params[1].text()),
+                    float(params[2].text())]
+
+            return vals
+
+    def add_sample(self, sample_mesh):
 
         self.plotter.clear_actors()
 
-        T = np.eye(4)
+        triangles = []
+        for triangle in sample_mesh:
+            triangles.append(pv.Triangle(triangle))
 
-        geoms, cmap, self.indexing = [], [], {}
-
-        sphere = pv.Icosphere(radius=1, nsub=1)
-
-        atm_ind = 0
-
-        for ind, atom in enumerate(atom_dict.keys()):
-
-            color = colors[atom]
-            radius = radii[atom][0]
-
-            coordinates, opacities, indices = atom_dict[atom]
-
-            for i_atm, (coord, occ) in enumerate(zip(coordinates, opacities)):
-                T[0,0] = T[1,1] = T[2,2] = radius
-                T[:3,3] = coord
-                atm = sphere.copy().transform(T)
-                atm['scalars'] = np.full(sphere.n_cells, ind+1.)
-                geoms.append(atm)
-                self.indexing[atm_ind] = atom
-                atm_ind += 1
-
-            cmap.append(color)
-    
-        cmap = matplotlib.colors.ListedColormap(cmap)
-
-        multiblock = pv.MultiBlock(geoms)
+        multiblock = pv.MultiBlock(triangles)
 
         _, mapper = self.plotter.add_composite(multiblock,
-                                               cmap=cmap,
-                                               smooth_shading=True,
-                                               show_scalar_bar=False)
+                                               smooth_shading=True)
 
-        self.mapper = mapper
+        self.plotter.add_legend_scale(corner_offset_factor=2,
+                                      bottom_border_offset=50,
+                                      top_border_offset=50,
+                                      left_border_offset=100,
+                                      right_border_offset=100,
+                                      legend_visibility=True,
+                                      xy_label_mode=False)
 
-        self.plotter.enable_block_picking(callback=self.highlight,
-                                          side='left')
-        self.plotter.enable_block_picking(callback=self.highlight,
-                                          side='right')
+        self.plotter.add_axes_at_origin()
 
-        self.change_proj()
+        self.reset_view()
+
+    def set_absortion_parameters(self, abs_dict):
+
+        self.sigma_a_line.setText('{:.4f}'.format(abs_dict['sigma_a']))
+        self.sigma_s_line.setText('{:.4f}'.format(abs_dict['sigma_s']))
+
+        self.mu_a_line.setText('{:.4f}'.format(abs_dict['mu_a']))
+        self.mu_s_line.setText('{:.4f}'.format(abs_dict['mu_s']))
+
+        self.N_line.setText('{:.4f}'.format(abs_dict['N']))
+        self.M_line.setText('{:.4f}'.format(abs_dict['M']))
+        self.n_line.setText('{:.4f}'.format(abs_dict['n']))
+        self.rho_line.setText('{:.4f}'.format(abs_dict['rho']))
+        self.v_line.setText('{:.4f}'.format(abs_dict['V']))
+        self.m_line.setText('{:.4f}'.format(abs_dict['m']))
+
+    def get_face_indexing(self):
+
+        params = self.hu_line, self.ku_line, self.lu_line, \
+                 self.hv_line, self.kv_line, self.lv_line
+
+        valid_params = all([param.hasAcceptableInput() for param in params])
+
+        if valid_params:
+
+            vals = [float(param.text()) for param in params]
+
+            return vals[0:3], vals[3:6]

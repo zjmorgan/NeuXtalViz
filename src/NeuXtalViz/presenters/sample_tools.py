@@ -1,84 +1,87 @@
-class Sample:
+import numpy as np
+
+from NeuXtalViz.presenters.base_presenter import NeuXtalVizPresenter
+
+class Sample(NeuXtalVizPresenter):
 
     def __init__(self, view, model):
 
         self.view = view
         self.model = model
 
-        #self.view.sample_combo.currentIndexChanged.connect(self.add_shape)
+        self.view.connect_row_highligter(self.highlight_row)
+        self.view.connect_sample_parameters(self.update_parameters)
+        self.view.connect_goniometer_table(self.set_goniometer_table)
 
-        self.view.manual_button.clicked.connect(self.view_manual)
+        self.view.connect_load_UB(self.load_UB)
+        self.view.connect_add_sample(self.add_sample)
 
-        self.view.a_star_button.clicked.connect(self.view_bc_star)
-        self.view.b_star_button.clicked.connect(self.view_ca_star)
-        self.view.c_star_button.clicked.connect(self.view_ab_star)
+    def highlight_row(self):
 
-        self.view.a_button.clicked.connect(self.view_bc)
-        self.view.b_button.clicked.connect(self.view_ca)
-        self.view.c_button.clicked.connect(self.view_ab)
+        goniometer = self.view.get_goniometer()
+        self.view.set_angle(goniometer)
 
-        self.view.view_combo.currentIndexChanged.connect(self.update_labels)
-        self.view.proj_box.clicked.connect(self.change_proj)
-        self.view.reset_button.clicked.connect(self.reset_view)
+    def set_goniometer_table(self):
 
-    def add_shape(self, shape_dict):
+        self.view.set_goniometer_table()
 
-        self.plotter.clear_actors()
+    def load_UB(self):
 
-        self.change_proj()
+        filename = self.view.load_UB_file_dialog()
 
-    def update_labels(self):
+        if filename:
 
-        self.view.update_axis_labels()
+            self.model.load_UB(filename)
+            vol = self.model.get_volume()
+            self.view.set_unit_cell_volume(vol)
 
-    def change_proj(self):
+    def update_parameters(self):
 
-        self.view.change_proj()
+        params = self.view.get_sample_constants()
 
-    def reset_view(self):
+        shape = self.view.get_sample_shape()
 
-        self.view.reset_view()
+        fixed = [False, False, False]
 
-    def view_ab_star(self):
+        if shape != 'Plate':
+            fixed[2] = True
+            params[2] = params[0]
+        if shape != 'Cylinder' and shape != 'Plate':
+            fixed[1] = True
+            params[1] = params[0]
 
-        vecs = self.model.ab_star_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
+        self.view.set_sample_constants(params)
+        self.view.constrain_size(fixed)
 
-    def view_bc_star(self):
+    def add_sample(self):
 
-        vecs = self.model.bc_star_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
+        mat_dict = shape_dict = None
 
-    def view_ca_star(self):
-        vecs = self.model.ca_star_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
+        goniometers = self.view.get_goniometers()
+        axes = self.model.get_goniometer_strings(goniometers)
 
-    def view_ab(self):
+        material_params = self.view.get_material_paremters()
+        if material_params is not None:
+            mat_dict = self.model.get_material_dict(*material_params)
 
-        vecs = self.model.ab_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
+        sample_params = self.view.get_sample_constants()
 
-    def view_bc(self):
+        shape = self.view.get_sample_shape()
 
-        vecs = self.model.bc_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
+        if sample_params is not None:
+            vectors = self.view.get_face_indexing()
+            angles = 0, 0, 0
+            if vectors is not None:
+                angles = self.model.get_euler_angles(vectors[0], vectors[1])
+            shape_dict = self.model.get_shape_dict(shape,
+                                                   sample_params,
+                                                   *angles)
 
-    def view_ca(self):
+        if np.all([var is not None for var in (shape_dict, mat_dict, axes)]):
+            self.model.set_sample(shape_dict, mat_dict, axes)
 
-        vecs = self.model.ca_axes()
-        if vecs is not None:
-            self.view.view_vector(vecs)
-
-    def view_manual(self):
-
-        indices = self.view.get_manual_indices()
-
-        if indices is not None:
-            vec = self.model.get_vector(*indices)
-            if vec is not None:
-                self.view.view_vector(vec)
+            abs_dict = self.model.get_absorption_dict()
+            self.view.set_absortion_parameters(abs_dict)
+            mesh = self.model.sample_mesh()
+            self.view.add_sample(mesh)
+            self.view.set_transform(self.model.get_transform())

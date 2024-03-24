@@ -30,6 +30,10 @@ from NeuXtalViz.views.crystal_structure_tools import CrystalStructureView
 from NeuXtalViz.models.crystal_structure_tools import CrystalStructureModel
 from NeuXtalViz.presenters.crystal_structure_tools import CrystalStructure
 
+from NeuXtalViz.views.sample_tools import SampleView
+from NeuXtalViz.models.sample_tools import SampleModel
+from NeuXtalViz.presenters.sample_tools import Sample
+
 class NeuXtalViz(QMainWindow):
 
     __instance = None
@@ -56,15 +60,23 @@ class NeuXtalViz(QMainWindow):
 
         cs_action = QAction('Crystal Structure', self)
         cs_action.triggered.connect(lambda: self.stack.setCurrentIndex(0))
+        app_menu.addAction(cs_action)
+
+        s_action = QAction('Sample', self)
+        s_action.triggered.connect(lambda: self.stack.setCurrentIndex(1))
+        app_menu.addAction(s_action)
 
         cs_view = CrystalStructureView(self)
         cs_model = CrystalStructureModel()
         self.cs = CrystalStructure(cs_view, cs_model)
         self.stack.addWidget(cs_view)
 
-        layout.addWidget(self.stack)
+        s_view = SampleView(self)
+        s_model = SampleModel()
+        self.s = Sample(s_view, s_model)
+        self.stack.addWidget(s_view)
 
-        app_menu.addAction(cs_action)
+        layout.addWidget(self.stack)
 
 def gui():
     app = QApplication(sys.argv)

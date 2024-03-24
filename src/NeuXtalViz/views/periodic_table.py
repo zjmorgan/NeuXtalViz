@@ -4,6 +4,7 @@ import numpy as np
 from qtpy.QtWidgets import (QWidget,
                             QPushButton,
                             QLabel,
+                            QComboBox,
                             QHBoxLayout,
                             QVBoxLayout,
                             QGridLayout,
@@ -74,27 +75,32 @@ class PeriodicTable(QWidget):
         self.widget = Atom()
         self.widget.show()
 
-
 class Atom(QWidget):
 
     def __init__(self):
 
         super().__init__()
 
-        self.setWindowTitle("New Widget")
+        card = QGridLayout()
 
-        layout = QVBoxLayout(self)
+        self.z_label = QLabel('1')
+        self.symbol_label = QLabel('H')
+        self.name_label = QLabel('Hydrogen')
 
-        label = QLabel("This is a new QWidget!")
-        layout.addWidget(label)
+        self.isotope_combo = QComboBox(self)
 
+        card.addWidget(self.z_label, 0, 0, Qt.AlignCenter)
+        card.addWidget(self.isotope_combo, 0, 1, 1, 2)
+        card.addWidget(self.symbol_label, 1, 1, 1, 2, Qt.AlignCenter)
+        card.addWidget(self.name_label, 2, 1, 1, 2, Qt.AlignCenter)
+
+        self.setLayout(card)
 
 class MainWindow(QMainWindow):
 
     def __init__(self):
-        super(MainWindow, self).__init__()
 
-        self.setWindowTitle('Periodic Table')
+        super(MainWindow, self).__init__()
 
         widget = PeriodicTable()
         self.setCentralWidget(widget)

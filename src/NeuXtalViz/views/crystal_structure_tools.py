@@ -330,7 +330,7 @@ class CrystalStructureView(NeuXtalVizWidget):
         filename, _ = QFileDialog.getOpenFileName(self,
                                                   'Load CIF file',
                                                   '',
-                                                  'CF files (*.cif)',
+                                                  'CIF files (*.cif)',
                                                   options=options)
 
         return filename
