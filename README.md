@@ -58,4 +58,11 @@ The application is designed with a model-view-viwmodel (MVVM) pattern.
 This makes it possible to replace the view with a different one for other applications platforms. 
 This could include [trame](https://kitware.github.io/trame/) for web-based applications.
 
-[![](https://mermaid.ink/img/pako:eNpVT0sKgzAQvUqYlYV6ASlduRVaWrrKZjBjDeQjcVIR8e5NVAqdxWOY9-HNAq1XBBV0xk9tj4HFs5ZOpLHoWCshyvIqbBKZosl42tnbfOeN-miaileCg-CAln7MEZWN4pKPQ6CRHFMoNtMeeVizQfyJpIMzWAoWtUoll6yTwD1ZklClVVGH0bAE6dYkxcj-MbsWKg6RzhAHhUy1xndqBVWHZkxXUpp9aPbHt__XLwXKVVA?type=png)](https://mermaid.live/edit#pako:eNpVT0sKgzAQvUqYlYV6ASlduRVaWrrKZjBjDeQjcVIR8e5NVAqdxWOY9-HNAq1XBBV0xk9tj4HFs5ZOpLHoWCshyvIqbBKZosl42tnbfOeN-miaileCg-CAln7MEZWN4pKPQ6CRHFMoNtMeeVizQfyJpIMzWAoWtUoll6yTwD1ZklClVVGH0bAE6dYkxcj-MbsWKg6RzhAHhUy1xndqBVWHZkxXUpp9aPbHt__XLwXKVVA)
+flowchart TD
+    mantid  --> model(Model)
+    PyQt --> view(View)
+    trame --> view
+    model <--> presenter((Presenter))
+    view <--> presenter
+
+[![](https://mermaid.ink/img/pako:eNpdUMEKgzAM_ZWSk4L-gIydvAqOjZ16CTbOgq1S04mI_75W3Q7L4fHIey8kWaEZFEEBbT_MTYeOxaOUVoQyaFkrIfL8Kkww9UkVMT3UernxLr01zckzwCmwQ0M_5RwVg-ISm6OjiSyTS5L6S9MzGgN_LmkhA0POoFZhyzUaJXBHhiQUgSpq0fcsQdotWNHzcF9sAwU7Txn4USFTqfEV1oKixX4KXVKaB1cdl-8P2D5mNFW4?type=png)](https://mermaid.live/edit#pako:eNpdUMEKgzAM_ZWSk4L-gIydvAqOjZ16CTbOgq1S04mI_75W3Q7L4fHIey8kWaEZFEEBbT_MTYeOxaOUVoQyaFkrIfL8Kkww9UkVMT3UernxLr01zckzwCmwQ0M_5RwVg-ISm6OjiSyTS5L6S9MzGgN_LmkhA0POoFZhyzUaJXBHhiQUgSpq0fcsQdotWNHzcF9sAwU7Txn4USFTqfEV1oKixX4KXVKaB1cdl-8P2D5mNFW4)
