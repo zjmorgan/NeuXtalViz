@@ -54,7 +54,8 @@ Run the GUI
 
 ### Additional information
 
-The application is designed with a model-view-presenter pattern. This makes it possible to replace the view with a different one for other applications platforms. 
+The application is designed with a model-view-viwmodel (MVVM) pattern.
+This makes it possible to replace the view with a different one for other applications platforms. 
 This could include [trame](https://kitware.github.io/trame/) for web-based applications.
 
-[![](https://mermaid.ink/img/pako:eNptUM0KgzAMfpWSk4Ied5Gx044T3AY79RJsnIW2So0TEd999WcXWQ4h-f4ImaBsFEEGlWmGskbP4vaQToRqPXXkmHwUFb8xjg-cOKfpRdiQYaJ86btgRXYSHWv11_fRNESv0HbXsm9MMd75dATZoyVIwJK3qFW4elokErgmSxKyMCqqsDcsQbo5SLHn5jm6EjL2PSXQtwqZrhrfIQuyCk0XUFKaG59vn1gfMn8BnIFa3w?type=png)](https://mermaid.live/edit#pako:eNptUM0KgzAMfpWSk4Ied5Gx044T3AY79RJsnIW2So0TEd999WcXWQ4h-f4ImaBsFEEGlWmGskbP4vaQToRqPXXkmHwUFb8xjg-cOKfpRdiQYaJ86btgRXYSHWv11_fRNESv0HbXsm9MMd75dATZoyVIwJK3qFW4elokErgmSxKyMCqqsDcsQbo5SLHn5jm6EjL2PSXQtwqZrhrfIQuyCk0XUFKaG59vn1gfMn8BnIFa3w)
+[![](https://mermaid.ink/img/pako:eNpVT0sKgzAQvUqYlYV6ASlduRVaWrrKZjBjDeQjcVIR8e5NVAqdxWOY9-HNAq1XBBV0xk9tj4HFs5ZOpLHoWCshyvIqbBKZosl42tnbfOeN-miaileCg-CAln7MEZWN4pKPQ6CRHFMoNtMeeVizQfyJpIMzWAoWtUoll6yTwD1ZklClVVGH0bAE6dYkxcj-MbsWKg6RzhAHhUy1xndqBVWHZkxXUpp9aPbHt__XLwXKVVA?type=png)](https://mermaid.live/edit#pako:eNpVT0sKgzAQvUqYlYV6ASlduRVaWrrKZjBjDeQjcVIR8e5NVAqdxWOY9-HNAq1XBBV0xk9tj4HFs5ZOpLHoWCshyvIqbBKZosl42tnbfOeN-miaileCg-CAln7MEZWN4pKPQ6CRHFMoNtMeeVizQfyJpIMzWAoWtUoll6yTwD1ZklClVVGH0bAE6dYkxcj-MbsWKg6RzhAHhUy1xndqBVWHZkxXUpp9aPbHt__XLwXKVVA)
