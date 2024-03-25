@@ -50,7 +50,7 @@ Install in editable mode for developlment
 `python -m pip install -e .`
 
 Run the GUI
-`python src/nxv.py`
+`python src/NeuXtalViz.py`
 
 ### Additional information
 
