@@ -22,10 +22,6 @@ logger = Logger('NeuXtalViz')
 import pyvista
 pyvista.set_plot_theme('document')
 
-# from NeuXtalViz.views.reciprocal_space_viewer import ReciprocalSpaceViewerView
-# from NeuXtalViz.models.reciprocal_space_viewer import ReciprocalSpaceViewerModel
-# from NeuXtalViz.presenters.reciprocal_space_viewer import ReciprocalSpaceViewer
-
 from NeuXtalViz.views.crystal_structure_tools import CrystalStructureView
 from NeuXtalViz.models.crystal_structure_tools import CrystalStructureModel
 from NeuXtalViz.presenters.crystal_structure_tools import CrystalStructure
@@ -37,6 +33,10 @@ from NeuXtalViz.presenters.sample_tools import Sample
 from NeuXtalViz.views.modulation_tools import ModulationView
 from NeuXtalViz.models.modulation_tools import ModulationModel
 from NeuXtalViz.presenters.modulation_tools import Modulation
+
+from NeuXtalViz.views.volume_slicer import VolumeSlicerView
+from NeuXtalViz.models.volume_slicer import VolumeSlicerModel
+from NeuXtalViz.presenters.volume_slicer import VolumeSlicer
 
 class NeuXtalViz(QMainWindow):
 
@@ -74,6 +74,10 @@ class NeuXtalViz(QMainWindow):
         m_action.triggered.connect(lambda: self.stack.setCurrentIndex(2))
         app_menu.addAction(m_action)
 
+        vs_action = QAction('Volume Slicer', self)
+        vs_action.triggered.connect(lambda: self.stack.setCurrentIndex(3))
+        app_menu.addAction(vs_action)
+
         cs_view = CrystalStructureView(self)
         cs_model = CrystalStructureModel()
         self.cs = CrystalStructure(cs_view, cs_model)
@@ -86,8 +90,13 @@ class NeuXtalViz(QMainWindow):
 
         m_view = ModulationView(self)
         m_model = ModulationModel()
-        self.s = Modulation(m_view, m_model)
+        self.m = Modulation(m_view, m_model)
         self.stack.addWidget(m_view)
+
+        vs_view = VolumeSlicerView(self)
+        vs_model = VolumeSlicerModel()
+        self.vs = VolumeSlicer(vs_view, vs_model)
+        self.stack.addWidget(vs_view)
 
         layout.addWidget(self.stack)
 

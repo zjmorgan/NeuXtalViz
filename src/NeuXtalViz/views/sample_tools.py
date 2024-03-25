@@ -21,11 +21,6 @@ from PyQt5.QtCore import Qt, QRegExp
 
 import pyvista as pv
 
-# from matplotlib.backends.backend_qtagg import FigureCanvas
-# from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
-# from matplotlib.figure import Figure
-
-from NeuXtalViz.config.atoms import colors, radii
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
 
 class SampleView(NeuXtalVizWidget):

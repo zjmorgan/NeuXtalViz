@@ -6,8 +6,7 @@ class Sample(NeuXtalVizPresenter):
 
     def __init__(self, view, model):
 
-        self.view = view
-        self.model = model
+        super(Sample, self).__init__(view, model)
 
         self.view.connect_row_highligter(self.highlight_row)
         self.view.connect_sample_parameters(self.update_parameters)

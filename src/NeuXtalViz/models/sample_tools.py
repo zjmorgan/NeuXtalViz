@@ -13,6 +13,8 @@ class SampleModel(NeuXtalVizModel):
 
     def __init__(self):
 
+        super(SampleModel, self).__init__()
+
         CreateSingleValuedWorkspace(OutputWorkspace='sample')
 
     def load_UB(self, filename):
@@ -31,7 +33,9 @@ class SampleModel(NeuXtalVizModel):
 
     def get_euler_angles(self, u_vector, v_vector):
 
-        if self.UB is not None:
+        w_vector = np.cross(u_vector, v_vector)        
+
+        if self.UB is not None and np.linalg.norm(w_vector) > 0:
 
             u = np.dot(self.UB, u_vector)
             v = np.dot(self.UB, v_vector)
