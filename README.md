@@ -27,6 +27,17 @@ The current features of NeuXtalViz including the following tools
 
 [![](https://mermaid.ink/img/pako:eNp1Uk1vwjAM_StRTmGC_QAOkxCcJm2HlaFJaw8hcWlGmlT52ECI_z6nKR-qRA-26_ec2C8-UWEl0Dmttf0TDXeBrFelIfjxrmPsHeJX4Hqj_GRyTZPZ7IUId_SIsGX2pAguihAdjHiet50GVvSOLLbeui4oa0a0X6tjC2zTO1JoJcCNKK2VUfNUy96uIVlbqweij9ud411z64V8QK0MtGBCpghVfz89o63uhxiwYZIEKOORh7bKGEZ5mgb0gbEiuYsiYOTo_qV1DkTf3mdQWgUFPlPiFo9teajutBmKs0Ap3ew1stBWjy5YqbqOHnUSPARwyuwywRxS22irO1EfHTKICJIsDNdHr4YeO-D7dEzvq5H0mXL77-FgO4UFyQ0tpxChGfnhhjP2ivZOLjqlLbiWK4mbd0rpkoYGn6mkcwwl1DzqUNLSnJHKY7DF0Qg6x2eFKY2dxK5XiuMY7SUJUgXr3vIy9zt9_geLEe9f?type=png)](https://mermaid.live/edit#pako:eNp1Uk1vwjAM_StRTmGC_QAOkxCcJm2HlaFJaw8hcWlGmlT52ECI_z6nKR-qRA-26_ec2C8-UWEl0Dmttf0TDXeBrFelIfjxrmPsHeJX4Hqj_GRyTZPZ7IUId_SIsGX2pAguihAdjHiet50GVvSOLLbeui4oa0a0X6tjC2zTO1JoJcCNKK2VUfNUy96uIVlbqweij9ud411z64V8QK0MtGBCpghVfz89o63uhxiwYZIEKOORh7bKGEZ5mgb0gbEiuYsiYOTo_qV1DkTf3mdQWgUFPlPiFo9teajutBmKs0Ap3ew1stBWjy5YqbqOHnUSPARwyuwywRxS22irO1EfHTKICJIsDNdHr4YeO-D7dEzvq5H0mXL77-FgO4UFyQ0tpxChGfnhhjP2ivZOLjqlLbiWK4mbd0rpkoYGn6mkcwwl1DzqUNLSnJHKY7DF0Qg6x2eFKY2dxK5XiuMY7SUJUgXr3vIy9zt9_geLEe9f)
 
+### Screenshots
+
+![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/1e44c60b-a9bf-45f2-902a-96bfc98355c5)
+
+![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/757ea243-56fd-4c2d-928c-c02099a3e824)
+
+![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/fd86ad60-797a-4574-9b7b-75bbddf8bd35)
+
+![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/7be57ab6-e928-4ef3-b7bf-e9ae7fb4311c)
+
+
 ### Getting started
 
 Create conda environment
