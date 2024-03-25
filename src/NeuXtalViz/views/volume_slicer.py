@@ -101,7 +101,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def add_histo(self, histo_dict, clim, normal, origin):
 
-        self.plotter.clear()
+        self.plotter.clear_plane_widgets()
         self.plotter.clear_actors()
 
         signal = histo_dict['signal']
