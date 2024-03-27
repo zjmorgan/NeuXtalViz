@@ -20,6 +20,8 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
             self.model.load_md_histo_workspace(filename)
 
+            self.update_oriented_lattice()
+
             self.redraw_data()
 
     def get_normal(self):

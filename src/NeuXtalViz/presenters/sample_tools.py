@@ -33,6 +33,7 @@ class Sample(NeuXtalVizPresenter):
             self.model.load_UB(filename)
             vol = self.model.get_volume()
             self.view.set_unit_cell_volume(vol)
+            self.update_oriented_lattice()
 
     def update_parameters(self):
 
@@ -71,7 +72,9 @@ class Sample(NeuXtalVizPresenter):
             vectors = self.view.get_face_indexing()
             angles = 0, 0, 0
             if vectors is not None:
-                angles = self.model.get_euler_angles(vectors[0], vectors[1])
+                values = self.model.get_euler_angles(vectors[0], vectors[1])
+                if values is not None:
+                    angles = values
             shape_dict = self.model.get_shape_dict(shape,
                                                    sample_params,
                                                    *angles)

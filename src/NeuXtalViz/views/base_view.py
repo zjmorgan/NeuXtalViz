@@ -93,6 +93,7 @@ class NeuXtalVizWidget(QWidget):
         vis_layout = QVBoxLayout()
         camera_layout = QGridLayout()
         plot_layout = QHBoxLayout()
+        lattice_layout = QHBoxLayout()
 
         camera_layout.addWidget(self.proj_box, 0, 0)
         camera_layout.addWidget(self.reset_button, 1, 0)
@@ -127,12 +128,88 @@ class NeuXtalVizWidget(QWidget):
 
         plot_layout.addWidget(self.plotter.interactor)
 
+        ub_a_label = QLabel('a:', self)
+        ub_b_label = QLabel('b:', self)
+        ub_c_label = QLabel('c:', self)
+        ub_alpha_label = QLabel('α:', self)
+        ub_beta_label = QLabel('β:', self)
+        ub_gamma_label = QLabel('γ:', self)
+        ub_u_label = QLabel('u:', self)
+        ub_v_label = QLabel('v:', self)
+
+        ub_angstrom_label = QLabel('Å')
+        ub_degree_label = QLabel('°')
+
+        self.ub_a_line = QLineEdit()
+        self.ub_b_line = QLineEdit()
+        self.ub_c_line = QLineEdit()
+        self.ub_alpha_line = QLineEdit()
+        self.ub_beta_line = QLineEdit()
+        self.ub_gamma_line = QLineEdit()
+        self.ub_u_line = QLineEdit()
+        self.ub_v_line = QLineEdit()
+
+        self.ub_a_line.setReadOnly(True)
+        self.ub_b_line.setReadOnly(True)
+        self.ub_c_line.setReadOnly(True)
+        self.ub_alpha_line.setReadOnly(True)
+        self.ub_beta_line.setReadOnly(True)
+        self.ub_gamma_line.setReadOnly(True)
+        self.ub_u_line.setReadOnly(True)
+        self.ub_v_line.setReadOnly(True)
+
+        lattice_layout.addWidget(ub_a_label)
+        lattice_layout.addWidget(self.ub_a_line)
+        lattice_layout.addWidget(ub_b_label)
+        lattice_layout.addWidget(self.ub_b_line)
+        lattice_layout.addWidget(ub_c_label)
+        lattice_layout.addWidget(self.ub_c_line)
+        lattice_layout.addWidget(ub_angstrom_label)
+        lattice_layout.addStretch(1)
+        lattice_layout.addWidget(ub_alpha_label)
+        lattice_layout.addWidget(self.ub_alpha_line)
+        lattice_layout.addWidget(ub_beta_label)
+        lattice_layout.addWidget(self.ub_beta_line)
+        lattice_layout.addWidget(ub_gamma_label)
+        lattice_layout.addWidget(self.ub_gamma_line)
+        lattice_layout.addWidget(ub_degree_label)
+        lattice_layout.addStretch(1)
+        lattice_layout.addWidget(ub_u_label)
+        lattice_layout.addWidget(self.ub_u_line)
+        lattice_layout.addWidget(ub_v_label)
+        lattice_layout.addWidget(self.ub_v_line)
+
         vis_layout.addLayout(camera_layout)
         vis_layout.addLayout(plot_layout)
+        vis_layout.addLayout(lattice_layout)
 
         layout.addLayout(vis_layout)
 
         self.setLayout(layout)
+    
+    def set_oriented_lattice_parameters(self, a, b, c, 
+                                              alpha, beta, gamma,
+                                              u, v):
+        """
+        Obtain the oriented lattice paramters.
+
+        Parameters
+        ----------
+        a, b, c : float
+            Lattice constants.
+        alpha, beta, gamma : float
+            Lattice angles.
+
+        """
+
+        self.ub_a_line.setText('{:.5f}'.format(a))
+        self.ub_b_line.setText('{:.5f}'.format(b))
+        self.ub_c_line.setText('{:.5f}'.format(c))
+        self.ub_alpha_line.setText('{:.3f}'.format(alpha))
+        self.ub_beta_line.setText('{:.3f}'.format(beta))
+        self.ub_gamma_line.setText('{:.3f}'.format(gamma))
+        self.ub_u_line.setText('{:.2f},{:.2f},{:.2f}'.format(*u))
+        self.ub_v_line.setText('{:.2f},{:.2f},{:.2f}'.format(*v))
 
     def connect_manual_axis(self, view_manual):
         """
@@ -238,7 +315,7 @@ class NeuXtalVizWidget(QWidget):
         Parameters
         ----------
         filename : str
-            Filename with .png extension.
+            Filename with *.png extension.
 
         """
 
@@ -291,6 +368,10 @@ class NeuXtalVizWidget(QWidget):
             actor.SetUserMatrix(t)
 
     def reciprocal_lattice(self):
+        """
+        State of reciprocal lattice vectors.
+
+        """
 
         return self.recip_box.isChecked()
 

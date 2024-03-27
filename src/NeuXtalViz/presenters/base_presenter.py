@@ -18,6 +18,15 @@ class NeuXtalVizPresenter:
         self.view.connect_save_screenshot(self.save_screenshot)
         self.view.connect_reciprocal_real_compass(self.change_lattice)
 
+    def update_oriented_lattice(self):
+        """
+        Update oriented lattice parameter display.
+
+        """
+
+        ol = self.model.get_oriented_lattice_parameters()
+        self.view.set_oriented_lattice_parameters(*ol)
+
     def change_lattice(self):
         """
         Enable or disable reciprocal lattice.
@@ -32,7 +41,7 @@ class NeuXtalVizPresenter:
         """
         Save image.
 
-        """        
+        """
 
         filename = self.view.save_screenshot_file_dialog()
 

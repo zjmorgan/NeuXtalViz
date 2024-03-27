@@ -1,4 +1,6 @@
-from mantid.simpleapi import HasUB, mtd
+from mantid.simpleapi import HasUB
+
+from mantid.geometry import OrientedLattice
 
 import numpy as np
 
@@ -41,6 +43,33 @@ class NeuXtalVizModel():
 
         self.UB = UB
 
+    def get_oriented_lattice_parameters(self):
+        """
+        Obtain the oriented lattice paramters.
+
+        Returns
+        -------
+        a, b, c : float
+            Lattice constants.
+        alpha, beta, gamma : float
+            Lattice angles.
+
+        """
+
+        if self.UB is not None:
+
+            ol = OrientedLattice()
+            ol.setUB(self.UB)
+
+            params = ol.a(), ol.b(), ol.c(), ol.alpha(), ol.beta(), ol.gamma()
+
+            u, v = ol.getuVector(), ol.getvVector()
+            
+            u = np.array(u)/np.abs(u).max()
+            v = np.array(v)/np.abs(v).max()
+
+            return *params, u, v
+
     def get_transform(self, reciprocal=True):
         """
         Transformation matrix describing the reciprocal or crystal axes.
@@ -54,7 +83,7 @@ class NeuXtalVizModel():
         Returns
         -------
         T : 3x3 element 2d array
-            Normalized transformation matrix.            
+            Normalized transformation matrix.
 
         """
 
@@ -81,7 +110,7 @@ class NeuXtalVizModel():
             Cartesian upward view vector.
 
         """
-        
+
         if self.UB is not None:
 
             return np.dot(self.UB, [0,0,1]), np.dot(self.UB, [1,0,0])
@@ -98,7 +127,7 @@ class NeuXtalVizModel():
             Cartesian upward view vector.
 
         """
-        
+
         if self.UB is not None:
 
             return np.dot(self.UB, [1,0,0]), np.dot(self.UB, [0,1,0])
@@ -131,7 +160,7 @@ class NeuXtalVizModel():
         updward : 3 element 1d array
             Cartesian upward view vector.
 
-        """        
+        """
 
         if self.UB is not None:
 
@@ -150,7 +179,7 @@ class NeuXtalVizModel():
             Cartesian upward view vector.
 
         """
-        
+
         if self.UB is not None:
 
             return np.cross(*self.ca_star_axes()), \

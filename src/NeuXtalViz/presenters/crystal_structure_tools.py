@@ -87,6 +87,7 @@ class CrystalStructure(NeuXtalVizPresenter):
 
             self.view.draw_cell(self.model.get_unit_cell_transform())
             self.view.set_transform(self.model.get_transform())
+            self.update_oriented_lattice()
 
             form, z = self.model.get_chemical_formula_z_parameter()
             self.view.set_formula_z(form, z)

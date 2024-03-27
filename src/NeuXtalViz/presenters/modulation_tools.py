@@ -21,7 +21,6 @@ class Modulation(NeuXtalVizPresenter):
                 self.model.cluster_peaks(peak_info, *params)
                 self.view.add_peaks(peak_info)
                 self.view.update_table(peak_info)
-                self.view.set_transform(self.model.get_transform())
 
     def load_UB(self):
 
@@ -30,6 +29,10 @@ class Modulation(NeuXtalVizPresenter):
         if filename:
 
             self.model.load_UB(filename)
+
+            self.update_oriented_lattice()
+
+            self.view.set_transform(self.model.get_transform())
 
     def load_peaks(self):
 

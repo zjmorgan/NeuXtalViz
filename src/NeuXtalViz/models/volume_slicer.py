@@ -221,7 +221,7 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         return trans
 
-    def get_transform(self):
+    def get_transform(self, reciprocal=True):
 
         if self.UB is not None:
 
@@ -235,7 +235,15 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
             Q = np.dot(Bp, np.linalg.inv(v))
 
-            return np.dot(Q.T, b)
+            T = np.dot(Q.T, b)
+
+            if not reciprocal:
+
+                T = np.column_stack([np.cross(T[:,1], T[:,2]),
+                                     np.cross(T[:,2], T[:,0]),
+                                     np.cross(T[:,0], T[:,1])])
+
+            return T
 
     def get_transforms(self):
 
