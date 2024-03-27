@@ -54,7 +54,7 @@ Run the GUI
 
 ### Additional information
 
-The application is designed with a model-view-viwmodel (MVVM) pattern.
+The application is designed with a model-view-presenter (MVP) pattern.
 This makes it possible to replace the view with a different one for other applications platforms. 
 This could include [trame](https://kitware.github.io/trame/) for web-based applications.
 
