@@ -29,13 +29,13 @@ The current features of NeuXtalViz including the following tools
 
 ### Screenshots
 
-![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/1e44c60b-a9bf-45f2-902a-96bfc98355c5)
+![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/6ba6c8a7-0c6c-425c-9e00-5a34e69973b9)
 
-![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/757ea243-56fd-4c2d-928c-c02099a3e824)
+![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/3bef441d-db49-446f-b9f8-914e8eae6d18)
 
-![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/fd86ad60-797a-4574-9b7b-75bbddf8bd35)
+![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/8db3f589-9127-4c2c-a6c5-a99660365258)
 
-![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/7be57ab6-e928-4ef3-b7bf-e9ae7fb4311c)
+![image](https://github.com/zjmorgan/NeuXtalViz/assets/13754794/0a1a96fa-5d07-4494-8120-8d1bd80d9266)
 
 
 ### Getting started
