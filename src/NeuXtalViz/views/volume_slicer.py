@@ -182,7 +182,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         grid.dimensions = np.array(signal.shape)+1
 
-        grid.origin = min_lim/spacing
+        grid.origin = min_lim
         grid.spacing = spacing
 
         min_bnd = min_lim*S
