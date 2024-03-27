@@ -13,8 +13,6 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         super(VolumeSlicerModel, self).__init__()
 
-        self.signal = None
-
     def load_md_histo_workspace(self, filename):
 
         LoadMD(Filename=filename, OutputWorkspace='histo')
@@ -25,6 +23,10 @@ class VolumeSlicerModel(NeuXtalVizModel):
     def is_histo_loaded(self):
 
         return mtd.doesExist('histo')
+
+    def is_sliced(self):
+
+        return mtd.doesExist('slice')
 
     def set_B(self):
 
@@ -46,24 +48,19 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         histo_dict = {}
 
-        self.signal = mtd['histo'].getSignalArray().copy()
-
-        self.signal[self.signal <= 0] = np.nan
-        self.signal[np.isinf(self.signal)] = np.nan
-
-        histo_dict['signal'] = self.signal
+        histo_dict['signal'] = np.log10(mtd['histo'].getSignalArray())
 
         dims = [mtd['histo'].getDimension(i) for i in range(3)]
 
         min_lim = np.array([dim.getMinimum() for dim in dims])
         max_lim = np.array([dim.getMaximum() for dim in dims])
 
-        spacing = np.array([dim.getX(1)-dim.getX(0) for dim in dims])
+        spacing = np.array([dim.getBinWidth() for dim in dims])
 
         min_lim += spacing*0.5
         max_lim -= spacing*0.5
 
-        labels = ['{} ({})'.format(dim.name,dim.getUnits()) for dim in dims]
+        labels = ['{} ({})'.format(dim.name, dim.getUnits()) for dim in dims]
 
         histo_dict['min_lim'] = min_lim
         histo_dict['max_lim'] = max_lim
@@ -78,40 +75,151 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         return histo_dict
 
-    def calculate_clim(self, method='normal'):
+    def get_slice_info(self, normal, value, thickness=0.01):
 
-        if self.signal is not None:
+        self.normal = normal
 
-            trans = np.log10(self.signal)
+        slice_dict = {}
 
-            vmin, vmax = np.nanmin(trans), np.nanmax(trans)
+        integrate = [value-thickness, value+thickness]
 
-            if method == 'normal':
+        self.integrate = integrate
 
-                mu, sigma = np.nanmean(trans), np.nanstd(trans)
+        pbin = [None if norm == 0 else integrate for norm in normal]
 
-                spread = 3*sigma
+        IntegrateMDHistoWorkspace(InputWorkspace='histo',
+                                  P1Bin=pbin[0],
+                                  P2Bin=pbin[1],
+                                  P3Bin=pbin[2],
+                                  OutputWorkspace='slice')
 
-                cmin, cmax = mu-spread, mu+spread
+        i = np.array(normal).tolist().index(1)
 
-            elif method == 'boxplot':
+        form = '{} = ({:.2f},{:.2f})'
 
-                Q1, Q3 = np.nanpercentile(trans, [25,75])
+        title = form.format(mtd['slice'].getDimension(i).name, *integrate)
 
-                IQR = Q3-Q1
+        dims = mtd['slice'].getNonIntegratedDimensions()
 
-                spread = 1.5*IQR
+        x, y = np.array([np.linspace(dim.getMinimum(),
+                                     dim.getMaximum(),
+                                     dim.getNBoundaries()) for dim in dims])
 
-                cmin, cmax = Q1-spread, Q3+spread
+        labels = ['{} ({})'.format(dim.name, dim.getUnits()) for dim in dims]
 
-            else:
+        slice_dict['x'] = x
+        slice_dict['y'] = y
+        slice_dict['labels'] = labels
 
-                cmin, cmax = vmin, vmax
+        signal = mtd['slice'].getSignalArray().T.copy().squeeze()
 
-            clim = [cmin if cmin > vmin else vmin,
-                    cmax if cmax < vmax else vmax]
+        signal[signal <= 0] = np.nan
+        signal[np.isinf(signal)] = np.nan
 
-            return clim
+        slice_dict['signal'] = signal
+
+        Bp = np.dot(self.UB, self.W)
+
+        Q, R = scipy.linalg.qr(Bp)
+
+        ind = np.array(normal) != 1
+
+        v = scipy.linalg.cholesky(np.dot(R.T, R)[ind][:,ind], lower=False)
+
+        v /= v[0,0]
+
+        T = np.eye(3)
+        T[:2,:2] = v
+
+        s = np.diag(T)
+        T[1,1] = 1
+
+        T[0,2] = -T[0,1]*y.min()
+
+        slice_dict['transform'] = T
+        slice_dict['aspect'] = s[1]
+        slice_dict['value'] = value
+        slice_dict['title'] = title
+
+        return slice_dict
+
+    def get_cut_info(self, axis, value, thickness=0.01):
+
+        cut_dict = {}
+
+        integrate = [value-thickness, value+thickness]
+
+        pbin = [None if ax == 0 else integrate for ax in axis]
+
+        IntegrateMDHistoWorkspace(InputWorkspace='slice',
+                                  P1Bin=pbin[0],
+                                  P2Bin=pbin[1],
+                                  P3Bin=pbin[2],
+                                  OutputWorkspace='cut')
+
+        i = np.array(self.normal).tolist().index(1)
+        j = np.array(axis).tolist().index(1)
+
+        form = '{} = ({:.2f},{:.2f})'
+
+        title = form.format(mtd['slice'].getDimension(i).name, *self.integrate)
+        title += ' / '
+        title += form.format(mtd['cut'].getDimension(j).name, *integrate)
+
+        dim = mtd['cut'].getNonIntegratedDimensions()[0]
+
+        x = np.linspace(dim.getMinimum(), 
+                        dim.getMaximum(),
+                        dim.getNBoundaries())
+
+        x = 0.5*(x[1:]+x[:-1])
+
+        label = '{} ({})'.format(dim.name, dim.getUnits())
+
+        cut_dict['x'] = x
+        cut_dict['y'] = mtd['cut'].getSignalArray().squeeze()
+        cut_dict['e'] = np.sqrt(mtd['cut'].getErrorSquaredArray().squeeze())
+        cut_dict['label'] = label
+        cut_dict['value'] = value
+        cut_dict['title'] = title
+
+        return cut_dict
+
+    def calculate_clim(self, trans, method='normal'):
+
+        trans[~np.isfinite(trans)] = np.nan
+
+        vmin, vmax = np.nanmin(trans), np.nanmax(trans)
+
+        if method == 'normal':
+
+            mu, sigma = np.nanmean(trans), np.nanstd(trans)
+
+            spread = 3*sigma
+
+            cmin, cmax = mu-spread, mu+spread
+
+        elif method == 'boxplot':
+
+            Q1, Q3 = np.nanpercentile(trans, [25,75])
+
+            IQR = Q3-Q1
+
+            spread = 1.5*IQR
+
+            cmin, cmax = Q1-spread, Q3+spread
+
+        else:
+
+            cmin, cmax = vmin, vmax
+
+        clim = [cmin if cmin > vmin else vmin,
+                cmax if cmax < vmax else vmax]
+
+        trans[trans < clim[0]] = clim[0]
+        trans[trans > clim[1]] = clim[1]
+
+        return trans
 
     def get_transform(self):
 
