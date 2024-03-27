@@ -182,7 +182,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         grid.dimensions = np.array(signal.shape)+1
 
-        grid.origin = min_lim
+        grid.origin = min_lim/spacing
         grid.spacing = spacing
 
         min_bnd = min_lim*S
@@ -215,6 +215,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
                                                        origin_translation=True,
                                                        show_scalar_bar=False,
                                                        normal_rotation=True,
+                                                       mapper='smart',
                                                        user_matrix=b)
 
         prop = self.clip.GetOutlineProperty()
