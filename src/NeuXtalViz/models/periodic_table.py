@@ -4,25 +4,25 @@ from NeuXtalViz.config.atoms import isotopes, names
 
 class PeriodicTableModel:
 
-    def __init__(self):
+    def __init__(self, atom):
 
-        pass
+        self.value = atom
 
-    def get_atom_model(self):
+    def get_atom_model(self, atm):
 
-        return AtomModel()
+        return AtomModel(atm)
 
-class AtomModel():
+class AtomModel:
 
     def __init__(self, atm='H'):
 
-        self.atm, self.isotopes = atm, isotopes[atm]
+        self.atm, self.isotopes = atm, isotopes.get(atm)
 
         self.name = names[atm]
 
-    def get_symbol(self):
+    def get_symbol_name(self):
 
-        return self.atm
+        return self.atm, self.name
 
     def get_isotope_numbers(self):
 
@@ -33,10 +33,8 @@ class AtomModel():
         atom = Atom(self.atm, iso)
 
         self.atom_dict = {'mass_number': atom.a_number,
-                          'abundace': atom.abundace,
+                          'abundance': atom.abundance,
                           'mass': atom.mass,
-                          'mass_density': atom.mass_density,
-                          'number_density': atom.number_density,
                           'z': atom.z_number}
 
         neutron = atom.neutron()

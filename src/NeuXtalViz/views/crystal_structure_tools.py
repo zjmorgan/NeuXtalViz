@@ -27,6 +27,7 @@ import pyvista as pv
 import matplotlib.colors
 
 from NeuXtalViz.config.atoms import colors, radii
+from NeuXtalViz.views.periodic_table import PeriodicTableView
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
 
 class CrystalStructureView(NeuXtalVizWidget):
@@ -309,6 +310,10 @@ class CrystalStructureView(NeuXtalVizWidget):
 
         self.load_CIF_button.clicked.connect(load_CIF)
 
+    def connect_select_isotope(self, select_isotope):
+
+        self.atm_button.clicked.connect(select_isotope)
+
     def draw_cell(self, A):
 
         T = np.eye(4)
@@ -453,6 +458,14 @@ class CrystalStructureView(NeuXtalVizWidget):
 
         return scatterers
 
+    def set_isotope(self, isotope):
+
+        self.atm_button.setText(isotope)
+
+    def get_isotope(self):
+
+        return self.atm_button.text()
+
     def set_atom(self, scatterer):
 
         self.atm_button.setText(scatterer[0])
@@ -471,7 +484,7 @@ class CrystalStructureView(NeuXtalVizWidget):
 
         valid_params = all([param.hasAcceptableInput() for param in params])
 
-        if valid_params and row:
+        if valid_params and row is not None:
 
             scatterer = [self.atm_button.text(), \
                          *[float(param.text()) for param in params]]
@@ -603,3 +616,7 @@ class CrystalStructureView(NeuXtalVizWidget):
             self.f2_table.setItem(row, 2, QTableWidgetItem(hkl[2]))
             self.f2_table.setItem(row, 3, QTableWidgetItem(d))
             self.f2_table.setItem(row, 4, QTableWidgetItem(F2))
+
+    def get_periodic_table(self):
+
+       return PeriodicTableView()

@@ -14,6 +14,7 @@ from mantid.simpleapi import (CreateSampleWorkspace,
 import numpy as np
 import scipy.linalg
 
+from NeuXtalViz.models.periodic_table import PeriodicTableModel
 from NeuXtalViz.models.base_model import NeuXtalVizModel
 
 class CrystalStructureModel(NeuXtalVizModel):
@@ -185,7 +186,7 @@ class CrystalStructureModel(NeuXtalVizModel):
 
     def get_unit_cell_volume(self):
 
-        cryst_struct = mtd['crystal'].sample().getCrystalStructure()        
+        cryst_struct = mtd['crystal'].sample().getCrystalStructure()
 
         return cryst_struct.getUnitCell().volume()
 
@@ -208,7 +209,7 @@ class CrystalStructureModel(NeuXtalVizModel):
 
         sg = cryst_struct.getSpaceGroup()
 
-        scatterers = self.get_scatterers() 
+        scatterers = self.get_scatterers()
 
         atom_dict = {}
 
@@ -338,3 +339,7 @@ class CrystalStructureModel(NeuXtalVizModel):
             params[1] = params[0]
 
         return params.tolist()
+
+    def get_periodic_table(self, atom):
+
+        return PeriodicTableModel(atom)

@@ -1,3 +1,4 @@
+from NeuXtalViz.presenters.periodic_table import PeriodicTable
 from NeuXtalViz.presenters.base_presenter import NeuXtalVizPresenter
 
 class CrystalStructure(NeuXtalVizPresenter):
@@ -14,6 +15,7 @@ class CrystalStructure(NeuXtalVizPresenter):
         self.view.connect_lattice_parameters(self.update_parameters)
         self.view.connect_atom_table(self.set_atom_table)
         self.view.connect_load_CIF(self.load_CIF)
+        self.view.connect_select_isotope(self.select_isotope)
 
         self.generate_groups()
         self.generate_settings()
@@ -73,7 +75,7 @@ class CrystalStructure(NeuXtalVizPresenter):
 
             self.view.set_crystal_system(crystal_system)
             self.generate_groups()
-            self.view.set_space_group(space_group) 
+            self.view.set_space_group(space_group)
             self.generate_settings()
             self.view.set_setting(setting)
             self.view.set_lattice_constants(params)
@@ -106,6 +108,9 @@ class CrystalStructure(NeuXtalVizPresenter):
         atom_dict = self.model.generate_atom_positions()
         self.view.add_atoms(atom_dict)
 
+        form, z = self.model.get_chemical_formula_z_parameter()
+        self.view.set_formula_z(form, z)
+
         self.view.draw_cell(self.model.get_unit_cell_transform())
         self.view.set_transform(self.model.get_transform())
 
@@ -117,7 +122,7 @@ class CrystalStructure(NeuXtalVizPresenter):
 
         if params is not None:
 
-            if d_min is None: 
+            if d_min is None:
                 d_min = min(params[0:2])*0.2
 
             hkls, ds, F2s = self.model.generate_F2(d_min)
@@ -127,8 +132,27 @@ class CrystalStructure(NeuXtalVizPresenter):
     def calculate_hkl(self):
 
         hkl = self.view.get_hkl()
-        
+
         if hkl is not None:
-            
+
             hkls, d, F2 = self.model.calculate_F2(*hkl)
             self.view.set_equivalents(hkls, d, F2)
+
+    def select_isotope(self):
+
+        atom = self.view.get_isotope()
+
+        if atom != '':
+
+            view = self.view.get_periodic_table()
+            model = self.model.get_periodic_table(atom)
+
+            self.periodic_table = PeriodicTable(view, model)
+            self.periodic_table.view.connect_selected(self.update_selection)
+            self.periodic_table.view.show()
+
+    def update_selection(self, data):
+
+        self.view.set_isotope(data)
+        self.view.set_atom_table()
+        self.update_atoms()
