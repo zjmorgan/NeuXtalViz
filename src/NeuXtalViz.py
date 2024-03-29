@@ -38,6 +38,10 @@ from NeuXtalViz.views.volume_slicer import VolumeSlicerView
 from NeuXtalViz.models.volume_slicer import VolumeSlicerModel
 from NeuXtalViz.presenters.volume_slicer import VolumeSlicer
 
+from NeuXtalViz.views.periodic_table import PeriodicTableView
+from NeuXtalViz.models.periodic_table import PeriodicTableModel
+from NeuXtalViz.presenters.periodic_table import PeriodicTable
+
 class NeuXtalViz(QMainWindow):
 
     __instance = None
@@ -78,6 +82,10 @@ class NeuXtalViz(QMainWindow):
         vs_action.triggered.connect(lambda: self.stack.setCurrentIndex(3))
         app_menu.addAction(vs_action)
 
+        pt_action = QAction('Periodic Table', self)
+        pt_action.triggered.connect(lambda: self.stack.setCurrentIndex(4))
+        app_menu.addAction(pt_action)
+
         cs_view = CrystalStructureView(self)
         cs_model = CrystalStructureModel()
         self.cs = CrystalStructure(cs_view, cs_model)
@@ -97,6 +105,11 @@ class NeuXtalViz(QMainWindow):
         vs_model = VolumeSlicerModel()
         self.vs = VolumeSlicer(vs_view, vs_model)
         self.stack.addWidget(vs_view)
+
+        pt_view = PeriodicTableView(self)
+        pt_model = PeriodicTableModel()
+        self.pt = PeriodicTable(pt_view, pt_model)
+        self.stack.addWidget(pt_view)
 
         layout.addWidget(self.stack)
 

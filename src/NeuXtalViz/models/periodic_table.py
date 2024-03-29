@@ -1,19 +1,22 @@
 from mantid.kernel import Atom
 
-from NeuXtalViz.config.atoms import isoptopes, names
+from NeuXtalViz.config.atoms import isotopes, names
 
-class PeriodicTableModel():
+class PeriodicTableModel:
 
     def __init__(self):
 
         pass
 
+    def get_atom_model(self):
+
+        return AtomModel()
 
 class AtomModel():
 
     def __init__(self, atm='H'):
 
-        self.atm, self.isotopes = atm, isoptopes[atm]
+        self.atm, self.isotopes = atm, isotopes[atm]
 
         self.name = names[atm]
 

@@ -3,14 +3,13 @@ import numpy as np
 
 from qtpy.QtWidgets import (QWidget,
                             QPushButton,
+                            QButtonGroup,
                             QLabel,
                             QComboBox,
                             QHBoxLayout,
                             QVBoxLayout,
-                            QGridLayout,
-                            QSizePolicy)
+                            QGridLayout)
 
-from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import Qt
 
 from NeuXtalViz.config.atoms import indexing, groups
@@ -26,7 +25,7 @@ colors = {'Transition Metals': '#A1C9F4', # blue
           'Halogens': '#FFFEA3', # yellow
           'Noble Gases': '#B9F2F0'} # cyan
 
-class PeriodicTable(QWidget):
+class PeriodicTableView(QWidget):
 
     def __init__(self, parent=None):
 
@@ -52,7 +51,8 @@ class PeriodicTable(QWidget):
             label = QLabel(str(col+1))
             table.addWidget(label, 0, col+1, Qt.AlignCenter)
 
-        self.atom_buttons = []
+        self.atom_buttons = QButtonGroup()
+        self.atom_buttons.setExclusive(True)
 
         for key in indexing.keys():
             row, col = indexing[key]
@@ -62,20 +62,26 @@ class PeriodicTable(QWidget):
             if group is not None:
                 color = colors[group]
                 button.setStyleSheet('background-color: {}'.format(color))
-            self.atom_buttons.append(button)
+            self.atom_buttons.addButton(button)
             table.addWidget(button, row, col)
-
-        for button in self.atom_buttons:
-            button.clicked.connect(self.atom_info)
 
         return table
 
-    def atom_info(self):
+    def get_atom_view(self):
 
-        self.widget = Atom()
-        self.widget.show()
+        return AtomView()
 
-class Atom(QWidget):
+    def connect_atoms(self, atom_info):
+
+        self.atom_info = atom_info
+
+        self.atom_buttons.buttonClicked.connect(self.show_atom_dialog)
+
+    def show_atom_dialog(self, button):
+
+        return self.atom_info(button.text())
+
+class AtomView(QWidget):
 
     def __init__(self):
 
@@ -95,18 +101,3 @@ class Atom(QWidget):
         card.addWidget(self.name_label, 2, 1, 1, 2, Qt.AlignCenter)
 
         self.setLayout(card)
-
-class MainWindow(QMainWindow):
-
-    def __init__(self):
-
-        super(MainWindow, self).__init__()
-
-        widget = PeriodicTable()
-        self.setCentralWidget(widget)
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
