@@ -17,6 +17,7 @@ from qtpy.QtWidgets import (QWidget,
 from qtpy.QtGui import QDoubleValidator, QIntValidator
 
 import numpy as np
+import matplotlib.pyplot as plt
 import pyvista as pv
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
@@ -153,7 +154,7 @@ class ModulationView(NeuXtalVizWidget):
 
     def update_table(self, peak_info):
 
-        centroids = peak_info['centroids'].round(3).astype(str)
+        centroids = peak_info['satellites'].round(3).astype(str)
 
         self.table.setRowCount(0)
         self.table.setRowCount(len(centroids))
@@ -175,7 +176,7 @@ class ModulationView(NeuXtalVizWidget):
 
     def add_peaks(self, peak_dict):
 
-        self.plotter.clear_actors()
+        # self.plotter.clear_actors()
 
         for i in range(3):
             self.ax[i].clear()
@@ -195,10 +196,10 @@ class ModulationView(NeuXtalVizWidget):
 
         offsets = np.dot(translations, vectors)
 
-        geoms, labels = [], []
+        multiblock = pv.MultiBlock()
+
         for uni in np.unique(clusters):
             coords = coordinates[clusters == uni]
-            coords = np.row_stack([coords, -coords])
             coords = (coords[:,np.newaxis,:]+offsets).reshape(-1,3)
             delta = (T_inv @ coords.T).T
             mask = (np.abs(delta) < 1).all(axis=1)
@@ -206,15 +207,15 @@ class ModulationView(NeuXtalVizWidget):
             delta = delta[mask]
             points = pv.PolyData(coords)
             if uni >= 0:
-                geoms.append(points)
-                color = 'C{}'.format(uni+1)
-                labels.append(color)
-                h, _ = np.histogram(delta[:,0], bins=bins)
-                k, _ = np.histogram(delta[:,1], bins=bins)
-                l, _ = np.histogram(delta[:,2], bins=bins)
-                self.ax[0].stairs(h, bins, color=color)
-                self.ax[1].stairs(k, bins, color=color)
-                self.ax[2].stairs(l, bins, color=color)
+                color = 'C{}'.format(uni)
+                multiblock[color] = points
+                if uni > 0:
+                    h, _ = np.histogram(delta[:,0], bins=bins)
+                    k, _ = np.histogram(delta[:,1], bins=bins)
+                    l, _ = np.histogram(delta[:,2], bins=bins)
+                    self.ax[0].stairs(h, bins, color=color)
+                    self.ax[1].stairs(k, bins, color=color)
+                    self.ax[2].stairs(l, bins, color=color)
             else:
                 self.plotter.add_mesh(points,
                                       color='k', 
@@ -233,19 +234,22 @@ class ModulationView(NeuXtalVizWidget):
         self.canvas.draw_idle()
         self.canvas.flush_events()
 
-        multiblock = pv.MultiBlock(geoms)
-
         _, mapper = self.plotter.add_composite(multiblock,
                                                multi_colors=True,
                                                smooth_shading=True,
                                                point_size=10,
                                                render_points_as_spheres=True)
 
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+
+        cmap = prop_cycle.by_key()['color']
+
         colors = []
         for i in range(1,len(mapper.block_attr)):
-            colors.append(mapper.block_attr[i].color)
+            colors.append(cmap[i-1])
+            mapper.block_attr[i].color = cmap[i-1]
 
-        legend = [[label, color] for label, color in zip(labels, colors)]
+        legend = [['C{}'.format(i), color] for i, color in enumerate(colors)]
 
         A = np.eye(4)
         A[:3,:3] = T

@@ -9,6 +9,8 @@ from mantid.simpleapi import (CreatePeaksWorkspace,
                               mtd)
 
 import numpy as np
+import scipy.spatial
+
 from sklearn.cluster import DBSCAN
 
 from NeuXtalViz.models.base_model import NeuXtalVizModel
@@ -20,6 +22,7 @@ class ModulationModel(NeuXtalVizModel):
         super(ModulationModel, self).__init__()
 
         CreatePeaksWorkspace(OutputType='LeanElasticPeak',
+                             NumberOfPeaks=0,
                              OutputWorkspace='peaks')
 
     def load_UB(self, filename):
@@ -61,7 +64,7 @@ class ModulationModel(NeuXtalVizModel):
 
     def cluster_peaks(self, peak_info, eps=0.025, min_samples=15):
 
-        T_inv = peak_info['inverse']       
+        T_inv = peak_info['inverse']
 
         points = np.array(peak_info['coordinates'])
 
@@ -69,15 +72,49 @@ class ModulationModel(NeuXtalVizModel):
 
         labels = clustering.fit_predict(points)
 
+        uni_labels, inverse = np.unique(labels, return_inverse=True)
+
         centroids = []
-        for label in np.unique(labels):
+        for label in uni_labels:
             if label >= 0:
                 center = points[labels == label].mean(axis=0)
                 centroids.append(np.dot(T_inv, center))
         centroids = np.array(centroids)
 
-        peak_info['clusters'] = labels
-        peak_info['centroids'] = centroids
+        null = np.argmin(np.linalg.norm(centroids, axis=1))
+
+        mask = np.ones_like(centroids[:,0], dtype=bool)
+        mask[null] = False
+
+        peaks = np.arange(mask.size)[mask]
+
+        satellites = centroids[mask]
+        nuclear = centroids[null]
+
+        dist = scipy.spatial.distance_matrix(satellites, -satellites)
+
+        n = dist.shape[0]
+
+        indices = np.column_stack([np.arange(n), np.argmin(dist, axis=0)])
+        indices = np.sort(indices, axis=1)
+        indices = np.unique(indices, axis=0)
+
+        clusters = labels.copy()
+        clusters[labels == null] = 0
+
+        mod = 1
+        satellites = []
+        for inds in indices:
+            i, j = peaks[inds[0]], peaks[inds[1]]
+            clusters[labels == i] = mod
+            clusters[labels == j] = mod
+            satellites.append(centroids[i])
+            mod += 1
+        satellites = np.array(satellites)
+
+        peak_info['clusters'] = clusters
+        peak_info['nuclear'] = nuclear
+        peak_info['satellites'] = satellites
 
     def get_peak_info(self):
 
@@ -95,14 +132,19 @@ class ModulationModel(NeuXtalVizModel):
 
                 diff_HKL = peak.getHKL()-np.round(peak.getHKL())
 
-                if np.sum(diff_HKL) < 0:
-                    diff_HKL *= -1
-
                 Q = 2*np.pi*np.dot(UB, diff_HKL)
 
                 Qs.append(Q)
                 HKLs.append(diff_HKL)
                 pk_nos.append(pk_no)
+
+                diff_HKL = peak.getHKL()-np.round(peak.getHKL())
+
+                Q = 2*np.pi*np.dot(UB, -diff_HKL)
+
+                Qs.append(Q)
+                HKLs.append(diff_HKL)
+                pk_nos.append(-pk_no)
 
             peak_dict['coordinates'] = Qs
             peak_dict['points'] = HKLs
