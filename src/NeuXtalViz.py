@@ -10,6 +10,8 @@ from qtpy.QtWidgets import (QApplication,
                             QStackedWidget,
                             QVBoxLayout)
 
+from qtpy.QtGui import QIcon
+
 from mantid.kernel import Logger
 from mantidqt.gui_helper import set_matplotlib_backend
 
@@ -51,6 +53,8 @@ class NeuXtalViz(QMainWindow):
         super().__init__(parent)
         logger.information('NeuXtalViz {}'.format(__version__))
 
+        icon = os.path.join(os.path.dirname(__file__), 'icons/NeuXtalViz.png')
+        self.setWindowIcon(QIcon(icon))
         self.setWindowTitle('NeuXtalViz {}'.format(__version__))
         self.resize(1200, 900)
         app_menu = self.menuBar().addMenu('Applications')

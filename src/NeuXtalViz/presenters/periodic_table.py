@@ -26,6 +26,7 @@ class PeriodicTable:
 
         self.model.value = data
         self.view.value = data
+        self.view.close()
 
 class Atom:
 

@@ -81,40 +81,51 @@ class ModulationModel(NeuXtalVizModel):
                 centroids.append(np.dot(T_inv, center))
         centroids = np.array(centroids)
 
-        null = np.argmin(np.linalg.norm(centroids, axis=1))
+        success = False
 
-        mask = np.ones_like(centroids[:,0], dtype=bool)
-        mask[null] = False
+        if centroids.shape[0] >= 0 and len(centroids.shape) == 2:
 
-        peaks = np.arange(mask.size)[mask]
+            null = np.argmin(np.linalg.norm(centroids, axis=1))
 
-        satellites = centroids[mask]
-        nuclear = centroids[null]
+            mask = np.ones_like(centroids[:,0], dtype=bool)
+            mask[null] = False
 
-        dist = scipy.spatial.distance_matrix(satellites, -satellites)
+            peaks = np.arange(mask.size)[mask]
 
-        n = dist.shape[0]
+            satellites = centroids[mask]
+            nuclear = centroids[null]
 
-        indices = np.column_stack([np.arange(n), np.argmin(dist, axis=0)])
-        indices = np.sort(indices, axis=1)
-        indices = np.unique(indices, axis=0)
+            dist = scipy.spatial.distance_matrix(satellites, -satellites)
 
-        clusters = labels.copy()
-        clusters[labels == null] = 0
+            n = dist.shape[0]
 
-        mod = 1
-        satellites = []
-        for inds in indices:
-            i, j = peaks[inds[0]], peaks[inds[1]]
-            clusters[labels == i] = mod
-            clusters[labels == j] = mod
-            satellites.append(centroids[i])
-            mod += 1
-        satellites = np.array(satellites)
+            if n > 2:
 
-        peak_info['clusters'] = clusters
-        peak_info['nuclear'] = nuclear
-        peak_info['satellites'] = satellites
+                success = True
+
+                indices = np.column_stack([np.arange(n),
+                                           np.argmin(dist, axis=0)])
+                indices = np.sort(indices, axis=1)
+                indices = np.unique(indices, axis=0)
+
+                clusters = labels.copy()
+                clusters[labels == null] = 0
+
+                mod = 1
+                satellites = []
+                for inds in indices:
+                    i, j = peaks[inds[0]], peaks[inds[1]]
+                    clusters[labels == i] = mod
+                    clusters[labels == j] = mod
+                    satellites.append(centroids[i])
+                    mod += 1
+                satellites = np.array(satellites)
+
+                peak_info['clusters'] = clusters
+                peak_info['nuclear'] = nuclear
+                peak_info['satellites'] = satellites
+
+        return success
 
     def get_peak_info(self):
 

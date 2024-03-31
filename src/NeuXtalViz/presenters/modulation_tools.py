@@ -18,9 +18,10 @@ class Modulation(NeuXtalVizPresenter):
 
             peak_info = self.model.get_peak_info()
             if peak_info is not None:
-                self.model.cluster_peaks(peak_info, *params)
-                self.view.add_peaks(peak_info)
-                self.view.update_table(peak_info)
+                success = self.model.cluster_peaks(peak_info, *params)
+                if success:
+                    self.view.add_peaks(peak_info)
+                    self.view.update_table(peak_info)
 
     def load_UB(self):
 

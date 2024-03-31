@@ -54,7 +54,7 @@ class ModulationView(NeuXtalVizWidget):
 
         notation = QDoubleValidator.StandardNotation
 
-        validator = QDoubleValidator(0.0, 10, 5, notation=notation)
+        validator = QDoubleValidator(0.0001, 10, 5, notation=notation)
 
         self.param_eps_line.setValidator(validator)
 
