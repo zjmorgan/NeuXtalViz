@@ -1,4 +1,5 @@
-# NeuXtalViz
+# ![](https://github.com/zjmorgan/NeuXtalViz/blob/main/src/icons/neuxtalviz_logo.svg)
+
 Neutron Scattering Single Crystal Visualization
 
 *new-crystal-vis*
@@ -16,6 +17,8 @@ The application also relises on several other packages.
 - [SciPy](https://scipy.org/)
 - [scikit-learn](https://scikit-learn.org/stable/)
 
+- [PyVista](https://pyvista.org/)
+  
 ## Description
 
 The current features of NeuXtalViz including the following tools
