@@ -101,9 +101,9 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         dims = mtd['slice'].getNonIntegratedDimensions()
 
-        x, y = np.array([np.linspace(dim.getMinimum(),
-                                     dim.getMaximum(),
-                                     dim.getNBoundaries()) for dim in dims])
+        x, y = [np.linspace(dim.getMinimum(),
+                            dim.getMaximum(),
+                            dim.getNBoundaries()) for dim in dims]
 
         labels = ['{} ({})'.format(dim.name, dim.getUnits()) for dim in dims]
 
@@ -131,7 +131,7 @@ class VolumeSlicerModel(NeuXtalVizModel):
         T = np.eye(3)
         T[:2,:2] = v
 
-        s = np.diag(T)
+        s = np.diag(T).copy()
         T[1,1] = 1
 
         T[0,2] = -T[0,1]*y.min()

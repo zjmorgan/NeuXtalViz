@@ -31,7 +31,7 @@ dirty = "{version}+d{build_date:%Y%m%d}"
 distance-dirty = "{next_version}.dev{distance}+d{build_date:%Y%m%d%H%M}"
 
 [tool.versioningit.write]
-file = "src/garnet/_version.py"
+file = "src/NeuXtalViz/_version.py"
 
 [tool.setuptools.packages.find]
 where = ["src"]
