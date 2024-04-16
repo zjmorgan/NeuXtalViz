@@ -262,6 +262,56 @@ class ModulationView(NeuXtalVizWidget):
                               style='wireframe',
                               render_lines_as_tubes=True)
 
+        for point in [(1,0,0), (0,1,0), (0,0,1)]:
+
+            mesh = pv.Line(pointa=-np.array(point), pointb=point, resolution=1)
+            mesh.transform(A, inplace=True)
+
+            self.plotter.add_mesh(mesh,
+                                  color='k',
+                                  style='wireframe',
+                                  render_lines_as_tubes=True)
+
+        pointsa = [(-1,-1), (-1,1), (1,1), (1,-1)]
+        pointsb = [(-1,1), (1,1), (1,-1), (-1,-1)]
+
+        for i in range(4):
+            
+            a, b = pointsa[i], pointsb[i]
+
+            mesh = pv.Line(pointa=(a[0],a[1],0),
+                           pointb=(b[0],b[1],0),
+                           resolution=1)
+
+            mesh.transform(A, inplace=True)
+
+            self.plotter.add_mesh(mesh,
+                                  color='k',
+                                  style='wireframe',
+                                  render_lines_as_tubes=True)
+
+            mesh = pv.Line(pointa=(a[0],0,a[1]),
+                           pointb=(b[0],0,b[1]),
+                           resolution=1)
+
+            mesh.transform(A, inplace=True)
+
+            self.plotter.add_mesh(mesh,
+                                  color='k',
+                                  style='wireframe',
+                                  render_lines_as_tubes=True)
+
+            mesh = pv.Line(pointa=(0,a[0],a[1]),
+                           pointb=(0,b[0],b[1]),
+                           resolution=1)
+
+            mesh.transform(A, inplace=True)
+
+            self.plotter.add_mesh(mesh,
+                                  color='k',
+                                  style='wireframe',
+                                  render_lines_as_tubes=True)
+
         self.plotter.add_legend(legend,
                                 loc='lower right',
                                 bcolor='w',
