@@ -176,7 +176,7 @@ class ModulationView(NeuXtalVizWidget):
 
     def add_peaks(self, peak_dict):
 
-        # self.plotter.clear_actors()
+        self.plotter.clear_actors()
 
         for i in range(3):
             self.ax[i].clear()
