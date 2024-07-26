@@ -1,6 +1,4 @@
 from qtpy.QtWidgets import (QWidget,
-                            QFrame,
-                            QGridLayout,
                             QHBoxLayout,
                             QVBoxLayout,
                             QPushButton,
@@ -12,7 +10,6 @@ from qtpy.QtWidgets import (QWidget,
                             QFileDialog)
 
 from qtpy.QtGui import QDoubleValidator
-from PyQt5.QtCore import Qt
 
 import numpy as np
 import pyvista as pv

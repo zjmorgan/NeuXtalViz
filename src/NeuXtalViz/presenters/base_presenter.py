@@ -18,6 +18,71 @@ class NeuXtalVizPresenter:
         self.view.connect_save_screenshot(self.save_screenshot)
         self.view.connect_reciprocal_real_compass(self.change_lattice)
 
+    def update_status(self, status):
+        """
+        Update status information.
+
+        Parameters
+        ----------
+        status : str
+            Information.
+
+        """
+
+        self.view.set_info(status)
+
+    def update_progress(self, progress):
+        """
+        Update progress step.
+
+        Parameters
+        ----------
+        progress : int
+            Step.
+
+        """
+
+        self.view.set_step(progress)
+
+    def update_invalid(self):
+        """
+        Indicate invalid.
+
+        """
+
+        self.update_status('Invalid parameters.')
+        self.update_progress(0)
+
+    def update_complete(self, status='Complete!'):
+        """
+        Indicate complete.
+
+        Parameters
+        ----------
+        status : str
+            Information.
+
+        """
+
+        self.update_status(status)
+        self.update_progress(0)
+
+    def update_processing(self, status='Processing...', progress=1):
+        """
+        Indicate processing.
+
+        Parameters
+        ----------
+        status : str
+            Information.
+        progress : int
+            Step.
+
+        """
+
+        self.update_status(status)
+        self.update_progress(progress)
+
     def update_oriented_lattice(self):
         """
         Update oriented lattice parameter display.

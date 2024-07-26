@@ -1,4 +1,3 @@
-import sys
 import re
 
 import numpy as np
@@ -16,11 +15,8 @@ from qtpy.QtWidgets import (QWidget,
                             QHBoxLayout,
                             QVBoxLayout,
                             QGridLayout,
-                            QFrame,
                             QTabWidget,
                             QFileDialog)
-
-from PyQt5.QtWidgets import QApplication, QMainWindow
 
 from qtpy.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtCore import Qt
@@ -73,13 +69,13 @@ class UBView(NeuXtalVizWidget):
         self.beta_line.setValidator(validator)
         self.gamma_line.setValidator(validator)
 
-        a_label = QLabel('a')
-        b_label = QLabel('b')
-        c_label = QLabel('c')
+        a_label = QLabel('a:')
+        b_label = QLabel('b:')
+        c_label = QLabel('c:')
 
-        alpha_label = QLabel('α')
-        beta_label = QLabel('β')
-        gamma_label = QLabel('γ')
+        alpha_label = QLabel('α:')
+        beta_label = QLabel('β:')
+        gamma_label = QLabel('γ:')
 
         angstrom_label = QLabel('Å')
         degree_label = QLabel('°')
@@ -202,18 +198,18 @@ class UBView(NeuXtalVizWidget):
         orientation_layout.addWidget(a_star_label, 0, 1, Qt.AlignCenter)
         orientation_layout.addWidget(b_star_label, 0, 2, Qt.AlignCenter)
         orientation_layout.addWidget(c_star_label, 0, 3, Qt.AlignCenter)
-        orientation_layout.addWidget(z_label, 1, 0)
-        orientation_layout.addWidget(self.uh_line, 1, 1)
-        orientation_layout.addWidget(self.uk_line, 1, 2)
-        orientation_layout.addWidget(self.ul_line, 1, 3)
-        orientation_layout.addWidget(x_label, 2, 0)
-        orientation_layout.addWidget(self.vh_line, 2, 1)
-        orientation_layout.addWidget(self.vk_line, 2, 2)
-        orientation_layout.addWidget(self.vl_line, 2, 3)
-        orientation_layout.addWidget(y_label, 3, 0)
-        orientation_layout.addWidget(self.wh_line, 3, 1)
-        orientation_layout.addWidget(self.wk_line, 3, 2)
-        orientation_layout.addWidget(self.wl_line, 3, 3)
+        orientation_layout.addWidget(y_label, 1, 0)
+        orientation_layout.addWidget(self.wh_line, 1, 1)
+        orientation_layout.addWidget(self.wk_line, 1, 2)
+        orientation_layout.addWidget(self.wl_line, 1, 3)
+        orientation_layout.addWidget(z_label, 2, 0)
+        orientation_layout.addWidget(self.uh_line, 2, 1)
+        orientation_layout.addWidget(self.uk_line, 2, 2)
+        orientation_layout.addWidget(self.ul_line, 2, 3)
+        orientation_layout.addWidget(x_label, 3, 0)
+        orientation_layout.addWidget(self.vh_line, 3, 1)
+        orientation_layout.addWidget(self.vk_line, 3, 2)
+        orientation_layout.addWidget(self.vl_line, 3, 3)
 
         self.save_q_button = QPushButton('Save Q', self)
         self.load_q_button = QPushButton('Load Q', self)
@@ -287,7 +283,6 @@ class UBView(NeuXtalVizWidget):
         validator = QIntValidator(1, 1000000000, self)
 
         self.runs_line = QLineEdit('')
-        self.runs_line.setValidator(validator)
 
         self.ipts_line = QLineEdit('')
         self.ipts_line.setValidator(validator)
@@ -1210,6 +1205,14 @@ class UBView(NeuXtalVizWidget):
 
         peaks_table_tab.setLayout(peaks_layout)
 
+    def connect_browse_calibration(self, load_detector_cal):
+
+        self.cal_browse_button.clicked.connect(load_detector_cal)
+
+    def connect_browse_tube(self, load_tube_cal):
+
+        self.tube_browse_button.clicked.connect(load_tube_cal)
+
     def connect_convert_Q(self, convert_Q):
 
         self.convert_to_q_button.clicked.connect(convert_Q)
@@ -1313,6 +1316,36 @@ class UBView(NeuXtalVizWidget):
     def connect_select_cell(self, select_cell):
 
         self.select_button.clicked.connect(select_cell)
+
+    def load_detector_cal_dialog(self):
+
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_filters = 'Calibration files (*.DetCal *.detcal *.xml)'
+
+        filename, _ = QFileDialog.getOpenFileName(self,
+                                                  'Load calibration file',
+                                                  '',
+                                                  file_filters,
+                                                  options=options)
+
+        return filename
+
+    def load_tube_cal_dialog(self):
+
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_filters = 'Tube files (*.h5 *.nxs)'
+
+        filename, _ = QFileDialog.getOpenFileName(self,
+                                                  'Load calibration file',
+                                                  '',
+                                                  file_filters,
+                                                  options=options)
+
+        return filename
 
     def load_Q_file_dialog(self):
 
@@ -1456,6 +1489,14 @@ class UBView(NeuXtalVizWidget):
     def get_detector_calibration(self):
 
         return self.cal_line.text()
+
+    def set_tube_calibration(self, filename):
+
+        return self.tube_line.setText(filename)
+
+    def set_detector_calibration(self, filename):
+
+        return self.cal_line.setText(filename)
 
     def get_IPTS(self):
 
@@ -2020,9 +2061,9 @@ class UBView(NeuXtalVizWidget):
         self.int_k_line.setText('{:.0f}'.format(k))
         self.int_l_line.setText('{:.0f}'.format(l))
 
-        self.int_m_line.setText('{:.3f}'.format(m))
-        self.int_n_line.setText('{:.3f}'.format(n))
-        self.int_p_line.setText('{:.3f}'.format(p))
+        self.int_m_line.setText('{:.0f}'.format(m))
+        self.int_n_line.setText('{:.0f}'.format(n))
+        self.int_p_line.setText('{:.0f}'.format(p))
 
         self.intensity_line.setText('{:.2e}'.format(intens))
         self.sigma_line.setText('{:.2e}'.format(sigma))

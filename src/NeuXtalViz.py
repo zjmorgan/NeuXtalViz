@@ -14,17 +14,14 @@ from qtpy.QtWidgets import (QApplication,
 
 from qtpy.QtGui import QIcon
 
-from mantid.kernel import Logger
-from mantidqt.gui_helper import set_matplotlib_backend
-
-set_matplotlib_backend()
-
 from NeuXtalViz._version import __version__  
-
-logger = Logger('NeuXtalViz')
 
 import pyvista
 pyvista.set_plot_theme('document')
+
+import qdarktheme
+
+qdarktheme.enable_hi_dpi()
 
 from NeuXtalViz.views.crystal_structure_tools import CrystalStructureView
 from NeuXtalViz.models.crystal_structure_tools import CrystalStructureModel
@@ -61,7 +58,6 @@ class NeuXtalViz(QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        logger.information('NeuXtalViz {}'.format(__version__))
 
         icon = os.path.join(os.path.dirname(__file__), 'icons/NeuXtalViz.png')
         self.setWindowIcon(QIcon(icon))
@@ -152,6 +148,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 def gui():
     sys.excepthook = handle_exception
     app = QApplication(sys.argv)
+    qdarktheme.setup_theme('light')
     window = NeuXtalViz()
     window.show()
     sys.exit(app.exec_())

@@ -17,6 +17,9 @@ class UB(NeuXtalVizPresenter):
         self.view.connect_switch_instrument(self.switch_instrument)
         self.view.connect_wavelength(self.update_wavelength)
 
+        self.view.connect_browse_calibration(self.load_detector_calibration)
+        self.view.connect_browse_tube(self.load_tube_calibration)
+
         self.view.connect_convert_Q(self.convert_Q)
         self.view.connect_find_peaks(self.find_peaks)
         self.view.connect_index_peaks(self.index_peaks)
@@ -57,17 +60,37 @@ class UB(NeuXtalVizPresenter):
 
         if all(elem is not None for elem in validate):
 
-            self.model.load_convert(instrument,
-                                    IPTS,
-                                    runs,
-                                    exp,
-                                    wavelength,
-                                    time_stop,
-                                    det_cal,
-                                    tube_cal,
-                                    lorentz)
+            self.update_processing()
+
+            self.update_processing('Data loading...', 10)
+
+            self.model.load_data(instrument,
+                                 IPTS,
+                                 runs,
+                                 exp,
+                                 time_stop)
+
+            self.update_processing('Data loaded...', 40)
+
+            self.update_processing('Data calibrating...', 50)
+
+            self.model.calibrate_data(instrument, det_cal, tube_cal)
+
+            self.update_processing('Data calibrated...', 60)
+
+            self.update_processing('Data converting...', 70)
+
+            self.model.convert_data(instrument, wavelength, lorentz)
+
+            self.update_processing('Data converted...', 99)
 
             self.visualize()
+
+            self.update_complete('Data converted!')
+
+        else:
+
+            self.update_invalid()
 
     def visualize(self):
 
@@ -375,6 +398,22 @@ class UB(NeuXtalVizPresenter):
 
             self.visualize()
 
+    def load_detector_calibration(self):
+
+        filename = self.view.load_detector_cal_dialog()
+
+        if filename:
+
+            self.view.set_detector_calibration(filename)
+
+    def load_tube_calibration(self):
+
+        filename = self.view.load_tube_cal_dialog()
+
+        if filename:
+
+            self.view.set_tube_calibration(filename)
+
     def load_Q(self):
 
         filename = self.view.load_Q_file_dialog()
@@ -443,4 +482,7 @@ class UB(NeuXtalVizPresenter):
     def calculate_peaks(self):
 
         hkl_1, hkl_2 = self.view.get_input_hkls()
-        self.view.set_d_phi(*self.model.calculate_peaks(hkl_1, hkl_2))
+        constants = self.view.get_lattice_constants()
+        if constants is not None:
+            d_phi = self.model.calculate_peaks(hkl_1, hkl_2, *constants)
+            self.view.set_d_phi(*d_phi)

@@ -1,5 +1,3 @@
-import sys
-
 from qtpy.QtWidgets import (QWidget,
                             QFrame,
                             QGridLayout,
@@ -10,12 +8,11 @@ from qtpy.QtWidgets import (QWidget,
                             QCheckBox,
                             QComboBox,
                             QLineEdit,
+                            QProgressBar,
                             QFileDialog)
 
 from qtpy.QtGui import QDoubleValidator
 from PyQt5.QtCore import Qt
-
-from PyQt5.QtWidgets import QApplication, QMainWindow
 
 import numpy as np
 import pyvista as pv
@@ -49,6 +46,10 @@ class NeuXtalVizWidget(QWidget):
         self.axis1_line.setValidator(validator)
         self.axis2_line.setValidator(validator)
         self.axis3_line.setValidator(validator)
+
+        self.axis1_line.setFixedWidth(40)
+        self.axis2_line.setFixedWidth(40)
+        self.axis3_line.setFixedWidth(40)
 
         self.axis1_label = QLabel('h', self)
         self.axis2_label = QLabel('k', self)
@@ -93,9 +94,15 @@ class NeuXtalVizWidget(QWidget):
         vis_layout = QVBoxLayout()
         camera_layout = QGridLayout()
         plot_layout = QHBoxLayout()
-        lattice_layout = QHBoxLayout()
+        lattice_layout = QGridLayout()
+        orientation_layout = QGridLayout()
+        ub_layout = QHBoxLayout()
 
-        camera_layout.addWidget(self.proj_box, 0, 0)
+        self.progress_bar = QProgressBar(self)        
+        self.status_label = QLabel('Ready!', self)
+        self.status_label.setAlignment(Qt.AlignCenter)
+
+        camera_layout.addWidget(self.save_button, 0, 0)
         camera_layout.addWidget(self.reset_button, 1, 0)
 
         camera_layout.addWidget(self.px_button, 0, 1)
@@ -124,7 +131,10 @@ class NeuXtalVizWidget(QWidget):
         camera_layout.addWidget(self.manual_button, 1, 10)
 
         camera_layout.addWidget(self.recip_box, 0, 11)
-        camera_layout.addWidget(self.save_button, 1, 11)
+        camera_layout.addWidget(self.proj_box, 1, 11)
+
+        camera_layout.addWidget(self.status_label, 0, 12)
+        camera_layout.addWidget(self.progress_bar, 1, 12)
 
         plot_layout.addWidget(self.plotter.interactor)
 
@@ -146,8 +156,12 @@ class NeuXtalVizWidget(QWidget):
         self.ub_alpha_line = QLineEdit()
         self.ub_beta_line = QLineEdit()
         self.ub_gamma_line = QLineEdit()
-        self.ub_u_line = QLineEdit()
-        self.ub_v_line = QLineEdit()
+        self.ub_u1_line = QLineEdit()
+        self.ub_u2_line = QLineEdit()
+        self.ub_u3_line = QLineEdit()
+        self.ub_v1_line = QLineEdit()
+        self.ub_v2_line = QLineEdit()
+        self.ub_v3_line = QLineEdit()
 
         self.ub_a_line.setReadOnly(True)
         self.ub_b_line.setReadOnly(True)
@@ -155,43 +169,80 @@ class NeuXtalVizWidget(QWidget):
         self.ub_alpha_line.setReadOnly(True)
         self.ub_beta_line.setReadOnly(True)
         self.ub_gamma_line.setReadOnly(True)
-        self.ub_u_line.setReadOnly(True)
-        self.ub_v_line.setReadOnly(True)
+        self.ub_u1_line.setReadOnly(True)
+        self.ub_u2_line.setReadOnly(True)
+        self.ub_u3_line.setReadOnly(True)
+        self.ub_v1_line.setReadOnly(True)
+        self.ub_v2_line.setReadOnly(True)
+        self.ub_v3_line.setReadOnly(True)
 
-        lattice_layout.addWidget(ub_a_label)
-        lattice_layout.addWidget(self.ub_a_line)
-        lattice_layout.addWidget(ub_b_label)
-        lattice_layout.addWidget(self.ub_b_line)
-        lattice_layout.addWidget(ub_c_label)
-        lattice_layout.addWidget(self.ub_c_line)
-        lattice_layout.addWidget(ub_angstrom_label)
-        lattice_layout.addStretch(1)
-        lattice_layout.addWidget(ub_alpha_label)
-        lattice_layout.addWidget(self.ub_alpha_line)
-        lattice_layout.addWidget(ub_beta_label)
-        lattice_layout.addWidget(self.ub_beta_line)
-        lattice_layout.addWidget(ub_gamma_label)
-        lattice_layout.addWidget(self.ub_gamma_line)
-        lattice_layout.addWidget(ub_degree_label)
-        lattice_layout.addStretch(1)
-        lattice_layout.addWidget(ub_u_label)
-        lattice_layout.addWidget(self.ub_u_line)
-        lattice_layout.addWidget(ub_v_label)
-        lattice_layout.addWidget(self.ub_v_line)
+        lattice_layout.addWidget(ub_a_label, 0, 0)
+        lattice_layout.addWidget(self.ub_a_line, 0, 1)
+        lattice_layout.addWidget(ub_b_label, 0, 2)
+        lattice_layout.addWidget(self.ub_b_line, 0, 3)
+        lattice_layout.addWidget(ub_c_label, 0, 4)
+        lattice_layout.addWidget(self.ub_c_line, 0, 5)
+        lattice_layout.addWidget(ub_angstrom_label, 0, 6)
+
+        lattice_layout.addWidget(ub_alpha_label, 1, 0)
+        lattice_layout.addWidget(self.ub_alpha_line, 1, 1)
+        lattice_layout.addWidget(ub_beta_label, 1, 2)
+        lattice_layout.addWidget(self.ub_beta_line, 1, 3)
+        lattice_layout.addWidget(ub_gamma_label, 1, 4)
+        lattice_layout.addWidget(self.ub_gamma_line, 1, 5)
+        lattice_layout.addWidget(ub_degree_label, 1, 6)
+
+        orientation_layout.addWidget(ub_u_label, 0, 0)
+        orientation_layout.addWidget(self.ub_u1_line, 0, 1)
+        orientation_layout.addWidget(self.ub_u2_line, 0, 2)
+        orientation_layout.addWidget(self.ub_u3_line, 0, 3)
+        orientation_layout.addWidget(ub_v_label, 1, 0)
+        orientation_layout.addWidget(self.ub_v1_line, 1, 1)
+        orientation_layout.addWidget(self.ub_v2_line, 1, 2)
+        orientation_layout.addWidget(self.ub_v3_line, 1, 3)
+
+        ub_layout.addLayout(orientation_layout)
+        ub_layout.addLayout(lattice_layout)
 
         vis_layout.addLayout(camera_layout)
         vis_layout.addLayout(plot_layout)
-        vis_layout.addLayout(lattice_layout)
+        vis_layout.addLayout(ub_layout)
 
         layout.addLayout(vis_layout)
 
         self.setLayout(layout)
+
+    def set_info(self, status):
+        """
+        Update status information.
+
+        Parameters
+        ----------
+        status : str
+            Information.
+
+        """
+
+        self.status_label.setText(status)
+
+    def set_step(self, progress):
+        """
+        Update progress step.
+
+        Parameters
+        ----------
+        progress : int
+            Step.
+
+        """
+
+        self.progress_bar.setValue(progress)
     
     def set_oriented_lattice_parameters(self, a, b, c, 
                                               alpha, beta, gamma,
                                               u, v):
         """
-        Obtain the oriented lattice paramters.
+        Update the oriented lattice paramters.
 
         Parameters
         ----------
@@ -208,8 +259,12 @@ class NeuXtalVizWidget(QWidget):
         self.ub_alpha_line.setText('{:.3f}'.format(alpha))
         self.ub_beta_line.setText('{:.3f}'.format(beta))
         self.ub_gamma_line.setText('{:.3f}'.format(gamma))
-        self.ub_u_line.setText('{:.2f},{:.2f},{:.2f}'.format(*u))
-        self.ub_v_line.setText('{:.2f},{:.2f},{:.2f}'.format(*v))
+        self.ub_u1_line.setText('{:.4f}'.format(u[0]))
+        self.ub_u2_line.setText('{:.4f}'.format(u[1]))
+        self.ub_u3_line.setText('{:.4f}'.format(u[2]))
+        self.ub_v1_line.setText('{:.4f}'.format(v[0]))
+        self.ub_v2_line.setText('{:.4f}'.format(v[1]))
+        self.ub_v3_line.setText('{:.4f}'.format(v[2]))
 
     def connect_manual_axis(self, view_manual):
         """

@@ -1,5 +1,10 @@
 import os
 
+from mantid.api import (AlgorithmManager,
+                        AlgorithmObserver,
+                        AnalysisDataServiceObserver,
+                        Progress)
+
 from mantid.simpleapi import (SelectCellWithForm,
                               ShowPossibleCells,
                               TransformHKL,
@@ -29,6 +34,7 @@ from mantid.simpleapi import (SelectCellWithForm,
                               CreatePeaksWorkspace,
                               ConvertPeaksWorkspace,
                               CopySample,
+                              CreateSampleWorkspace,
                               CloneWorkspace,
                               SaveNexus,
                               LoadNexus,
@@ -39,6 +45,7 @@ from mantid.simpleapi import (SelectCellWithForm,
                               PreprocessDetectorsToMD,
                               ConvertToMD,
                               ConvertHFIRSCDtoMDE,
+                              MergeMD,
                               LoadNexus,
                               LoadIsawDetCal,
                               LoadParameterFile,
@@ -52,7 +59,7 @@ from mantid import config
 
 config['Q.convention'] = 'Crystallography'
 
-from mantid.geometry import PointGroupFactory
+from mantid.geometry import PointGroupFactory, UnitCell
 from mantid.kernel import V3D
 
 import numpy as np
@@ -98,6 +105,8 @@ class UBModel(NeuXtalVizModel):
         self.table = 'ub_peaks'
 
         self.peak_info = None
+
+        CreateSampleWorkspace(OutputWorkspace='ub_lattice')
 
     def has_Q(self):
 
@@ -155,22 +164,14 @@ class UBModel(NeuXtalVizModel):
                             'IPTS-{}',
                             inst['RawFile'])
 
-    def load_convert(self,
-                     instrument,
-                     IPTS,
-                     runs,
-                     exp,
-                     wavelength,
-                     time_stop,
-                     det_cal,
-                     tube_cal,
-                     lorentz):
+    def load_data(self,
+                  instrument,
+                  IPTS,
+                  runs,
+                  exp,
+                  time_stop):
 
         filepath = self.get_raw_file_path(instrument)
-
-        goniometers = self.get_goniometers(instrument)
-        while len(goniometers) < 6:
-            goniometers.append(None)
 
         if instrument == 'DEMAND':
             filenames = [filepath.format(IPTS, exp, runs)]
@@ -184,18 +185,27 @@ class UBModel(NeuXtalVizModel):
         elif instrument == 'WAND²':
             filenames = [filepath.format(IPTS, run) for run in runs]
             if np.all([os.path.exists(filename) for filename in filenames]):
+                filenames = ','.join([filename for filename in filenames])
                 LoadWANDSCD(Filename=filenames,
                             Grouping='4x4',
                             OutputWorkspace='data')
         else:
             filenames = [filepath.format(IPTS, run) for run in runs]
             if np.all([os.path.exists(filename) for filename in filenames]):
-                filenames = '+'.join([filename for filename in filenames])
+                filenames = ','.join([filename for filename in filenames])
                 Load(Filename=filenames,
                      FilterByTimeStop=time_stop,
                      OutputWorkspace='data')
 
+    def calibrate_data(self, instrument, det_cal, tube_cal):
+
+        filepath = self.get_raw_file_path(instrument)
+
         if mtd.doesExist('data'):
+
+            goniometers = self.get_goniometers(instrument)
+            while len(goniometers) < 6:
+                goniometers.append(None)            
 
             SetGoniometer(Workspace='data',
                           Axis0=goniometers[0],
@@ -214,8 +224,21 @@ class UBModel(NeuXtalVizModel):
                     LoadParameterFile(Workspace='data',
                                       Filename=det_cal)
                 else:
-                    LoadIsawDetCal(InputWorkspace='data',
-                                   Filename=det_cal)
+                    ws = mtd['data']
+                    group = ws.isGroup()
+                    if group:
+                        for input_ws in ws.getNames():
+                            LoadIsawDetCal(InputWorkspace=input_ws,
+                                           Filename=det_cal)
+                    else:
+                        LoadIsawDetCal(InputWorkspace='data',
+                                       Filename=det_cal)
+
+    def convert_data(self, instrument, wavelength, lorentz):
+
+        filepath = self.get_raw_file_path(instrument)
+
+        if mtd.doesExist('data'):
 
             if 'HFIR' in filepath:
                 ei = mtd['data'].getExperimentInfo(0)
@@ -236,7 +259,10 @@ class UBModel(NeuXtalVizModel):
                               XMin=wavelength[0],
                               XMax=wavelength[1],
                               OutputWorkspace='data')
-                PreprocessDetectorsToMD(InputWorkspace='data',
+                ws = mtd['data']
+                group = ws.isGroup()
+                input_ws = ws.getNames()[0] if group else 'data'
+                PreprocessDetectorsToMD(InputWorkspace=input_ws,
                                         OutputWorkspace='detectors')
                 two_theta = mtd['detectors'].column('TwoTheta')
                 Q_max = 4*np.pi/min(wavelength)*np.sin(0.5*max(two_theta))
@@ -249,6 +275,8 @@ class UBModel(NeuXtalVizModel):
                             MaxValues=[+Q_max,+Q_max,+Q_max],
                             PreprocDetectorsWS='detectors',
                             OutputWorkspace='md')
+                if group:
+                    MergeMD(InputWorkspaces='md', OutputWorkspace='md')
 
             self.Q = 'md'
 
@@ -1213,18 +1241,16 @@ class UBModel(NeuXtalVizModel):
         peak.setIntHKL(V3D(*int_hkl))
         peak.setIntMNP(V3D(*int_mnp))
 
-    def calculate_peaks(self, hkl_1, hkl_2):
+    def calculate_peaks(self, hkl_1, hkl_2, a, b, c, alpha, beta, gamma):
 
-        if self.has_peaks() and self.has_UB():
+        uc = UnitCell(a, b, c, alpha, beta, gamma)
 
-            ol = mtd[self.table].sample().getOrientedLattice()
+        d_1 = d_2 = phi_12 = None
+        if hkl_1 is not None:
+            d_1 = uc.d(*hkl_1)
+        if hkl_2 is not None:
+            d_2 = uc.d(*hkl_2)
+        if hkl_1 is not None and hkl_2 is not None:
+            phi_12 = uc.recAngle(*hkl_1, *hkl_2)
 
-            d_1 = d_2 = phi_12 = None
-            if hkl_1 is not None:
-                d_1 = ol.d(*hkl_1)
-            if hkl_2 is not None:
-                d_2 = ol.d(*hkl_2)
-            if hkl_1 is not None and hkl_2 is not None:
-                phi_12 = ol.recAngle(*hkl_1, *hkl_2)
-
-            return d_1, d_2, phi_12
+        return d_1, d_2, phi_12
