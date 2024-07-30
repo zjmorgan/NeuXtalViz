@@ -98,6 +98,10 @@ class UB(NeuXtalVizPresenter):
 
         if Q_hist is not None:
 
+            self.update_processing()
+
+            self.update_processing('Updating view...', 50)
+
             self.view.add_Q_viz(Q_hist)
 
             if self.model.has_UB():
@@ -115,6 +119,8 @@ class UB(NeuXtalVizPresenter):
                 peaks = self.model.get_peak_info()
 
                 self.view.update_peaks_table(peaks)
+
+            self.update_complete('Data visualized!')
 
     def update_lattice_info(self):
 
@@ -140,11 +146,23 @@ class UB(NeuXtalVizPresenter):
 
             if dist is not None and params is not None:
 
+                self.update_processing()
+
+                self.update_processing('Finding peaks...', 10)
+
                 self.model.find_peaks(dist, *params, edge)
+
+                self.update_processing('Peaks found...', 90)
 
                 self.visualize()
 
                 self.view.clear_niggli_info()
+
+                self.update_complete('Peaks found!')
+
+            else:
+
+                self.update_invalid()
 
     def find_conventional(self):
 
@@ -155,11 +173,23 @@ class UB(NeuXtalVizPresenter):
 
             if params is not None and tol is not None:
 
+                self.update_processing()
+
+                self.update_processing('Finding UB...', 10)
+
                 self.model.determine_UB_with_lattice_parameters(*params, tol)
+
+                self.update_processing('UB found...', 90)
 
                 self.visualize()
 
                 self.view.clear_niggli_info()
+
+                self.update_complete('UB found!')
+
+            else:
+
+                self.update_invalid()
 
     def find_niggli(self):
 
@@ -170,11 +200,23 @@ class UB(NeuXtalVizPresenter):
 
             if params is not None and tol is not None:
 
+                self.update_processing()
+
+                self.update_processing('Finding UB...', 10)
+
                 self.model.determine_UB_with_niggli_cell(*params, tol)
+
+                self.update_processing('UB found...', 90)
 
                 self.visualize()
 
+                self.update_complete('UB found!')
+
                 self.show_cells()
+
+            else:
+
+                self.update_invalid()
 
     def show_cells(self):
 
@@ -184,8 +226,19 @@ class UB(NeuXtalVizPresenter):
 
             if scalar is not None:
 
+                self.update_processing()
+
+                self.update_processing('Finding possible cells...', 50)
+
                 cells = self.model.possible_conventional_cells(scalar)
+
                 self.view.update_cell_table(cells)
+
+                self.update_complete('Possible cells found!')
+
+            else:
+
+                self.update_invalid()
 
     def select_cell(self):
 
@@ -196,11 +249,23 @@ class UB(NeuXtalVizPresenter):
 
             if form is not None and tol is not None:
 
+                self.update_processing()
+
+                self.update_processing('Selecting cell...', 50)
+
                 self.model.select_cell(form, tol)
+
+                self.update_processing('Cell selected...', 99)
 
                 self.visualize()
 
                 self.view.clear_niggli_info()
+
+                self.update_complete('Cell selected!')
+
+            else:
+
+                self.update_invalid()
 
     def highlight_cell(self):
 
@@ -248,11 +313,23 @@ class UB(NeuXtalVizPresenter):
 
             if params is not None and tol is not None:
 
+                self.update_processing()
+
+                self.update_processing('Transforming UB...', 50)
+
                 self.model.transform_lattice(params, tol)
+
+                self.update_processing('UB transformed...', 99)
 
                 self.visualize()
 
                 self.view.clear_niggli_info()
+
+                self.update_complete('UB transformed!')
+
+            else:
+
+                self.update_invalid()
 
     def refine_UB(self):
 
@@ -263,15 +340,43 @@ class UB(NeuXtalVizPresenter):
             option = self.view.get_refine_UB_option()
 
             if option == 'Constrained' and params is not None:
+
+                self.update_processing()
+
+                self.update_processing('Refining orientation...', 50)
+
                 self.model.refine_U_only(*params)
+
+                self.update_processing('Orientation refined...', 99)
+
                 self.visualize()
+
+                self.view.clear_niggli_info()
+
+                self.update_complete('Orientation refined!')
+
             elif tol is not None:
+
+                self.update_processing()
+
+                self.update_processing('Refining UB...', 50)
+
                 if option == 'Unconstrained':
                     self.model.refine_UB_without_constraints(tol)
                 else:
                     self.model.refine_UB_with_constraints(option, tol)
+
+                self.update_processing('UB refined...', 99)
+
                 self.visualize()
+
                 self.view.clear_niggli_info()
+
+                self.update_complete('UB refined!')
+
+            else:
+
+                self.update_invalid()
 
     def get_modulation_info(self):
 
@@ -372,7 +477,7 @@ class UB(NeuXtalVizPresenter):
                 method = 'ellipsoid' if ellipsoid else 'sphere'
 
                 rad, inner_factor, outer_factor = params
-                
+
                 if inner_factor < 1:
                     inner_factor = 1
                 if outer_factor < inner_factor:
