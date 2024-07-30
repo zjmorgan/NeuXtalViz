@@ -33,7 +33,7 @@ class SampleView(NeuXtalVizWidget):
 
         self.sample_tab()
 
-        self.layout().addWidget(self.tab_widget)
+        self.layout().addWidget(self.tab_widget, stretch=1)
 
     def sample_tab(self):
 

@@ -42,7 +42,7 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.coverage_tab()
 
-        self.layout().addWidget(self.tab_widget)
+        self.layout().addWidget(self.tab_widget, stretch=1)
 
     def coverage_tab(self):
 

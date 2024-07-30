@@ -31,7 +31,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.slicer_tab()
 
-        self.layout().addWidget(self.tab_widget)
+        self.layout().addWidget(self.tab_widget, stretch=1)
 
     def slicer_tab(self):
 

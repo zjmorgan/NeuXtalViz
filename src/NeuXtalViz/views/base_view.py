@@ -208,7 +208,7 @@ class NeuXtalVizWidget(QWidget):
         vis_layout.addLayout(plot_layout)
         vis_layout.addLayout(ub_layout)
 
-        layout.addLayout(vis_layout)
+        layout.addLayout(vis_layout, stretch=2)
 
         self.setLayout(layout)
 

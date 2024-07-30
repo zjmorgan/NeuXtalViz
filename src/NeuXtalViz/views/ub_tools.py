@@ -34,7 +34,7 @@ class UBView(NeuXtalVizWidget):
         self.parameters_tab()
         self.table_tab()
 
-        self.layout().addWidget(self.tab_widget)
+        self.layout().addWidget(self.tab_widget, stretch=1)
 
         self.last_highlight = None
 
@@ -44,6 +44,59 @@ class UBView(NeuXtalVizWidget):
         self.tab_widget.addTab(ub_peaks_tab, 'Parameters')
 
         ub_layout = QVBoxLayout()
+
+        self.save_q_button = QPushButton('Save Q', self)
+        self.load_q_button = QPushButton('Load Q', self)
+
+        self.save_peaks_button = QPushButton('Save Peaks', self)
+        self.load_peaks_button = QPushButton('Load Peaks', self)
+
+        self.save_ub_button = QPushButton('Save UB', self)
+        self.load_ub_button = QPushButton('Load UB', self)
+
+        convert_io_layout = QHBoxLayout()
+
+        convert_io_layout.addStretch(1)
+        convert_io_layout.addWidget(self.save_q_button)
+        convert_io_layout.addWidget(self.load_q_button)
+
+        peaks_io_layout = QHBoxLayout()
+
+        peaks_io_layout.addStretch(1)
+        peaks_io_layout.addWidget(self.save_peaks_button)
+        peaks_io_layout.addWidget(self.load_peaks_button)
+
+        ub_io_layout = QHBoxLayout()
+
+        ub_io_layout.addStretch(1)
+        ub_io_layout.addWidget(self.save_ub_button)
+        ub_io_layout.addWidget(self.load_ub_button)
+
+        convert_tab = self.__init_convert_tab()
+        peaks_tab = self.__init_peaks_tab()
+        ub_tab = self.__init_ub_tab()
+        values_tab = self.__init_values_tab()
+
+        ub_layout.addWidget(convert_tab)
+        ub_layout.addLayout(convert_io_layout)
+
+        ub_layout.addWidget(peaks_tab)
+        ub_layout.addLayout(peaks_io_layout)
+
+        ub_layout.addWidget(ub_tab)
+        ub_layout.addLayout(ub_io_layout)
+
+        ub_layout.addWidget(values_tab)
+
+        ub_peaks_tab.setLayout(ub_layout)
+
+    def __init_values_tab(self):
+
+        values_tab = QTabWidget()        
+
+        parameters_tab = QWidget()
+        orientation_tab = QWidget()
+        satellite_tab = QWidget()
 
         self.a_line = QLineEdit()
         self.b_line = QLineEdit()
@@ -96,7 +149,7 @@ class UBView(NeuXtalVizWidget):
         parameters_layout.addWidget(gamma_label, 1, 4)
         parameters_layout.addWidget(self.gamma_line, 1, 5)
         parameters_layout.addWidget(degree_label, 1, 6)
-
+        
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(-5, 5, 4, notation=notation)
@@ -211,48 +264,20 @@ class UBView(NeuXtalVizWidget):
         orientation_layout.addWidget(self.vk_line, 3, 2)
         orientation_layout.addWidget(self.vl_line, 3, 3)
 
-        self.save_q_button = QPushButton('Save Q', self)
-        self.load_q_button = QPushButton('Load Q', self)
+        lattice_layout = QVBoxLayout()
 
-        self.save_peaks_button = QPushButton('Save Peaks', self)
-        self.load_peaks_button = QPushButton('Load Peaks', self)
+        lattice_layout.addLayout(parameters_layout)
+        lattice_layout.addStretch(1)
 
-        self.save_ub_button = QPushButton('Save UB', self)
-        self.load_ub_button = QPushButton('Load UB', self)
+        parameters_tab.setLayout(lattice_layout)
+        orientation_tab.setLayout(orientation_layout)
+        satellite_tab.setLayout(satellite_layout)
 
-        convert_io_layout = QHBoxLayout()
+        values_tab.addTab(parameters_tab, 'Lattice Parameters')
+        values_tab.addTab(orientation_tab, 'Sample Orientation')
+        values_tab.addTab(satellite_tab, 'Modulation Parameters')
 
-        convert_io_layout.addStretch(1)
-        convert_io_layout.addWidget(self.save_q_button)
-        convert_io_layout.addWidget(self.load_q_button)
-
-        peaks_io_layout = QHBoxLayout()
-
-        peaks_io_layout.addStretch(1)
-        peaks_io_layout.addWidget(self.save_peaks_button)
-        peaks_io_layout.addWidget(self.load_peaks_button)
-
-        ub_io_layout = QHBoxLayout()
-
-        ub_io_layout.addStretch(1)
-        ub_io_layout.addWidget(self.save_ub_button)
-        ub_io_layout.addWidget(self.load_ub_button)
-
-        convert_tab = self.__init_convert_tab()
-        peaks_tab = self.__init_peaks_tab()
-        ub_tab = self.__init_ub_tab()
-
-        ub_layout.addWidget(convert_tab)
-        ub_layout.addLayout(convert_io_layout)
-        ub_layout.addLayout(parameters_layout)
-        ub_layout.addWidget(peaks_tab)
-        ub_layout.addLayout(peaks_io_layout)
-        ub_layout.addLayout(satellite_layout)
-        ub_layout.addWidget(ub_tab)
-        ub_layout.addLayout(ub_io_layout)
-        ub_layout.addLayout(orientation_layout)
-
-        ub_peaks_tab.setLayout(ub_layout)
+        return values_tab
 
     def __init_convert_tab(self):
 
@@ -310,8 +335,8 @@ class UBView(NeuXtalVizWidget):
         self.filter_time_line = QLineEdit('60')
         self.filter_time_line.setValidator(validator)
 
-        self.cal_browse_button = QPushButton('Detector Calibration', self)
-        self.tube_browse_button = QPushButton('Tube Calibration', self)
+        self.cal_browse_button = QPushButton('Detector', self)
+        self.tube_browse_button = QPushButton('Tube', self)
 
         experiment_params_layout.addWidget(self.instrument_combo)
         experiment_params_layout.addWidget(ipts_label)
@@ -1153,6 +1178,10 @@ class UBView(NeuXtalVizWidget):
         self.int_k_line.setValidator(validator)
         self.int_l_line.setValidator(validator)
 
+        self.int_h_line.setFixedWidth(40)
+        self.int_k_line.setFixedWidth(40)
+        self.int_l_line.setFixedWidth(40)
+
         self.int_m_line = QLineEdit()
         self.int_n_line = QLineEdit()
         self.int_p_line = QLineEdit()
@@ -1160,6 +1189,10 @@ class UBView(NeuXtalVizWidget):
         self.int_m_line.setValidator(validator)
         self.int_n_line.setValidator(validator)
         self.int_p_line.setValidator(validator)
+
+        self.int_m_line.setFixedWidth(40)
+        self.int_n_line.setFixedWidth(40)
+        self.int_p_line.setFixedWidth(40)
 
         self.intensity_line = QLineEdit()
         self.sigma_line = QLineEdit()

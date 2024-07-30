@@ -41,7 +41,7 @@ class CrystalStructureView(NeuXtalVizWidget):
         self.structure_tab()
         self.factors_tab()
 
-        self.layout().addWidget(self.tab_widget)
+        self.layout().addWidget(self.tab_widget, stretch=1)
 
     def structure_tab(self):
 

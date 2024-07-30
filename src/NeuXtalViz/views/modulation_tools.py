@@ -36,7 +36,7 @@ class ModulationView(NeuXtalVizWidget):
 
         self.modulation_tab()
 
-        self.layout().addWidget(self.tab_widget)
+        self.layout().addWidget(self.tab_widget, stretch=1)
 
     def modulation_tab(self):
 
