@@ -53,7 +53,7 @@ class UB(NeuXtalVizPresenter):
         lorentz = self.view.get_lorentz()
         time_stop = self.view.get_time_stop()
 
-        validate = [IPTS, runs, time_stop, wavelength]
+        validate = [IPTS, runs, wavelength]
 
         if instrument == 'DEMAND':
             validate.append(exp)
