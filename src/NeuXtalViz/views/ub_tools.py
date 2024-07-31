@@ -1589,7 +1589,7 @@ class UBView(NeuXtalVizWidget):
 
     def get_time_stop(self):
 
-        if self.ipts_line.hasAcceptableInput():
+        if self.filter_time_line.hasAcceptableInput():
 
             return self.filter_time_line.text()
 
