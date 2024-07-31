@@ -505,7 +505,11 @@ class UB(NeuXtalVizPresenter):
 
     def load_detector_calibration(self):
 
-        filename = self.view.load_detector_cal_dialog()
+        inst = self.view.get_instrument()
+
+        path = self.model.get_calibration_file_path(inst)
+
+        filename = self.view.load_detector_cal_dialog(path)
 
         if filename:
 
@@ -513,7 +517,11 @@ class UB(NeuXtalVizPresenter):
 
     def load_tube_calibration(self):
 
-        filename = self.view.load_tube_cal_dialog()
+        inst = self.view.get_instrument()
+
+        path = self.model.get_calibration_file_path(inst)
+
+        filename = self.view.load_tube_cal_dialog(path)
 
         if filename:
 
@@ -521,7 +529,12 @@ class UB(NeuXtalVizPresenter):
 
     def load_Q(self):
 
-        filename = self.view.load_Q_file_dialog()
+        inst = self.view.get_instrument()
+        ipts = self.view.get_IPTS()
+
+        path = self.model.get_shared_file_path(inst, ipts)
+
+        filename = self.view.load_Q_file_dialog(path)
 
         if filename:
 
@@ -529,7 +542,12 @@ class UB(NeuXtalVizPresenter):
 
     def save_Q(self):
 
-        filename = self.view.save_Q_file_dialog()
+        inst = self.view.get_instrument()
+        ipts = self.view.get_IPTS()
+
+        path = self.model.get_shared_file_path(inst, ipts)
+
+        filename = self.view.save_Q_file_dialog(path)
 
         if filename:
 
@@ -537,7 +555,12 @@ class UB(NeuXtalVizPresenter):
 
     def load_peaks(self):
 
-        filename = self.view.load_peaks_file_dialog()
+        inst = self.view.get_instrument()
+        ipts = self.view.get_IPTS()
+
+        path = self.model.get_shared_file_path(inst, ipts)
+
+        filename = self.view.load_peaks_file_dialog(path)
 
         if filename:
 
@@ -545,7 +568,12 @@ class UB(NeuXtalVizPresenter):
 
     def save_peaks(self):
 
-        filename = self.view.save_peaks_file_dialog()
+        inst = self.view.get_instrument()
+        ipts = self.view.get_IPTS()
+
+        path = self.model.get_shared_file_path(inst, ipts)
+
+        filename = self.view.save_peaks_file_dialog(path)
 
         if filename:
 
@@ -553,7 +581,12 @@ class UB(NeuXtalVizPresenter):
 
     def load_UB(self):
 
-        filename = self.view.load_UB_file_dialog()
+        inst = self.view.get_instrument()
+        ipts = self.view.get_IPTS()
+
+        path = self.model.get_shared_file_path(inst, ipts)
+
+        filename = self.view.load_UB_file_dialog(path)
 
         if filename:
 
@@ -563,7 +596,12 @@ class UB(NeuXtalVizPresenter):
 
     def save_UB(self):
 
-        filename = self.view.save_UB_file_dialog()
+        inst = self.view.get_instrument()
+        ipts = self.view.get_IPTS()
+
+        path = self.model.get_shared_file_path(inst, ipts)
+
+        filename = self.view.save_UB_file_dialog(path)
 
         if filename:
 

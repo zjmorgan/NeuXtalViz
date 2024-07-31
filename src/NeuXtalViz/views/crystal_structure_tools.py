@@ -9,18 +9,13 @@ from qtpy.QtWidgets import (QWidget,
                             QLabel,
                             QComboBox,
                             QPushButton,
-                            QCheckBox,
                             QHBoxLayout,
                             QVBoxLayout,
                             QGridLayout,
-                            QFrame,
                             QTabWidget,
                             QFileDialog)
 
-from PyQt5.QtWidgets import QApplication, QMainWindow
-
 from qtpy.QtGui import QDoubleValidator, QIntValidator
-from PyQt5.QtCore import Qt
 
 import pyvista as pv
 

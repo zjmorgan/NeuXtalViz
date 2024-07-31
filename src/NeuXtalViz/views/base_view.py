@@ -9,6 +9,7 @@ from qtpy.QtWidgets import (QWidget,
                             QComboBox,
                             QLineEdit,
                             QProgressBar,
+                            QStatusBar,
                             QFileDialog)
 
 from qtpy.QtGui import QDoubleValidator
@@ -98,10 +99,6 @@ class NeuXtalVizWidget(QWidget):
         orientation_layout = QGridLayout()
         ub_layout = QHBoxLayout()
 
-        self.progress_bar = QProgressBar(self)        
-        self.status_label = QLabel('Ready!', self)
-        self.status_label.setAlignment(Qt.AlignCenter)
-
         camera_layout.addWidget(self.save_button, 0, 0)
         camera_layout.addWidget(self.reset_button, 1, 0)
 
@@ -132,9 +129,6 @@ class NeuXtalVizWidget(QWidget):
 
         camera_layout.addWidget(self.recip_box, 0, 11)
         camera_layout.addWidget(self.proj_box, 1, 11)
-
-        camera_layout.addWidget(self.status_label, 0, 12)
-        camera_layout.addWidget(self.progress_bar, 1, 12)
 
         plot_layout.addWidget(self.plotter.interactor)
 
@@ -208,9 +202,18 @@ class NeuXtalVizWidget(QWidget):
         vis_layout.addLayout(plot_layout)
         vis_layout.addLayout(ub_layout)
 
-        layout.addLayout(vis_layout, stretch=2)
+
+        self.status_bar = QStatusBar()
+        self.status_bar.showMessage('Ready!')
+        self.progress_bar = QProgressBar()
+        self.status_bar.addPermanentWidget(self.progress_bar)
+
+        vis_layout.addWidget(self.status_bar)
+
+        layout.addLayout(vis_layout, stretch=1)
 
         self.setLayout(layout)
+
 
     def set_info(self, status):
         """
@@ -223,7 +226,7 @@ class NeuXtalVizWidget(QWidget):
 
         """
 
-        self.status_label.setText(status)
+        self.status_bar.showMessage(status)
 
     def set_step(self, progress):
         """
@@ -237,8 +240,8 @@ class NeuXtalVizWidget(QWidget):
         """
 
         self.progress_bar.setValue(progress)
-    
-    def set_oriented_lattice_parameters(self, a, b, c, 
+
+    def set_oriented_lattice_parameters(self, a, b, c,
                                               alpha, beta, gamma,
                                               u, v):
         """

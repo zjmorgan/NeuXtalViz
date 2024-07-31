@@ -164,6 +164,43 @@ class UBModel(NeuXtalVizModel):
                             'IPTS-{}',
                             inst['RawFile'])
 
+    def get_shared_file_path(self, instrument, ipts):
+
+        inst = beamlines[instrument]
+
+        if ipts is not None:
+            filepath = os.path.join('/',
+                                    inst['Facility'],
+                                    inst['InstrumentName'],
+                                    'IPTS-{}'.format(ipts),
+                                    'shared')
+            if os.path.exists(filepath):
+                return filepath
+
+        filepath = os.path.join('/', inst['Facility'], inst['InstrumentName'])
+
+        return filepath
+
+    def get_calibration_file_path(self, instrument):
+
+        inst = beamlines[instrument]
+
+        return os.path.join('/',
+                            inst['Facility'],
+                            inst['InstrumentName'],
+                            'shared',
+                            'calibration')
+
+    def get_vanadium_file_path(self, instrument):
+
+        inst = beamlines[instrument]
+
+        return os.path.join('/',
+                            inst['Facility'],
+                            inst['InstrumentName'],
+                            'shared',
+                            'Vanadium')
+
     def load_data(self,
                   instrument,
                   IPTS,
@@ -205,7 +242,7 @@ class UBModel(NeuXtalVizModel):
 
             goniometers = self.get_goniometers(instrument)
             while len(goniometers) < 6:
-                goniometers.append(None)            
+                goniometers.append(None)
 
             SetGoniometer(Workspace='data',
                           Axis0=goniometers[0],
@@ -314,7 +351,7 @@ class UBModel(NeuXtalVizModel):
 
             self.sort_peaks_by_hkl(self.table)
 
-            self.sort_peaks_by_d(self.table)            
+            self.sort_peaks_by_d(self.table)
 
             Qs, Is, pk_nos, Ts = [], [], [], []
 
@@ -861,7 +898,7 @@ class UBModel(NeuXtalVizModel):
 
     def predict_peaks(self,
                       centering,
-                      d_min, 
+                      d_min,
                       lamda_min,
                       lamda_max,
                       edge_pixels=0):

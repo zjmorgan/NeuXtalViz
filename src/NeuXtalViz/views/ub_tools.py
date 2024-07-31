@@ -1350,7 +1350,7 @@ class UBView(NeuXtalVizWidget):
 
         self.select_button.clicked.connect(select_cell)
 
-    def load_detector_cal_dialog(self):
+    def load_detector_cal_dialog(self, path=''):
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -1359,13 +1359,13 @@ class UBView(NeuXtalVizWidget):
 
         filename, _ = QFileDialog.getOpenFileName(self,
                                                   'Load calibration file',
-                                                  '',
+                                                  path,
                                                   file_filters,
                                                   options=options)
 
         return filename
 
-    def load_tube_cal_dialog(self):
+    def load_tube_cal_dialog(self, path=''):
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -1374,85 +1374,85 @@ class UBView(NeuXtalVizWidget):
 
         filename, _ = QFileDialog.getOpenFileName(self,
                                                   'Load calibration file',
-                                                  '',
+                                                  path,
                                                   file_filters,
                                                   options=options)
 
         return filename
 
-    def load_Q_file_dialog(self):
+    def load_Q_file_dialog(self, path=''):
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         filename, _ = QFileDialog.getOpenFileName(self,
                                                   'Load Q file',
-                                                  '',
+                                                  path,
                                                   'Q files (*.nxs)',
                                                   options=options)
 
         return filename
 
-    def save_Q_file_dialog(self):
+    def save_Q_file_dialog(self, path=''):
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         filename, _ = QFileDialog.getSaveFileName(self,
                                                   'Save Q file',
-                                                  '',
+                                                  path,
                                                   'Q files (*.nxs)',
                                                   options=options)
 
         return filename
 
-    def load_peaks_file_dialog(self):
+    def load_peaks_file_dialog(self, path=''):
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         filename, _ = QFileDialog.getOpenFileName(self,
                                                   'Load peaks file',
-                                                  '',
+                                                  path,
                                                   'Peaks files (*.nxs)',
                                                   options=options)
 
         return filename
 
-    def save_peaks_file_dialog(self):
+    def save_peaks_file_dialog(self, path=''):
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         filename, _ = QFileDialog.getSaveFileName(self,
                                                   'Save peaks file',
-                                                  '',
+                                                  path,
                                                   'Peaks files (*.nxs)',
                                                   options=options)
 
         return filename
 
-    def load_UB_file_dialog(self):
+    def load_UB_file_dialog(self, path=''):
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         filename, _ = QFileDialog.getOpenFileName(self,
                                                   'Load UB file',
-                                                  '',
+                                                  path,
                                                   'UB files (*.mat)',
                                                   options=options)
 
         return filename
 
-    def save_UB_file_dialog(self):
+    def save_UB_file_dialog(self, path=''):
 
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         filename, _ = QFileDialog.getSaveFileName(self,
                                                   'Save UB file',
-                                                  '',
+                                                  path,
                                                   'UB files (*.mat)',
                                                   options=options)
 

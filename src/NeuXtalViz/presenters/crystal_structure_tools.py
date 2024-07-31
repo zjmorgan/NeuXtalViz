@@ -65,7 +65,13 @@ class CrystalStructure(NeuXtalVizPresenter):
 
         if filename:
 
+            self.update_processing()
+
+            self.update_processing('Loading CIF...', 10)            
+
             self.model.load_CIF(filename)
+
+            self.update_processing('Loading CIF...', 50)
 
             crystal_system = self.model.get_crystal_system()
             space_group = self.model.get_space_group()
@@ -87,6 +93,8 @@ class CrystalStructure(NeuXtalVizPresenter):
             atom_dict = self.model.generate_atom_positions()
             self.view.add_atoms(atom_dict)
 
+            self.update_processing('Loading CIF...', 80)
+
             self.view.draw_cell(self.model.get_unit_cell_transform())
             self.view.set_transform(self.model.get_transform())
             self.update_oriented_lattice()
@@ -94,8 +102,16 @@ class CrystalStructure(NeuXtalVizPresenter):
             form, z = self.model.get_chemical_formula_z_parameter()
             self.view.set_formula_z(form, z)
 
+            self.update_processing('Loading CIF...', 99)
+
             vol = self.model.get_unit_cell_volume()
             self.view.set_unit_cell_volume(vol)
+
+            self.update_complete('CIF loaded!')
+
+        else:
+
+            self.update_invalid()
 
     def update_atoms(self):
 
@@ -122,12 +138,24 @@ class CrystalStructure(NeuXtalVizPresenter):
 
         if params is not None:
 
+            self.update_processing()
+
+            self.update_processing('Calculating factors...', 10)
+
             if d_min is None:
                 d_min = min(params[0:2])*0.2
 
             hkls, ds, F2s = self.model.generate_F2(d_min)
 
+            self.update_processing('Factors calculated...', 99)
+
             self.view.set_factors(hkls, ds, F2s)
+
+            self.update_complete('Factors calculated!')
+
+        else:
+
+            self.update_invalid()
 
     def calculate_hkl(self):
 
@@ -135,8 +163,21 @@ class CrystalStructure(NeuXtalVizPresenter):
 
         if hkl is not None:
 
+            self.update_processing()
+
+            self.update_processing('Calculating equivalents...', 10)
+
             hkls, d, F2 = self.model.calculate_F2(*hkl)
+
+            self.update_processing('Equivalents calculated...', 99)
+
             self.view.set_equivalents(hkls, d, F2)
+
+            self.update_complete('Equivalents calculated!')
+
+        else:
+
+            self.update_invalid()
 
     def select_isotope(self):
 
