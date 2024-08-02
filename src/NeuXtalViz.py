@@ -64,7 +64,7 @@ class NeuXtalViz(QMainWindow):
         icon = os.path.join(os.path.dirname(__file__), 'icons/NeuXtalViz.png')
         self.setWindowIcon(QIcon(icon))
         self.setWindowTitle('NeuXtalViz {}'.format(__version__))
-        self.resize(1200, 900)
+        # self.resize(1200, 900)
 
         main_window = QWidget(self)
         self.setCentralWidget(main_window)
@@ -133,7 +133,7 @@ class NeuXtalViz(QMainWindow):
 
         layout.addWidget(app_stack)
 
-        self.showMaximized()
+        # self.showMaximized()
 
 def handle_exception(exc_type, exc_value, exc_traceback):
     error_message = ''.join(traceback.format_exception(exc_type, 

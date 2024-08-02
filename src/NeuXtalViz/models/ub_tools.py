@@ -371,15 +371,12 @@ class UBModel(NeuXtalVizModel):
 
                     if shape.get('radius0') is not None:
 
-                        r = np.array([shape['radius0'],
-                                      shape['radius1'],
-                                      shape['radius2']])
+                        r = np.array([shape['radius{}'] for i in range(3)])
 
-                        dir1 = np.array(shape['direction0'].split(' ')).astype(float)
-                        dir2 = np.array(shape['direction1'].split(' ')).astype(float)
-                        dir3 = np.array(shape['direction2'].split(' ')).astype(float)
+                        v0, v1, v2 = np.array([shape['direction{}'].split(' ')\
+                                               for i in range(3)]).astype(float)
 
-                        v = np.column_stack([dir1, dir2, dir3])
+                        v = np.column_stack([v0, v1, v2])
 
                     else:
 
@@ -465,7 +462,9 @@ class UBModel(NeuXtalVizModel):
 
         """
 
-        LoadIsawUB(InputWorkspace=self.table, Filename=filename)
+        if self.has_peaks():
+
+            LoadIsawUB(InputWorkspace=self.table, Filename=filename)
 
     def determine_UB_with_niggli_cell(self, min_d, max_d, tol=0.1):
         """

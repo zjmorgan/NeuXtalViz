@@ -1404,6 +1404,10 @@ class UBView(NeuXtalVizWidget):
                                                   'Q files (*.nxs)',
                                                   options=options)
 
+        if filename is not None:
+            if not filename.endswith('.nxs'):
+                filename += '.nxs'
+
         return filename
 
     def load_peaks_file_dialog(self, path=''):
@@ -1430,6 +1434,10 @@ class UBView(NeuXtalVizWidget):
                                                   'Peaks files (*.nxs)',
                                                   options=options)
 
+        if filename is not None:
+            if not filename.endswith('.nxs'):
+                filename += '.nxs'
+
         return filename
 
     def load_UB_file_dialog(self, path=''):
@@ -1455,6 +1463,10 @@ class UBView(NeuXtalVizWidget):
                                                   path,
                                                   'UB files (*.mat)',
                                                   options=options)
+
+        if filename is not None:
+            if not filename.endswith('.mat'):
+                filename += '.mat'
 
         return filename
 
@@ -1641,7 +1653,7 @@ class UBView(NeuXtalVizWidget):
                 ellipsoid = sphere.copy().transform(T)
                 ellipsoid['scalars'] = np.full(sphere.n_cells, I)
                 geoms.append(ellipsoid)
-                self.indexing[i] = no
+                self.indexing[i] = i
                 if I > 0:
                     integrate = True
 

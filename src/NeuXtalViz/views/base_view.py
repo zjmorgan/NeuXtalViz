@@ -48,9 +48,9 @@ class NeuXtalVizWidget(QWidget):
         self.axis2_line.setValidator(validator)
         self.axis3_line.setValidator(validator)
 
-        self.axis1_line.setFixedWidth(40)
-        self.axis2_line.setFixedWidth(40)
-        self.axis3_line.setFixedWidth(40)
+        # self.axis1_line.setFixedWidth(40)
+        # self.axis2_line.setFixedWidth(40)
+        # self.axis3_line.setFixedWidth(40)
 
         self.axis1_label = QLabel('h', self)
         self.axis2_label = QLabel('k', self)
@@ -201,7 +201,6 @@ class NeuXtalVizWidget(QWidget):
         vis_layout.addLayout(camera_layout)
         vis_layout.addLayout(plot_layout)
         vis_layout.addLayout(ub_layout)
-
 
         self.status_bar = QStatusBar()
         self.status_bar.showMessage('Ready!')
