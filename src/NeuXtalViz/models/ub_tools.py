@@ -1,10 +1,5 @@
 import os
 
-from mantid.api import (AlgorithmManager,
-                        AlgorithmObserver,
-                        AnalysisDataServiceObserver,
-                        Progress)
-
 from mantid.simpleapi import (SelectCellWithForm,
                               ShowPossibleCells,
                               TransformHKL,
@@ -45,6 +40,8 @@ from mantid.simpleapi import (SelectCellWithForm,
                               PreprocessDetectorsToMD,
                               ConvertToMD,
                               ConvertHFIRSCDtoMDE,
+                              LoadMD,
+                              SaveMD,
                               MergeMD,
                               LoadNexus,
                               LoadIsawDetCal,
@@ -318,9 +315,9 @@ class UBModel(NeuXtalVizModel):
             self.Q = 'md'
 
             BinMD(InputWorkspace=self.Q,
-                  AlignedDim0='Q_sample_x,{},{},500'.format(-Q_max, Q_max),
-                  AlignedDim1='Q_sample_y,{},{},500'.format(-Q_max, Q_max),
-                  AlignedDim2='Q_sample_z,{},{},500'.format(-Q_max, Q_max),
+                  AlignedDim0='Q_sample_x,{},{},768'.format(-Q_max, Q_max),
+                  AlignedDim1='Q_sample_y,{},{},768'.format(-Q_max, Q_max),
+                  AlignedDim2='Q_sample_z,{},{},768'.format(-Q_max, Q_max),
                   OutputWorkspace='Q3D')
 
     def get_has_Q_vol(self):
@@ -333,7 +330,7 @@ class UBModel(NeuXtalVizModel):
 
         if self.get_has_Q_vol():
 
-            Q_dict['signal'] = mtd['Q3D'].getSignalArray()
+            Q_dict['signal'] = mtd['Q3D'].getSignalArray().copy()
 
             dims = [mtd['Q3D'].getDimension(i) for i in range(3)]
 
@@ -371,19 +368,16 @@ class UBModel(NeuXtalVizModel):
 
                     if shape.get('radius0') is not None:
 
-                        r = np.array([shape['radius{}'] for i in range(3)])
-
-                        v0, v1, v2 = np.array([shape['direction{}'].split(' ')\
-                                               for i in range(3)]).astype(float)
-
-                        v = np.column_stack([v0, v1, v2])
+                        r, v = [], []
+                        for i in range(3):
+                            r.append(shape['radius{}'.format(i)])
+                            v.append(shape['direction{}'.format(i)].split(' '))
+                        r = np.array(r)
+                        v = np.array(v).T.astype(float)
 
                     else:
 
-                        r = np.array([shape['radius'],
-                                      shape['radius'],
-                                      shape['radius']])
-
+                        r = np.array([shape['radius']]*3)
                         v = np.eye(3)
 
                     P = np.dot(v, np.dot(np.diag(r), v.T))
@@ -1162,6 +1156,34 @@ class UBModel(NeuXtalVizModel):
 
             peak.setRunNumber(i+1)
 
+    def load_Q(self, filename):
+        """
+        Load Q file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of Q file with extension .nxs.
+
+        """
+
+        LoadMD(Filename=filename,
+               OutputWorkspace=self.table)
+
+    def save_Q(self, filename):
+        """
+        Save Q file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of Q file with extension .nxs.
+
+        """
+
+        SaveMD(Filename=filename,
+               InputWorkspace=self.table)
+
     def load_peaks(self, filename):
         """
         Load peaks file.
@@ -1176,7 +1198,7 @@ class UBModel(NeuXtalVizModel):
         LoadNexus(Filename=filename,
                   OutputWorkspace=self.table)
 
-    def save_peaks(self, filename, peaks):
+    def save_peaks(self, filename):
         """
         Save peaks file.
 
@@ -1256,8 +1278,9 @@ class UBModel(NeuXtalVizModel):
                 run = peak.getRunNumber()
                 row = peak.getRow()
                 col = peak.getCol()
+                ind = peak.getHKL().norm2() > 0
                 vals = hkl, d, lamda, intens, signal_noise, \
-                       sigma, int_hkl, int_mnp, run, bank, row, col
+                       sigma, int_hkl, int_mnp, run, bank, row, col, ind
                 peak_info.append(vals)
 
             self.peak_info = peak_info

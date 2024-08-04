@@ -302,8 +302,8 @@ class UBView(NeuXtalVizWidget):
         ipts_label = QLabel('IPTS:')
         exp_label = QLabel('Experiment:')
         run_label = QLabel('Runs:')
-        filter_time_label = QLabel('Time Stop:')
-        time_unit_label = QLabel('s')
+        filter_time_label = QLabel('Time Stop [s]:')
+        angstrom_label = QLabel('Å')
 
         validator = QIntValidator(1, 1000000000, self)
 
@@ -332,7 +332,7 @@ class UBView(NeuXtalVizWidget):
 
         validator = QIntValidator(1, 1000, self)
 
-        self.filter_time_line = QLineEdit('60')
+        self.filter_time_line = QLineEdit('300')
         self.filter_time_line.setValidator(validator)
 
         self.cal_browse_button = QPushButton('Detector', self)
@@ -346,13 +346,11 @@ class UBView(NeuXtalVizWidget):
 
         run_params_layout.addWidget(run_label)
         run_params_layout.addWidget(self.runs_line)
-        run_params_layout.addWidget(filter_time_label)
-        run_params_layout.addWidget(self.filter_time_line)
-        run_params_layout.addWidget(time_unit_label)
 
         wavelength_params_layout.addWidget(wl_label)
         wavelength_params_layout.addWidget(self.wl_min_line)
         wavelength_params_layout.addWidget(self.wl_max_line)
+        wavelength_params_layout.addWidget(angstrom_label)
 
         instrument_params_layout.addWidget(self.cal_line, 1, 1)
         instrument_params_layout.addWidget(self.cal_browse_button, 1, 0)
@@ -367,7 +365,10 @@ class UBView(NeuXtalVizWidget):
         convert_to_q_action_layout = QHBoxLayout()
         convert_to_q_action_layout.addWidget(self.convert_to_q_button)
         convert_to_q_action_layout.addWidget(self.lorentz_box)
+        convert_to_q_action_layout.addWidget(filter_time_label)
+        convert_to_q_action_layout.addWidget(self.filter_time_line)
         convert_to_q_action_layout.addStretch(1)
+        convert_to_q_action_layout.addLayout(wavelength_params_layout)
 
         convert_to_q_tab_layout.addLayout(experiment_params_layout)
         convert_to_q_tab_layout.addLayout(run_params_layout)
@@ -545,13 +546,13 @@ class UBView(NeuXtalVizWidget):
 
         find_params_layout.addWidget(max_peaks_label, 0, 0)
         find_params_layout.addWidget(self.max_peaks_line, 0, 1)
-        find_params_layout.addWidget(density_threshold_label, 1, 0)
-        find_params_layout.addWidget(self.density_threshold_line, 1, 1)
-        find_params_layout.addWidget(min_distance_label, 2, 0)
-        find_params_layout.addWidget(self.min_distance_line, 2, 1)
-        find_params_layout.addWidget(distance_unit_label, 2, 2)
-        find_params_layout.addWidget(find_edge_label, 3, 0)
-        find_params_layout.addWidget(self.find_edge_line, 3, 1)
+        find_params_layout.addWidget(density_threshold_label, 0, 2)
+        find_params_layout.addWidget(self.density_threshold_line, 0, 3)
+        find_params_layout.addWidget(min_distance_label, 1, 0)
+        find_params_layout.addWidget(self.min_distance_line, 1, 1)
+        find_params_layout.addWidget(distance_unit_label, 1, 2)
+        find_params_layout.addWidget(find_edge_label, 2, 0)
+        find_params_layout.addWidget(self.find_edge_line, 2, 1)
 
         self.find_button = QPushButton('Find', self)
 
@@ -707,8 +708,8 @@ class UBView(NeuXtalVizWidget):
         integrate_params_layout.addWidget(radius_unit_label, 0, 2)
         integrate_params_layout.addWidget(inner_label, 2, 0)
         integrate_params_layout.addWidget(self.inner_line, 2, 1)
-        integrate_params_layout.addWidget(outer_label, 3, 0)
-        integrate_params_layout.addWidget(self.outer_line, 3, 1)
+        integrate_params_layout.addWidget(outer_label, 2, 2)
+        integrate_params_layout.addWidget(self.outer_line, 2, 3)
 
         self.integrate_button = QPushButton('Integrate', self)
 
@@ -751,11 +752,11 @@ class UBView(NeuXtalVizWidget):
         filter_tab = QWidget()
         filter_tab_layout = QVBoxLayout()
 
-        filter_params_layout = QGridLayout()
+        filter_params_layout = QHBoxLayout()
 
-        filter_params_layout.addWidget(self.filter_combo, 0, 0)
-        filter_params_layout.addWidget(self.comparison_combo, 0, 1)
-        filter_params_layout.addWidget(self.filter_line, 0, 2)
+        filter_params_layout.addWidget(self.filter_combo)
+        filter_params_layout.addWidget(self.comparison_combo)
+        filter_params_layout.addWidget(self.filter_line)
 
         self.filter_button = QPushButton('Filter', self)
 
@@ -814,8 +815,8 @@ class UBView(NeuXtalVizWidget):
 
         form_label = QLabel('Form:')
 
-        min_const_label = QLabel('Min(a,b,c):')
-        max_const_label = QLabel('Max(a,b,c):')
+        min_const_label = QLabel('Min(a,b,c) [Å]:')
+        max_const_label = QLabel('Max(a,b,c) [Å]:')
 
         self.min_const_line = QLineEdit('5')
         self.max_const_line = QLineEdit('15')
@@ -836,6 +837,7 @@ class UBView(NeuXtalVizWidget):
         calculate_action_layout = QHBoxLayout()
         calculate_action_layout.addWidget(self.conventional_button)
         calculate_action_layout.addStretch(1)
+        calculate_action_layout.addLayout(const_layout)
         calculate_action_layout.addWidget(self.niggli_button)
         calculate_action_layout.addWidget(form_label)
         calculate_action_layout.addWidget(self.form_line)
@@ -857,8 +859,6 @@ class UBView(NeuXtalVizWidget):
 
         calculate_tab_layout.addLayout(calculate_params_layout)
         calculate_tab_layout.addWidget(self.cell_table)
-        calculate_tab_layout.addLayout(const_layout)
-        calculate_tab_layout.addStretch(1)
         calculate_tab_layout.addLayout(calculate_action_layout)
 
         calculate_tab.setLayout(calculate_tab_layout)
@@ -867,8 +867,6 @@ class UBView(NeuXtalVizWidget):
 
         self.transform_tolerance_line = QLineEdit('0.1')
         self.transform_tolerance_line.setValidator(validator)
-
-        transform_label = QLabel('Lattice:')
 
         self.lattice_combo = QComboBox(self)
         self.lattice_combo.addItem('Triclinic')
@@ -922,13 +920,12 @@ class UBView(NeuXtalVizWidget):
         transform_tab = QWidget()
         transform_tab_layout = QVBoxLayout()
 
-        transform_params_layout = QGridLayout()
+        transform_params_layout = QHBoxLayout()
 
-        transform_params_layout.addWidget(transform_tolerance_label, 0, 0)
-        transform_params_layout.addWidget(self.transform_tolerance_line, 0, 1)
-        transform_params_layout.addWidget(transform_label, 1, 0)
-        transform_params_layout.addWidget(self.lattice_combo, 1, 1)
-        transform_params_layout.addWidget(self.symmetry_combo, 1, 2)
+        transform_params_layout.addWidget(transform_tolerance_label)
+        transform_params_layout.addWidget(self.transform_tolerance_line)
+        transform_params_layout.addWidget(self.lattice_combo)
+        transform_params_layout.addWidget(self.symmetry_combo)
 
         transform_matrix_layout = QGridLayout()
 
@@ -953,8 +950,8 @@ class UBView(NeuXtalVizWidget):
         transform_action_layout = QHBoxLayout()
         transform_action_layout.addWidget(self.transform_button)
         transform_action_layout.addStretch(1)
+        transform_action_layout.addLayout(transform_params_layout)
 
-        transform_tab_layout.addLayout(transform_params_layout)
         transform_tab_layout.addLayout(transform_matrix_layout)
         transform_tab_layout.addStretch(1)
         transform_tab_layout.addLayout(transform_action_layout)
@@ -970,8 +967,6 @@ class UBView(NeuXtalVizWidget):
         self.refine_tolerance_line = QLineEdit('0.1')
         self.refine_tolerance_line.setValidator(validator)
 
-        optimize_label = QLabel('Lattice:')
-
         self.optimize_combo = QComboBox(self)
         self.optimize_combo.addItem('Unconstrained')
         self.optimize_combo.addItem('Constrained')
@@ -986,12 +981,10 @@ class UBView(NeuXtalVizWidget):
         refine_tab = QWidget()
         refine_tab_layout = QVBoxLayout()
 
-        refine_params_layout = QGridLayout()
-
-        refine_params_layout.addWidget(refine_tolerance_label, 0, 0)
-        refine_params_layout.addWidget(self.refine_tolerance_line, 0, 1)
-        refine_params_layout.addWidget(optimize_label, 1, 0)
-        refine_params_layout.addWidget(self.optimize_combo, 1, 1)
+        refine_params_layout = QHBoxLayout()
+        refine_params_layout.addWidget(refine_tolerance_label)
+        refine_params_layout.addWidget(self.refine_tolerance_line)
+        refine_params_layout.addWidget(self.optimize_combo)
 
         self.refine_button = QPushButton('Refine', self)
 
@@ -1047,12 +1040,9 @@ class UBView(NeuXtalVizWidget):
         self.k2_line.setValidator(validator)
         self.l2_line.setValidator(validator)
 
-        d_label = QLabel('d', self)
-        d1_unit_label = QLabel('Å', self)
-        d2_unit_label = QLabel('Å', self)
+        d_label = QLabel('d [Å]', self)
 
-        phi_label = QLabel('φ', self)
-        phi_unit_label = QLabel('°', self)
+        phi_label = QLabel('φ [°]', self)
 
         self.d1_line = QLineEdit()
         self.d2_line = QLineEdit()
@@ -1068,24 +1058,21 @@ class UBView(NeuXtalVizWidget):
         calculator_layout.addWidget(k_label, 0, 2, Qt.AlignCenter)
         calculator_layout.addWidget(l_label, 0, 3, Qt.AlignCenter)
         calculator_layout.addWidget(d_label, 0, 4, Qt.AlignCenter)
-        calculator_layout.addWidget(phi_label, 0, 6, Qt.AlignCenter)
+        calculator_layout.addWidget(phi_label, 0, 5, Qt.AlignCenter)
 
         calculator_layout.addWidget(peak_1_label, 1, 0)
         calculator_layout.addWidget(self.h1_line, 1, 1)
         calculator_layout.addWidget(self.k1_line, 1, 2)
         calculator_layout.addWidget(self.l1_line, 1, 3)
         calculator_layout.addWidget(self.d1_line, 1, 4)
-        calculator_layout.addWidget(d1_unit_label, 1, 5)
-        calculator_layout.addWidget(self.phi_line, 1, 6)
-        calculator_layout.addWidget(phi_unit_label, 1, 7)
+        calculator_layout.addWidget(self.phi_line, 1, 5)
 
         calculator_layout.addWidget(peak_2_label, 2, 0)
         calculator_layout.addWidget(self.h2_line, 2, 1)
         calculator_layout.addWidget(self.k2_line, 2, 2)
         calculator_layout.addWidget(self.l2_line, 2, 3)
         calculator_layout.addWidget(self.d2_line, 2, 4)
-        calculator_layout.addWidget(d2_unit_label, 2, 5)
-        calculator_layout.addWidget(self.calculate, 2, 6)
+        calculator_layout.addWidget(self.calculate, 2, 5)
 
         stretch = QHeaderView.Stretch
 
@@ -1103,9 +1090,8 @@ class UBView(NeuXtalVizWidget):
 
         extended_info = QGridLayout()
 
-        d_label = QLabel('d', self)
-        lambda_label = QLabel('λ', self)
-        length_unit_label = QLabel('Å', self)
+        d_label = QLabel('d [Å]:', self)
+        lambda_label = QLabel('λ [Å]:', self)
 
         run_label = QLabel('Run #', self)
         bank_label = QLabel('Bank #', self)
@@ -1126,11 +1112,24 @@ class UBView(NeuXtalVizWidget):
         self.row_line.setEnabled(False)
         self.col_line.setEnabled(False)
 
+        self.intensity_line = QLineEdit()
+        self.sigma_line = QLineEdit()
+
+        self.intensity_line.setEnabled(False)
+        self.sigma_line.setEnabled(False)
+
+        intensity_label = QLabel('I: ', self)
+        sigma_label = QLabel('± σ:', self)
+
+        extended_info.addWidget(intensity_label, 0, 0)
+        extended_info.addWidget(self.intensity_line, 0, 1)
+        extended_info.addWidget(sigma_label, 0, 2)
+        extended_info.addWidget(self.sigma_line, 0, 3)
+
         extended_info.addWidget(d_label, 0, 4)
         extended_info.addWidget(self.d_line, 0, 5)
         extended_info.addWidget(lambda_label, 0, 6)
         extended_info.addWidget(self.lambda_line, 0, 7)
-        extended_info.addWidget(length_unit_label, 0, 8)
 
         extended_info.addWidget(run_label, 1, 0)
         extended_info.addWidget(self.run_line, 1, 1)
@@ -1141,12 +1140,22 @@ class UBView(NeuXtalVizWidget):
         extended_info.addWidget(col_label, 1, 6)
         extended_info.addWidget(self.col_line, 1, 7)
 
+        hkl_info = QHBoxLayout()
         peak_info = QGridLayout()
 
         left_label = QLabel('(', self)
         left_comma_label = QLabel(',', self)
         right_comma_label = QLabel(',', self)
         right_label = QLabel(')', self)
+
+        index_label = QLabel('Indexed:', self)
+        total_label = QLabel('Total:', self)
+
+        self.index_line = QLineEdit('0')
+        self.total_line = QLineEdit('0')
+
+        self.index_line.setEnabled(False)
+        self.total_line.setEnabled(False)
 
         int_h_label = QLabel('h', self)
         int_k_label = QLabel('k', self)
@@ -1178,10 +1187,6 @@ class UBView(NeuXtalVizWidget):
         self.int_k_line.setValidator(validator)
         self.int_l_line.setValidator(validator)
 
-        self.int_h_line.setFixedWidth(40)
-        self.int_k_line.setFixedWidth(40)
-        self.int_l_line.setFixedWidth(40)
-
         self.int_m_line = QLineEdit()
         self.int_n_line = QLineEdit()
         self.int_p_line = QLineEdit()
@@ -1190,49 +1195,36 @@ class UBView(NeuXtalVizWidget):
         self.int_n_line.setValidator(validator)
         self.int_p_line.setValidator(validator)
 
-        self.int_m_line.setFixedWidth(40)
-        self.int_n_line.setFixedWidth(40)
-        self.int_p_line.setFixedWidth(40)
+        hkl_info.addWidget(left_label)
+        hkl_info.addWidget(self.h_line)
+        hkl_info.addWidget(left_comma_label)
+        hkl_info.addWidget(self.k_line)
+        hkl_info.addWidget(right_comma_label)
+        hkl_info.addWidget(self.l_line)
+        hkl_info.addWidget(right_label)
+        hkl_info.addStretch(1)
+        hkl_info.addWidget(index_label)
+        hkl_info.addWidget(self.index_line)
+        hkl_info.addWidget(total_label)
+        hkl_info.addWidget(self.total_line)
 
-        self.intensity_line = QLineEdit()
-        self.sigma_line = QLineEdit()
-        self.signal_noise_line = QLineEdit()
+        peak_info.addWidget(int_h_label, 0, 0, Qt.AlignCenter)
+        peak_info.addWidget(int_k_label, 0, 1, Qt.AlignCenter)
+        peak_info.addWidget(int_l_label, 0, 2, Qt.AlignCenter)
+        peak_info.addWidget(int_m_label, 0, 3, Qt.AlignCenter)
+        peak_info.addWidget(int_n_label, 0, 4, Qt.AlignCenter)
+        peak_info.addWidget(int_p_label, 0, 5, Qt.AlignCenter)
 
-        self.intensity_line.setEnabled(False)
-        self.sigma_line.setEnabled(False)
-        self.signal_noise_line.setEnabled(False)
-
-        intensity_label = QLabel('I ', self)
-        pm_label = QLabel('±', self)
-
-        peak_info.addWidget(intensity_label, 0, 0)
-        peak_info.addWidget(self.intensity_line, 0, 1)
-        peak_info.addWidget(pm_label, 0, 2)
-        peak_info.addWidget(self.sigma_line, 0, 3)
-        peak_info.addWidget(self.signal_noise_line, 0, 5)
-
-        peak_info.addWidget(int_h_label, 0, 7, Qt.AlignCenter)
-        peak_info.addWidget(int_k_label, 0, 8, Qt.AlignCenter)
-        peak_info.addWidget(int_l_label, 0, 9, Qt.AlignCenter)
-        peak_info.addWidget(int_m_label, 0, 10, Qt.AlignCenter)
-        peak_info.addWidget(int_n_label, 0, 11, Qt.AlignCenter)
-        peak_info.addWidget(int_p_label, 0, 12, Qt.AlignCenter)
-        peak_info.addWidget(left_label, 1, 0)
-        peak_info.addWidget(self.h_line, 1, 1)
-        peak_info.addWidget(left_comma_label, 1, 2)
-        peak_info.addWidget(self.k_line, 1, 3)
-        peak_info.addWidget(right_comma_label, 1, 4)
-        peak_info.addWidget(self.l_line, 1, 5)
-        peak_info.addWidget(right_label, 1, 6)
-        peak_info.addWidget(self.int_h_line, 1, 7)
-        peak_info.addWidget(self.int_k_line, 1, 8)
-        peak_info.addWidget(self.int_l_line, 1, 9)
-        peak_info.addWidget(self.int_m_line, 1, 10)
-        peak_info.addWidget(self.int_n_line, 1, 11)
-        peak_info.addWidget(self.int_p_line, 1, 12)
+        peak_info.addWidget(self.int_h_line, 1, 0)
+        peak_info.addWidget(self.int_k_line, 1, 1)
+        peak_info.addWidget(self.int_l_line, 1, 2)
+        peak_info.addWidget(self.int_m_line, 1, 3)
+        peak_info.addWidget(self.int_n_line, 1, 4)
+        peak_info.addWidget(self.int_p_line, 1, 5)
 
         peaks_layout.addLayout(calculator_layout)
         peaks_layout.addWidget(self.peaks_table)
+        peaks_layout.addLayout(hkl_info)
         peaks_layout.addLayout(peak_info)
         peaks_layout.addLayout(extended_info)
 
@@ -1515,17 +1507,19 @@ class UBView(NeuXtalVizWidget):
 
         if 'SNS' in filepath:
             self.filter_time_line.setEnabled(True)
-            self.filter_time_line.setText('60')
+            self.filter_time_line.setText('300')
             self.tube_line.setEnabled(False)
+            self.tube_browse_button.setEnabled(False)
             if 'CORELLI' in filepath:
                 self.tube_line.setEnabled(True)
-            else:
-                self.tube_line.setEnabled(False)
+                self.tube_browse_button.setEnabled(True)
         else:
             self.filter_time_line.setEnabled(False)
             self.filter_time_line.setText('')
             self.cal_line.setEnabled(False)
+            self.cal_browse_button.setEnabled(False)
             self.tube_line.setEnabled(False)
+            self.tube_browse_button.setEnabled(False)
 
     def get_tube_calibration(self):
 
@@ -1619,6 +1613,17 @@ class UBView(NeuXtalVizWidget):
             threshold = np.nanpercentile(signal[signal > 0], 85)
             mask = signal >= threshold
 
+            # signal[~mask] = 0
+
+            # l, m, n = np.array(signal.shape) // 2
+
+            # signal = signal.reshape(l,2,m,2,n,2).sum(axis=(1,3,5))
+            # x = x.reshape(l,2,m,2,n,2).sum(axis=(1,3,5))/8
+            # y = y.reshape(l,2,m,2,n,2).sum(axis=(1,3,5))/8
+            # z = z.reshape(l,2,m,2,n,2).sum(axis=(1,3,5))/8
+
+            # mask = signal > 0
+
             points = np.column_stack([x[mask], y[mask], z[mask]])
 
             point_cloud = pv.PolyData(points)
@@ -1631,7 +1636,7 @@ class UBView(NeuXtalVizWidget):
                                   opacity=1,
                                   log_scale=True,
                                   point_size=1,
-                                  smooth_shading=True,
+                                  smooth_shading=False,
                                   culling=True,
                                   emissive=False,
                                   style='points_gaussian')
@@ -2010,8 +2015,14 @@ class UBView(NeuXtalVizWidget):
         self.peaks_table.setRowCount(0)
         self.peaks_table.setRowCount(len(peaks))
 
+        ind, tot = 0, 0
         for row, peak in enumerate(peaks):
             self.set_peak(row, peak)
+            ind += peak[-1]
+            tot += 1
+
+        self.index_line.setText('{}'.format(ind))
+        self.total_line.setText('{}'.format(tot))
 
     def set_peak(self, row, peak):
 
@@ -2091,7 +2102,7 @@ class UBView(NeuXtalVizWidget):
     def set_peak_info(self, peak):
 
         hkl, d, lamda, intens, signal_noise, sigma, int_hkl, int_mnp, \
-        run, bank, row, col = peak
+        run, bank, row, col, ind = peak
 
         H, K, L = hkl
 
@@ -2112,7 +2123,7 @@ class UBView(NeuXtalVizWidget):
 
         self.intensity_line.setText('{:.2e}'.format(intens))
         self.sigma_line.setText('{:.2e}'.format(sigma))
-        self.signal_noise_line.setText('{:.2f}'.format(signal_noise))
+        # self.signal_noise_line.setText('{:.2f}'.format(signal_noise))
 
         self.lambda_line.setText('{:.4f}'.format(lamda))
         self.d_line.setText('{:.4f}'.format(d))

@@ -2,15 +2,13 @@ from qtpy.QtWidgets import (QWidget,
                             QTableWidget,
                             QTableWidgetItem,
                             QHeaderView,
-                            QFrame,
-                            QGridLayout,
                             QHBoxLayout,
                             QVBoxLayout,
-                            QFormLayout,
                             QPushButton,
                             QCheckBox,
                             QComboBox,
                             QLineEdit,
+                            QLabel,
                             QTabWidget,
                             QFileDialog)
 
@@ -77,12 +75,19 @@ class ModulationView(NeuXtalVizWidget):
         generate_layout.addWidget(self.load_UB_button)
         generate_layout.addWidget(self.cluster_button)
 
-        cluster_layout = QFormLayout()
+        cluster_layout = QVBoxLayout()
+        params_layout = QHBoxLayout()
 
-        cluster_layout.addRow('Maximum distance:', self.param_eps_line)
-        cluster_layout.addRow('Minimum samples:', self.param_min_line)
+        dist_label = QLabel('Maximum distance:', self)
+        samp_label = QLabel('Minimum samples:', self)
 
-        cluster_layout.addRow(self.table)
+        params_layout.addWidget(dist_label)
+        params_layout.addWidget(self.param_eps_line)
+        params_layout.addWidget(samp_label)
+        params_layout.addWidget(self.param_min_line)
+
+        cluster_layout.addLayout(params_layout)
+        cluster_layout.addWidget(self.table)
 
         plot_layout = QVBoxLayout()
 

@@ -87,7 +87,7 @@ class SampleView(NeuXtalVizWidget):
 
         param_layout.addWidget(unit_label)
 
-        material_layout = QGridLayout()
+        material_layout = QHBoxLayout()
 
         self.chem_line = QLineEdit()
         self.Z_line = QLineEdit()
@@ -111,12 +111,12 @@ class SampleView(NeuXtalVizWidget):
         V_label = QLabel('Ω')
         uc_vol_label = QLabel('Å^3')
 
-        material_layout.addWidget(self.chem_line, 0, 0, 1, 5)
-        material_layout.addWidget(Z_label, 1, 0)
-        material_layout.addWidget(self.Z_line, 1, 1)
-        material_layout.addWidget(V_label, 1, 2)
-        material_layout.addWidget(self.V_line, 1, 3)
-        material_layout.addWidget(uc_vol_label, 1, 4)
+        material_layout.addWidget(self.chem_line)
+        material_layout.addWidget(Z_label)
+        material_layout.addWidget(self.Z_line)
+        material_layout.addWidget(V_label)
+        material_layout.addWidget(self.V_line)
+        material_layout.addWidget(uc_vol_label)
 
         cryst_layout = QGridLayout()
 
@@ -183,28 +183,28 @@ class SampleView(NeuXtalVizWidget):
         self.m_line.setEnabled(False)
 
         cryst_layout.addWidget(N_label, 3, 0)
-        cryst_layout.addWidget(self.N_line, 3, 1, 1, 2)
-        cryst_layout.addWidget(N_unit_label, 3, 3)
+        cryst_layout.addWidget(self.N_line, 3, 1)
+        cryst_layout.addWidget(N_unit_label, 3, 2)
 
         cryst_layout.addWidget(M_label, 4, 0)
-        cryst_layout.addWidget(self.M_line, 4, 1, 1, 2)
-        cryst_layout.addWidget(M_unit_label, 4, 3)
+        cryst_layout.addWidget(self.M_line, 4, 1)
+        cryst_layout.addWidget(M_unit_label, 4, 2)
 
         cryst_layout.addWidget(n_label, 5, 0)
-        cryst_layout.addWidget(self.n_line, 5, 1, 1, 2)
-        cryst_layout.addWidget(n_unit_label, 5, 3)
+        cryst_layout.addWidget(self.n_line, 5, 1)
+        cryst_layout.addWidget(n_unit_label, 5, 2)
 
         cryst_layout.addWidget(rho_label, 6, 0)
-        cryst_layout.addWidget(self.rho_line, 6, 1, 1, 2)
-        cryst_layout.addWidget(rho_unit_label, 6, 3)
+        cryst_layout.addWidget(self.rho_line, 6, 1)
+        cryst_layout.addWidget(rho_unit_label, 6, 2)
 
         cryst_layout.addWidget(v_label, 7, 0)
-        cryst_layout.addWidget(self.v_line, 7, 1, 1, 2)
-        cryst_layout.addWidget(v_unit_label, 7, 3)
+        cryst_layout.addWidget(self.v_line, 7, 1)
+        cryst_layout.addWidget(v_unit_label, 7, 2)
 
         cryst_layout.addWidget(m_label, 8, 0)
-        cryst_layout.addWidget(self.m_line, 8, 1, 1, 2)
-        cryst_layout.addWidget(m_unit_label, 8, 3)
+        cryst_layout.addWidget(self.m_line, 8, 1)
+        cryst_layout.addWidget(m_unit_label, 8, 2)
 
         sample_layout = QVBoxLayout()
 

@@ -169,7 +169,7 @@ class CrystalStructureView(NeuXtalVizWidget):
         scatterer_layout.addWidget(self.occ_line)
         scatterer_layout.addWidget(self.Uiso_line)
 
-        sample_layout = QGridLayout()
+        sample_layout = QHBoxLayout()
 
         self.chem_line = QLineEdit()
         self.Z_line = QLineEdit()
@@ -183,12 +183,12 @@ class CrystalStructureView(NeuXtalVizWidget):
         V_label = QLabel('Ω')
         uc_vol_label = QLabel('Å^3')
 
-        sample_layout.addWidget(self.chem_line, 0, 0, 1, 5)
-        sample_layout.addWidget(Z_label, 1, 0)
-        sample_layout.addWidget(self.Z_line, 1, 1)
-        sample_layout.addWidget(V_label, 1, 2)
-        sample_layout.addWidget(self.V_line, 1, 3)
-        sample_layout.addWidget(uc_vol_label, 1, 4)
+        sample_layout.addWidget(self.chem_line)
+        sample_layout.addWidget(Z_label)
+        sample_layout.addWidget(self.Z_line)
+        sample_layout.addWidget(V_label)
+        sample_layout.addWidget(self.V_line)
+        sample_layout.addWidget(uc_vol_label)
 
         structure_layout.addLayout(scatterer_layout)
         structure_layout.addLayout(sample_layout)
