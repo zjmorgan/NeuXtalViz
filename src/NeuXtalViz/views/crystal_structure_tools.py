@@ -569,6 +569,11 @@ class CrystalStructureView(NeuXtalVizWidget):
         ind = self.indexing[index]
 
         if color == 'pink':
+            selected = self.atm_table.selectedIndexes()
+            if selected:
+                selected_row = selected[0].row()
+                if selected_row == ind:
+                    return
             self.atm_table.selectRow(ind)
 
     def set_factors(self, hkls, ds, F2s):

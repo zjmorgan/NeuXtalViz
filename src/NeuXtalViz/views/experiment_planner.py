@@ -17,8 +17,6 @@ from qtpy.QtWidgets import (QWidget,
                             QTabWidget,
                             QFileDialog)
 
-from PyQt5.QtWidgets import QApplication, QMainWindow
-
 from qtpy.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtCore import Qt
 
@@ -322,40 +320,24 @@ class ExperimentView(NeuXtalVizWidget):
         actor.SetAxisLabels(1, axis1_label)
         actor.SetAxisLabels(2, axis2_label)
 
-        points = coverage_dict['points']
-        labels = coverage_dict['labels']
+        # points = coverage_dict['points']
+        # labels = coverage_dict['labels']
 
-        for point in points:
+        # for point in points:
 
-            mesh = pv.Line(pointa=(0,0,0),
-                           pointb=point,
-                           resolution=1)
+        #     mesh = pv.Line(pointa=(0,0,0),
+        #                    pointb=point,
+        #                    resolution=1)
 
-            self.plotter.add_mesh(mesh,
-                                  color='k',
-                                  style='wireframe',
-                                  render_lines_as_tubes=True)
+        #     self.plotter.add_mesh(mesh,
+        #                           color='k',
+        #                           style='wireframe',
+        #                           render_lines_as_tubes=True)
 
-        self.plotter.add_point_labels(points,
-                                      labels,
-                                      always_visible=True,
-                                      point_size=10,
-                                      render_points_as_spheres=True)
+        # self.plotter.add_point_labels(points,
+        #                               labels,
+        #                               always_visible=True,
+        #                               point_size=10,
+        #                               render_points_as_spheres=True)
 
         self.reset_view()
-
-class MainWindow(QMainWindow):
-
-    def __init__(self):
-        super(MainWindow, self).__init__()
-
-        self.setWindowTitle('Testing Look')
-
-        widget = ExperimentView()
-        self.setCentralWidget(widget)
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())

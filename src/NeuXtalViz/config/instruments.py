@@ -37,9 +37,9 @@ beamlines = {
         'Facility': 'SNS',
         'Wavelength': [0.4, 3.5],
         'Goniometers': [
-            'BL12:Mot:goniokm:omega,0,1,0,1',
-            'BL12:Mot:goniokm:chi,0,0,1,1',
-            'BL12:Mot:goniokm:phi,0,1,0,1',
+            'BL12:Mot:omega,0,1,0,1',
+            'BL12:Mot:chi,0,0,1,1',
+            'BL12:Mot:phi,0,1,0,1',
         ],
         'Goniometer': {
             'BL12:Mot:goniokm:omega': [0, 1, 0, 1, 0, 360],

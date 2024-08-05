@@ -157,11 +157,11 @@ class ExperimentModel(NeuXtalVizModel):
 
         mask = self.hist > 0
 
-        Q_centers = 0.5*(self.Q_bins[1:]+self.Q_bins[:-1])
+        # Q_centers = 0.5*(self.Q_bins[1:]+self.Q_bins[:-1])
 
-        Qx_centers, Qy_centers, Qz_centers = np.meshgrid(Q_centers,
-                                                         Q_centers,
-                                                         Q_centers)
+        Qx_centers, Qy_centers, Qz_centers = np.meshgrid(self.Q_bins,
+                                                         self.Q_bins,
+                                                         self.Q_bins)
 
         x, y, z = Qx_centers[mask], Qy_centers[mask], Qz_centers[mask]
 

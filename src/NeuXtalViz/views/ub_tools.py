@@ -846,7 +846,6 @@ class UBView(NeuXtalVizWidget):
         stretch = QHeaderView.Stretch
 
         self.cell_table = QTableWidget()
-
         self.cell_table.setRowCount(0)
         self.cell_table.setColumnCount(9)
 
@@ -856,6 +855,7 @@ class UBView(NeuXtalVizWidget):
         self.cell_table.setHorizontalHeaderLabels(header)
         self.cell_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.cell_table.setSelectionBehavior(QTableWidget.SelectRows)
+        # self.cell_table.setSortingEnabled(True)
 
         calculate_tab_layout.addLayout(calculate_params_layout)
         calculate_tab_layout.addWidget(self.cell_table)
@@ -1077,7 +1077,6 @@ class UBView(NeuXtalVizWidget):
         stretch = QHeaderView.Stretch
 
         self.peaks_table = QTableWidget()
-
         self.peaks_table.setRowCount(0)
         self.peaks_table.setColumnCount(7)
 
@@ -1087,6 +1086,7 @@ class UBView(NeuXtalVizWidget):
         self.peaks_table.setHorizontalHeaderLabels(header)
         self.peaks_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.peaks_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.peaks_table.setSortingEnabled(True)
 
         extended_info = QGridLayout()
 
@@ -1613,17 +1613,6 @@ class UBView(NeuXtalVizWidget):
             threshold = np.nanpercentile(signal[signal > 0], 85)
             mask = signal >= threshold
 
-            # signal[~mask] = 0
-
-            # l, m, n = np.array(signal.shape) // 2
-
-            # signal = signal.reshape(l,2,m,2,n,2).sum(axis=(1,3,5))
-            # x = x.reshape(l,2,m,2,n,2).sum(axis=(1,3,5))/8
-            # y = y.reshape(l,2,m,2,n,2).sum(axis=(1,3,5))/8
-            # z = z.reshape(l,2,m,2,n,2).sum(axis=(1,3,5))/8
-
-            # mask = signal > 0
-
             points = np.column_stack([x[mask], y[mask], z[mask]])
 
             point_cloud = pv.PolyData(points)
@@ -1706,20 +1695,20 @@ class UBView(NeuXtalVizWidget):
         ind = self.indexing[index]
 
         if color == 'pink':
-            # selected = self.peaks_table.selectedIndexes()
-            # if selected:
-            #     selected_row = selected[0].row()
-            #     if selected_row == ind:
-            #         return
+            selected = self.peaks_table.selectedIndexes()
+            if selected:
+                selected_row = selected[0].row()
+                if selected_row == ind:
+                    return
             self.peaks_table.selectRow(ind)
 
-    # def highlight_peak(self, index):
+    def highlight_peak(self, index):
 
-    #     if self.last_highlight is not None:
-    #         self.mapper.block_attr[self.last_highlight].color = None
+        if self.last_highlight is not None:
+            self.mapper.block_attr[self.last_highlight].color = None
 
-    #     self.mapper.block_attr[index].color = 'pink'
-    #     self.last_highlight = index
+        self.mapper.block_attr[index].color = 'pink'
+        self.last_highlight = index
 
     def set_sample_directions(self, params):
 
@@ -2123,7 +2112,6 @@ class UBView(NeuXtalVizWidget):
 
         self.intensity_line.setText('{:.2e}'.format(intens))
         self.sigma_line.setText('{:.2e}'.format(sigma))
-        # self.signal_noise_line.setText('{:.2f}'.format(signal_noise))
 
         self.lambda_line.setText('{:.4f}'.format(lamda))
         self.d_line.setText('{:.4f}'.format(d))
