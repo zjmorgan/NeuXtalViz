@@ -213,6 +213,7 @@ class NeuXtalVizWidget(QWidget):
 
         self.setLayout(layout)
 
+        self.camera_position = None
 
     def set_info(self, status):
         """
@@ -364,6 +365,22 @@ class NeuXtalVizWidget(QWidget):
 
         self.plotter.reset_camera()
         self.plotter.view_isometric()
+        self.camera_position = self.plotter.camera_position
+
+    def clear_scene(self):
+
+        self.plotter.clear_plane_widgets()
+        self.plotter.clear_actors()
+
+        if self.camera_position is not None:
+            self.camera_position = self.plotter.camera_position
+
+    def reset_scene(self):
+
+        if self.camera_position is not None:
+            self.plotter.camera_position = self.camera_position
+        else:
+            self.reset_view()
 
     def save_screenshot(self, filename):
         """

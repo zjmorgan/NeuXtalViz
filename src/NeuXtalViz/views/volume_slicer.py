@@ -7,9 +7,11 @@ from qtpy.QtWidgets import (QWidget,
                             QCheckBox,
                             QComboBox,
                             QLineEdit,
+                            QSlider,
                             QFileDialog)
 
 from qtpy.QtGui import QDoubleValidator
+from qtpy.QtCore import Qt
 
 import numpy as np
 import pyvista as pv
@@ -20,6 +22,11 @@ from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
 
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
+
+cmaps = {'Sequential': 'viridis',
+         'Binary': 'binary',
+         'Diverging': 'bwr',
+         'Rainbow': 'turbo'}
 
 class VolumeSlicerView(NeuXtalVizWidget):
 
@@ -52,6 +59,12 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.clim_combo.addItem('μ±3×σ')
         self.clim_combo.addItem('Q₃/Q₁±1.5×IQR')
 
+        self.cbar_combo = QComboBox(self)
+        self.cbar_combo.addItem('Sequential')
+        self.cbar_combo.addItem('Rainbow')
+        self.cbar_combo.addItem('Binary')
+        self.cbar_combo.addItem('Diverging')
+
         self.load_NXS_button = QPushButton('Load NXS', self)
         self.redraw_button = QPushButton('Redraw Volume', self)
         self.slice_button = QPushButton('Slice Plane', self)
@@ -59,6 +72,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         draw_layout.addWidget(self.redraw_button)
         draw_layout.addWidget(self.clim_combo)
+        draw_layout.addWidget(self.cbar_combo)
         draw_layout.addWidget(self.load_NXS_button)
 
         self.slice_combo = QComboBox(self)
@@ -98,11 +112,37 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.slice_check.setChecked(True)
         self.cut_check.setChecked(True)
 
+        slider_layout = QVBoxLayout()
+        bar_layout = QHBoxLayout()
+
+        self.color_label = QLabel('(0, 100)%')
+
+        self.min_slider = QSlider(Qt.Vertical)
+        self.max_slider = QSlider(Qt.Vertical)
+
+        self.min_slider.setRange(0, 100)
+        self.max_slider.setRange(0, 100)
+
+        self.min_slider.setValue(0)
+        self.max_slider.setValue(100)
+
+        self.min_slider.valueChanged.connect(self.update_colorbar_min)
+        self.max_slider.valueChanged.connect(self.update_colorbar_max)
+
+        bar_layout.addWidget(self.min_slider)
+        bar_layout.addWidget(self.max_slider)
+
+        slider_layout.addWidget(self.color_label)
+        slider_layout.addLayout(bar_layout)
+
+        # self.slider.min_slider.valueChanged.connect(self.update_colorbar_limits)
+        # self.slider.max_slider.valueChanged.connect(self.update_colorbar_limits)
+
         slice_params_layout.addWidget(self.slice_button)
         slice_params_layout.addWidget(self.slice_combo)
         slice_params_layout.addWidget(slice_label)
         slice_params_layout.addWidget(self.slice_line)
-        slice_params_layout.addWidget(slice_thickness_label,)
+        slice_params_layout.addWidget(slice_thickness_label)
         slice_params_layout.addWidget(self.slice_thickness_line)
         slice_params_layout.addWidget(self.slice_check)
 
@@ -119,11 +159,26 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.canvas_slice = FigureCanvas(Figure(constrained_layout=True))
         self.canvas_cut = FigureCanvas(Figure(constrained_layout=True))
 
-        plots_layout.addWidget(NavigationToolbar2QT(self.canvas_slice, self))
-        plots_layout.addWidget(self.canvas_slice)
+        image_layout = QHBoxLayout()
+        line_layout = QHBoxLayout()
+
+        fig_2d_layout = QVBoxLayout()
+        fig_1d_layout = QVBoxLayout()
+
+        fig_2d_layout.addWidget(NavigationToolbar2QT(self.canvas_slice, self))
+        fig_2d_layout.addWidget(self.canvas_slice)
+
+        fig_1d_layout.addWidget(NavigationToolbar2QT(self.canvas_cut, self))
+        fig_1d_layout.addWidget(self.canvas_cut)
+
+        image_layout.addLayout(fig_2d_layout)
+        image_layout.addLayout(slider_layout)
+
+        line_layout.addLayout(fig_1d_layout)
+
+        plots_layout.addLayout(image_layout)
         plots_layout.addLayout(slice_params_layout)
-        plots_layout.addWidget(NavigationToolbar2QT(self.canvas_cut, self))
-        plots_layout.addWidget(self.canvas_cut)
+        plots_layout.addLayout(line_layout)
         plots_layout.addLayout(cut_params_layout)
 
         self.fig_slice = self.canvas_slice.figure
@@ -135,6 +190,40 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.cb = None
 
         slice_tab.setLayout(plots_layout)
+
+    def update_colorbar_min(self):
+
+        min_val = self.min_slider.value()
+        max_val = self.max_slider.value()
+
+        if min_val >= max_val:
+            self.min_slider.blockSignals(True)
+            self.min_slider.setValue(max_val-1)
+            self.min_slider.blockSignals(False)
+
+        curr_min = self.min_slider.value()
+        curr_max = self.max_slider.value()
+
+        self.color_label.setText('({}, {})%'.format(curr_min, curr_max))
+
+    def update_colorbar_max(self):
+
+        min_val = self.min_slider.value()
+        max_val = self.max_slider.value()
+
+        if min_val >= max_val:
+            self.max_slider.blockSignals(True)
+            self.max_slider.setValue(min_val+1)
+            self.max_slider.blockSignals(False)
+
+        curr_min = self.min_slider.value()
+        curr_max = self.max_slider.value()
+
+        self.color_label.setText('({}, {})%'.format(curr_min, curr_max))
+
+    def get_color_bar_values(self):
+
+        return self.min_slider.value(), self.max_slider.value()
 
     def connect_load_NXS(self, load_NXS):
 
@@ -167,8 +256,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def add_histo(self, histo_dict, normal, origin):
 
-        self.plotter.clear_plane_widgets()
-        self.plotter.clear_actors()
+        cmap = cmaps[self.get_colormap()]
+
+        self.clear_scene()
 
         signal = histo_dict['signal']
         labels = histo_dict['labels']
@@ -205,7 +295,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         normal /= np.linalg.norm(normal)
 
-        origin = -normal*origin
+        origin = np.dot(P, origin)
 
         clim = [np.nanmin(signal), np.nanmax(signal)]
 
@@ -219,6 +309,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
                                                        show_scalar_bar=False,
                                                        normal_rotation=True,
                                                        mapper='smart',
+                                                       cmap=cmap,
                                                        user_matrix=b)
 
         prop = self.clip.GetOutlineProperty()
@@ -251,9 +342,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
         actor.SetAxisLabels(1, axis1_label)
         actor.SetAxisLabels(2, axis2_label)
 
-        self.reset_view()
+        self.reset_scene()
 
     def add_slice(self, slice_dict):
+
+        cmap = cmaps[self.get_colormap()]
 
         x = slice_dict['x']
         y = slice_dict['y']
@@ -282,7 +375,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
                                       y,
                                       signal,
                                       norm=scale,
+                                      cmap=cmap,
                                       shading='flat',
+                                      rasterized=True,
                                       transform=transform)
 
         self.ax_slice.set_aspect(aspect)
@@ -322,12 +417,19 @@ class VolumeSlicerView(NeuXtalVizWidget):
         xlim = self.xlim
         ylim = self.ylim
 
-        if line_cut == 'Axis 2':
-            line = [val,val], ylim
-        else:
-            line = xlim, [val,val]
+        thick = self.get_cut_thickness()
+        
+        delta = 0 if thick is None else thick/2
 
-        self.ax_slice.plot(*line, 'w--', linewidth=1, transform=self.transform)
+        if line_cut == 'Axis 2':
+            l0 = [val-delta, val-delta], ylim
+            l1 = [val+delta, val+delta], ylim
+        else:
+            l0 = xlim, [val-delta, val-delta]
+            l1 = xlim, [val+delta, val+delta]
+
+        self.ax_slice.plot(*l0, 'w--', linewidth=1, transform=self.transform)
+        self.ax_slice.plot(*l1, 'w--', linewidth=1, transform=self.transform)
 
         self.ax_cut.clear()
 
@@ -344,6 +446,10 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.canvas_slice.draw_idle()
         self.canvas_slice.flush_events()
+
+    def get_colormap(self):
+
+        return self.cbar_combo.currentText()
 
     def get_slice_value(self):
 

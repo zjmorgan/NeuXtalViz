@@ -1601,7 +1601,7 @@ class UBView(NeuXtalVizWidget):
 
     def add_Q_viz(self, Q_dict):
 
-        self.plotter.clear_actors()
+        self.clear_scene()
 
         signal = Q_dict.get('signal')
         x = Q_dict.get('x')
@@ -1610,7 +1610,7 @@ class UBView(NeuXtalVizWidget):
 
         if all([elem is not None for elem in [signal, x, y, z]]):
 
-            threshold = np.nanpercentile(signal[signal > 0], 85)
+            threshold = np.nanpercentile(signal[signal > 0], 95)
             mask = signal >= threshold
 
             points = np.column_stack([x[mask], y[mask], z[mask]])
@@ -1626,7 +1626,7 @@ class UBView(NeuXtalVizWidget):
                                   log_scale=True,
                                   point_size=1,
                                   smooth_shading=False,
-                                  culling=True,
+                                  culling=False,
                                   emissive=False,
                                   style='points_gaussian')
 
@@ -1673,7 +1673,7 @@ class UBView(NeuXtalVizWidget):
 
             self.last_highlight = None
 
-        self.reset_view()
+        self.reset_scene()
 
     def highlight(self, index, dataset):
 
@@ -1692,7 +1692,7 @@ class UBView(NeuXtalVizWidget):
 
         self.mapper.block_attr[index].color = color
 
-        ind = self.indexing[index]
+        ind = self.indexing[index-1]
 
         if color == 'pink':
             selected = self.peaks_table.selectedIndexes()

@@ -320,6 +320,20 @@ class UBModel(NeuXtalVizModel):
                   AlignedDim2='Q_sample_z,{},{},768'.format(-Q_max, Q_max),
                   OutputWorkspace='Q3D')
 
+            self.signal = mtd['Q3D'].getSignalArray().copy()
+
+            dims = [mtd['Q3D'].getDimension(i) for i in range(3)]
+
+            x, y, z = [np.linspace(dim.getMinimum()+dim.getBinWidth()/2,
+                                   dim.getMaximum()-dim.getBinWidth()/2,
+                                   dim.getNBins()) for dim in dims]
+
+            x, y, z = np.meshgrid(x, y, z, indexing='ij')
+
+            self.x = x
+            self.y = y
+            self.z = z
+
     def get_has_Q_vol(self):
 
         return mtd.doesExist('Q3D')
@@ -330,19 +344,11 @@ class UBModel(NeuXtalVizModel):
 
         if self.get_has_Q_vol():
 
-            Q_dict['signal'] = mtd['Q3D'].getSignalArray().copy()
+            Q_dict['signal'] = self.signal
 
-            dims = [mtd['Q3D'].getDimension(i) for i in range(3)]
-
-            x, y, z = [np.linspace(dim.getMinimum()+dim.getBinWidth()/2,
-                                   dim.getMaximum()-dim.getBinWidth()/2,
-                                   dim.getNBins()) for dim in dims]
-
-            x, y, z = np.meshgrid(x, y, z, indexing='ij')
-
-            Q_dict['x'] = x
-            Q_dict['y'] = y
-            Q_dict['z'] = z
+            Q_dict['x'] = self.x
+            Q_dict['y'] = self.y
+            Q_dict['z'] = self.z
 
         if self.has_peaks():
 

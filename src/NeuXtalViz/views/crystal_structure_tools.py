@@ -566,7 +566,7 @@ class CrystalStructureView(NeuXtalVizWidget):
 
         self.mapper.block_attr[index].color = color
 
-        ind = self.indexing[index]
+        ind = self.indexing[index-1]
 
         if color == 'pink':
             selected = self.atm_table.selectedIndexes()

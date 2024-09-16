@@ -67,7 +67,7 @@ class CrystalStructure(NeuXtalVizPresenter):
 
             self.update_processing()
 
-            self.update_processing('Loading CIF...', 10)            
+            self.update_processing('Loading CIF...', 10) 
 
             self.model.load_CIF(filename)
 

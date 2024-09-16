@@ -118,7 +118,7 @@ class ExperimentModel(NeuXtalVizModel):
         self.Q_min, self.Q_max = Q_min, Q_max
 
         n = 100
-        self.Q_bins = np.linspace(-Q_max, Q_max, n-1)
+        self.Q_bins = np.linspace(-Q_max, Q_max, n+1)
         self.hist = np.zeros((n,n,n))
 
         kx_hat = np.sin(two_theta)*np.cos(az_phi)
@@ -133,13 +133,13 @@ class ExperimentModel(NeuXtalVizModel):
         Qy_2 = 2*np.pi/wl_min*ky_hat
         Qz_2 = 2*np.pi/wl_min*kz_hat
 
-        Qx_1_ind = np.digitize(Qx_1, self.Q_bins, right=False)
-        Qy_1_ind = np.digitize(Qy_1, self.Q_bins, right=False)
-        Qz_1_ind = np.digitize(Qz_1, self.Q_bins, right=False)
+        Qx_1_ind = np.digitize(Qx_1, self.Q_bins, right=False)-1
+        Qy_1_ind = np.digitize(Qy_1, self.Q_bins, right=False)-1
+        Qz_1_ind = np.digitize(Qz_1, self.Q_bins, right=False)-1
 
-        Qx_2_ind = np.digitize(Qx_2, self.Q_bins, right=False)
-        Qy_2_ind = np.digitize(Qy_2, self.Q_bins, right=False)
-        Qz_2_ind = np.digitize(Qz_2, self.Q_bins, right=False)
+        Qx_2_ind = np.digitize(Qx_2, self.Q_bins, right=False)-1
+        Qy_2_ind = np.digitize(Qy_2, self.Q_bins, right=False)-1
+        Qz_2_ind = np.digitize(Qz_2, self.Q_bins, right=False)-1
 
         _, indices = np.unique(np.column_stack([Qx_1_ind, Qy_1_ind, Qz_1_ind,
                                                 Qx_2_ind, Qy_2_ind, Qz_2_ind]),
@@ -157,11 +157,11 @@ class ExperimentModel(NeuXtalVizModel):
 
         mask = self.hist > 0
 
-        # Q_centers = 0.5*(self.Q_bins[1:]+self.Q_bins[:-1])
+        Q_centers = 0.5*(self.Q_bins[1:]+self.Q_bins[:-1])
 
-        Qx_centers, Qy_centers, Qz_centers = np.meshgrid(self.Q_bins,
-                                                         self.Q_bins,
-                                                         self.Q_bins)
+        Qx_centers, Qy_centers, Qz_centers = np.meshgrid(Q_centers,
+                                                         Q_centers,
+                                                         Q_centers)
 
         x, y, z = Qx_centers[mask], Qy_centers[mask], Qz_centers[mask]
 
@@ -172,9 +172,9 @@ class ExperimentModel(NeuXtalVizModel):
 
             for T in self.get_symmetry_transforms(laue):
                 xp, yp, zp = np.einsum('ij,jk->ik', (UB @ T) @ UB_inv, [x,y,z])
-                Qx_ind = np.digitize(xp, self.Q_bins, right=False)
-                Qy_ind = np.digitize(yp, self.Q_bins, right=False)
-                Qz_ind = np.digitize(zp, self.Q_bins, right=False)
+                Qx_ind = np.digitize(xp, self.Q_bins, right=False)-1
+                Qy_ind = np.digitize(yp, self.Q_bins, right=False)-1
+                Qz_ind = np.digitize(zp, self.Q_bins, right=False)-1
                 self.hist[Qx_ind,Qy_ind,Qz_ind] = 1
 
     def hsl_to_rgb(self, hue, saturation, lightness):

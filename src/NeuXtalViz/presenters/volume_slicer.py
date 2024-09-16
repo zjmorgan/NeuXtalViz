@@ -18,11 +18,25 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         if filename:
 
+            self.update_processing()
+
+            self.update_processing('Loading NeXus file...', 10) 
+
             self.model.load_md_histo_workspace(filename)
+
+            self.update_processing('Loading NeXus file...', 50) 
 
             self.update_oriented_lattice()
 
+            self.update_processing('Loading NeXus file...', 80) 
+
             self.redraw_data()
+
+            self.update_complete('CIF loaded!')
+
+        else:
+
+            self.update_invalid()
 
     def get_normal(self):
 
@@ -54,11 +68,17 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         if self.model.is_histo_loaded():
 
+            self.update_processing()
+
+            self.update_processing('Updating volume...', 20)
+
             histo = self.model.get_histo_info()
 
             data = histo['signal']
 
             data = self.model.calculate_clim(data, self.get_clim_method())
+
+            self.update_processing('Updating volume...', 50)
 
             histo['signal'] = data
 
@@ -68,12 +88,23 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
             normal = -self.model.get_normal('[uvw]', norm)
 
+            origin = norm
+            origin[origin.index(1)] = value
+
+            # origin = self.model.get_normal('[hkl]', orig)
+
             if value is not None:
 
-                self.view.add_histo(histo, normal, value)
+                self.view.add_histo(histo, normal, origin)
                 self.view.set_transform(self.model.get_transform())
 
                 self.slice_data()
+
+                self.update_complete('Volume draw!')
+
+            else:
+
+                self.update_invalid()
 
     def slice_data(self):
 
@@ -86,6 +117,10 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
             if thick is not None:
 
+                self.update_processing()
+
+                self.update_processing('Updating slice...', 50)
+
                 slice_histo = self.model.get_slice_info(norm, value, thick)
 
                 data = slice_histo['signal']
@@ -95,6 +130,8 @@ class VolumeSlicer(NeuXtalVizPresenter):
                 slice_histo['signal'] = data
 
                 self.view.add_slice(slice_histo)
+
+                self.update_complete('Data sliced!')
 
             self.cut_data()
 
@@ -117,5 +154,12 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
             if value is not None and thick is not None:
 
+                self.update_processing()
+
+                self.update_processing('Updating cut...', 50)
+    
                 cut_histo = self.model.get_cut_info(axis, value, thick)
+
                 self.view.add_cut(cut_histo)
+
+                self.update_complete('Data cut!')

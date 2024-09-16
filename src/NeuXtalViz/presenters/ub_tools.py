@@ -278,7 +278,7 @@ class UB(NeuXtalVizPresenter):
         if no is not None:
             peak = self.model.get_peak(no)
             self.view.set_peak_info(peak)
-            self.view.highlight_peak(no)
+            self.view.highlight_peak(no+1)
 
     def lattice_transform(self):
 
