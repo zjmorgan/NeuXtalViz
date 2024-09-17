@@ -8,9 +8,8 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         self.view.connect_load_NXS(self.load_NXS)
 
-        self.view.connect_slice(self.slice_data)
-        self.view.connect_cut(self.cut_data)
-        self.view.connect_redraw(self.redraw_data)
+        self.view.connect_slice(self.redraw_data)
+        self.view.connect_cut(self.redraw_data)
 
     def load_NXS(self):
 

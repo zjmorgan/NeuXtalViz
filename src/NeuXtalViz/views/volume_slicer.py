@@ -66,11 +66,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.cbar_combo.addItem('Diverging')
 
         self.load_NXS_button = QPushButton('Load NXS', self)
-        self.redraw_button = QPushButton('Redraw Volume', self)
         self.slice_button = QPushButton('Slice Plane', self)
         self.cut_button = QPushButton('Cut Line', self)
 
-        draw_layout.addWidget(self.redraw_button)
         draw_layout.addWidget(self.clim_combo)
         draw_layout.addWidget(self.cbar_combo)
         draw_layout.addWidget(self.load_NXS_button)
@@ -228,10 +226,6 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def connect_load_NXS(self, load_NXS):
 
         self.load_NXS_button.clicked.connect(load_NXS)
-
-    def connect_redraw(self, redraw_data):
-
-        self.redraw_button.clicked.connect(redraw_data)
 
     def connect_slice(self, slice_plane):
 
