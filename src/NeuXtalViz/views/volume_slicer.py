@@ -58,6 +58,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.clim_combo.addItem('Min/Max')
         self.clim_combo.addItem('μ±3×σ')
         self.clim_combo.addItem('Q₃/Q₁±1.5×IQR')
+        self.clim_combo.setCurrentIndex(1)
 
         self.cbar_combo = QComboBox(self)
         self.cbar_combo.addItem('Sequential')
@@ -98,22 +99,22 @@ class VolumeSlicerView(NeuXtalVizWidget):
         slice_thickness_label = QLabel('Thickness:', self)
         cut_thickness_label = QLabel('Thickness:', self)
 
-        self.slice_thickness_line = QLineEdit('0.01')
-        self.cut_thickness_line = QLineEdit('0.01')
+        self.slice_thickness_line = QLineEdit('0.1')
+        self.cut_thickness_line = QLineEdit('0.1')
 
         self.slice_thickness_line.setValidator(validator)
         self.cut_thickness_line.setValidator(validator)
 
-        self.slice_check = QCheckBox('Log', self)
-        self.cut_check = QCheckBox('Log', self)
+        self.slice_scale_combo = QComboBox(self)
+        self.slice_scale_combo.addItem('Linear')
+        self.slice_scale_combo.addItem('Log')
 
-        self.slice_check.setChecked(True)
-        self.cut_check.setChecked(True)
+        self.cut_scale_combo = QComboBox(self)
+        self.cut_scale_combo.addItem('Linear')
+        self.cut_scale_combo.addItem('Log')
 
         slider_layout = QVBoxLayout()
         bar_layout = QHBoxLayout()
-
-        self.color_label = QLabel('(0, 100)%')
 
         self.min_slider = QSlider(Qt.Vertical)
         self.max_slider = QSlider(Qt.Vertical)
@@ -130,27 +131,28 @@ class VolumeSlicerView(NeuXtalVizWidget):
         bar_layout.addWidget(self.min_slider)
         bar_layout.addWidget(self.max_slider)
 
-        slider_layout.addWidget(self.color_label)
         slider_layout.addLayout(bar_layout)
 
-        # self.slider.min_slider.valueChanged.connect(self.update_colorbar_limits)
-        # self.slider.max_slider.valueChanged.connect(self.update_colorbar_limits)
+        self.slice_slider = QSlider(Qt.Horizontal)
+        self.cut_slider = QSlider(Qt.Horizontal)
 
         slice_params_layout.addWidget(self.slice_button)
         slice_params_layout.addWidget(self.slice_combo)
+        slice_params_layout.addWidget(self.slice_slider)
         slice_params_layout.addWidget(slice_label)
         slice_params_layout.addWidget(self.slice_line)
         slice_params_layout.addWidget(slice_thickness_label)
         slice_params_layout.addWidget(self.slice_thickness_line)
-        slice_params_layout.addWidget(self.slice_check)
+        slice_params_layout.addWidget(self.slice_scale_combo)
 
         cut_params_layout.addWidget(self.cut_button)
         cut_params_layout.addWidget(self.cut_combo)
+        cut_params_layout.addWidget(self.cut_slider)
         cut_params_layout.addWidget(cut_label)
         cut_params_layout.addWidget(self.cut_line)
         cut_params_layout.addWidget(cut_thickness_label)
         cut_params_layout.addWidget(self.cut_thickness_line)
-        cut_params_layout.addWidget(self.cut_check)
+        cut_params_layout.addWidget(self.cut_scale_combo)
 
         plots_layout.addLayout(draw_layout)
 
@@ -189,6 +191,24 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         slice_tab.setLayout(plots_layout)
 
+    def update_slice_limits(self, vmin, vmax):
+
+        val = (vmin+vmax)/2
+
+        self.slice_slider.blockSignals(True)
+        self.slice_slider.setRange(vmin, vmax)
+        self.slice_slider.setValue(val)
+        self.slice_slider.blockSignals(True)
+
+    def update_cut_limits(self, vmin, vmax):
+
+        val = (vmin+vmax)/2
+
+        self.cut_slider.blockSignals(True)
+        self.cut_slider.setRange(vmin, vmax)
+        self.cut_slider.setValue(val)
+        self.cut_slider.blockSignals(True)
+
     def update_colorbar_min(self):
 
         min_val = self.min_slider.value()
@@ -199,10 +219,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
             self.min_slider.setValue(max_val-1)
             self.min_slider.blockSignals(False)
 
-        curr_min = self.min_slider.value()
-        curr_max = self.max_slider.value()
-
-        self.color_label.setText('({}, {})%'.format(curr_min, curr_max))
+        self.update_slice_color()
 
     def update_colorbar_max(self):
 
@@ -214,10 +231,23 @@ class VolumeSlicerView(NeuXtalVizWidget):
             self.max_slider.setValue(min_val+1)
             self.max_slider.blockSignals(False)
 
-        curr_min = self.min_slider.value()
-        curr_max = self.max_slider.value()
+        self.update_slice_color()
 
-        self.color_label.setText('({}, {})%'.format(curr_min, curr_max))
+    def update_slice_color(self):
+
+        if self.cb is not None:
+
+            min_slider, max_slider = self.get_color_bar_values()
+
+            vmin = self.vmin+(self.vmax-self.vmin)*min_slider/100
+            vmax = self.vmin+(self.vmax-self.vmin)*max_slider/100
+
+            self.im.set_clim(vmin=vmin, vmax=vmax)
+            self.cb.update_normal(self.im)
+            self.cb.minorticks_on()
+
+            self.canvas_slice.draw_idle()
+            self.canvas_slice.flush_events()
 
     def get_color_bar_values(self):
 
@@ -260,6 +290,10 @@ class VolumeSlicerView(NeuXtalVizWidget):
         min_lim = histo_dict['min_lim']
         max_lim = histo_dict['max_lim']
         spacing = histo_dict['spacing']
+
+        self.min_min = min_lim
+        self.max_lim = max_lim
+        self.spacing = spacing
 
         P = histo_dict['projection']
         T = histo_dict['transform']
@@ -340,6 +374,14 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def add_slice(self, slice_dict):
 
+        self.max_slider.blockSignals(True)
+        self.max_slider.setValue(100)
+        self.max_slider.blockSignals(False)
+
+        self.min_slider.blockSignals(True)
+        self.min_slider.setValue(0)
+        self.min_slider.blockSignals(False)
+
         cmap = cmaps[self.get_colormap()]
 
         x = slice_dict['x']
@@ -349,7 +391,13 @@ class VolumeSlicerView(NeuXtalVizWidget):
         title = slice_dict['title']
         signal = slice_dict['signal']
 
-        scale = 'log' if self.slice_check.isChecked() else 'linear'
+        scale = 'log' if self.get_slice_scale() else 'linear'
+
+        vmin = np.nanmin(signal)
+        vmax = np.nanmax(signal)
+
+        if np.isclose(vmax, vmin) or not np.isfinite([vmin, vmax]).all():
+            vmin, vmax = (0.1, 1) if scale == 'log' else (0, 1)         
 
         T = slice_dict['transform']
         aspect = slice_dict['aspect']
@@ -370,9 +418,14 @@ class VolumeSlicerView(NeuXtalVizWidget):
                                       signal,
                                       norm=scale,
                                       cmap=cmap,
+                                      vmin=vmin,
+                                      vmax=vmax,
                                       shading='flat',
                                       rasterized=True,
                                       transform=transform)
+
+        self.im = im
+        self.vmin, self.vmax = self.im.norm.vmin, self.im.norm.vmax
 
         self.ax_slice.set_aspect(aspect)
         self.ax_slice.set_xlabel(labels[0])
@@ -383,7 +436,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.ax_slice.xaxis.get_major_locator().set_params(integer=True)
         self.ax_slice.yaxis.get_major_locator().set_params(integer=True)
 
-        self.cb = self.fig_slice.colorbar(im, ax=self.ax_slice)
+        self.cb = self.fig_slice.colorbar(self.im, ax=self.ax_slice)
         self.cb.minorticks_on()
 
         self.canvas_slice.draw_idle()
@@ -400,7 +453,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         label = cut_dict['label']
         title = cut_dict['title']
 
-        scale = 'log' if self.cut_check.isChecked() else 'linear'
+        scale = 'log' if self.get_cut_scale() else 'linear'
 
         line_cut = self.get_cut()
 
@@ -480,3 +533,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def get_cut(self):
 
         return self.cut_combo.currentText()
+
+    def get_slice_scale(self):
+
+        return self.slice_scale_combo.currentText().lower()
+
+    def get_cut_scale(self):
+
+        return self.cut_scale_combo.currentText().lower()
