@@ -125,9 +125,6 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.min_slider.setValue(0)
         self.max_slider.setValue(100)
 
-        self.min_slider.valueChanged.connect(self.update_colorbar_min)
-        self.max_slider.valueChanged.connect(self.update_colorbar_max)
-
         bar_layout.addWidget(self.min_slider)
         bar_layout.addWidget(self.max_slider)
 
@@ -191,23 +188,69 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         slice_tab.setLayout(plots_layout)
 
-    def update_slice_limits(self, vmin, vmax):
+    def connect_slice_slider(self, update_slice):
 
-        val = (vmin+vmax)/2
+        self.slice_slider.valueChanged.connect(update_slice)
+
+    def connect_cut_slider(self, update_cut):
+
+        self.cut_slider.valueChanged.connect(update_cut)
+
+    def connect_min_slider(self, update_colorbar):
+
+        self.min_slider.valueChanged.connect(update_colorbar)
+
+    def connect_max_slider(self, update_colorbar):
+
+        self.max_slider.valueChanged.connect(update_colorbar)
+
+    def update_slice_limits(self, n, delta, start):
+
+        val = n // 2
 
         self.slice_slider.blockSignals(True)
-        self.slice_slider.setRange(vmin, vmax)
+        self.slice_slider.setRange(0, n-1)
         self.slice_slider.setValue(val)
-        self.slice_slider.blockSignals(True)
+        self.slice_slider.setSingleStep(1)
+        self.slice_slider.blockSignals(False)
 
-    def update_cut_limits(self, vmin, vmax):
+        self.set_slice_thickness(round(delta, 4))
+        self.slice_start = start
+        self.slice_step = delta
 
-        val = (vmin+vmax)/2
+    def update_cut_limits(self, n, delta, start):
+
+        val = n // 2
 
         self.cut_slider.blockSignals(True)
-        self.cut_slider.setRange(vmin, vmax)
+        self.cut_slider.setRange(0, n-1)
         self.cut_slider.setValue(val)
-        self.cut_slider.blockSignals(True)
+        self.cut_slider.setSingleStep(1)
+        self.cut_slider.blockSignals(False)
+
+        self.set_cut_thickness(round(delta, 4))
+        self.cut_start = start
+        self.cut_step = delta
+
+    def update_slice_value(self):
+
+        val = self.slice_slider.value()
+        thick = self.slice_step
+
+        if val is not None:
+
+            val = self.slice_start+val*thick
+            self.set_slice_value(val)
+
+    def update_cut_value(self):
+
+        val = self.cut_slider.value()
+        thick = self.cut_step
+
+        if val is not None:
+
+            val = self.cut_start+val*thick
+            self.set_cut_value(val)
 
     def update_colorbar_min(self):
 
@@ -290,10 +333,6 @@ class VolumeSlicerView(NeuXtalVizWidget):
         min_lim = histo_dict['min_lim']
         max_lim = histo_dict['max_lim']
         spacing = histo_dict['spacing']
-
-        self.min_min = min_lim
-        self.max_lim = max_lim
-        self.spacing = spacing
 
         P = histo_dict['projection']
         T = histo_dict['transform']
@@ -391,7 +430,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         title = slice_dict['title']
         signal = slice_dict['signal']
 
-        scale = 'log' if self.get_slice_scale() else 'linear'
+        scale = self.get_slice_scale()
 
         vmin = np.nanmin(signal)
         vmax = np.nanmax(signal)
@@ -453,7 +492,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         label = cut_dict['label']
         title = cut_dict['title']
 
-        scale = 'log' if self.get_cut_scale() else 'linear'
+        scale = self.get_cut_scale()
 
         line_cut = self.get_cut()
 
@@ -510,6 +549,14 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
             return float(self.cut_line.text())
 
+    def set_slice_value(self, val):
+
+        self.slice_line.setText(str(round(val, 4)))
+
+    def set_cut_value(self, val):
+
+         self.cut_line.setText(str(round(val, 4)))
+
     def get_slice_thickness(self):
 
         if self.slice_thickness_line.hasAcceptableInput():
@@ -521,6 +568,14 @@ class VolumeSlicerView(NeuXtalVizWidget):
         if self.cut_thickness_line.hasAcceptableInput():
 
             return float(self.cut_thickness_line.text())
+
+    def set_slice_thickness(self, val):
+
+        self.slice_thickness_line.setText(str(val))
+
+    def set_cut_thickness(self, val):
+
+         self.cut_thickness_line.setText(str(val))
 
     def get_clim_clip_type(self):
 

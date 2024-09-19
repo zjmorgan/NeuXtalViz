@@ -67,6 +67,11 @@ class VolumeSlicerModel(NeuXtalVizModel):
         histo_dict['spacing'] = spacing
         histo_dict['labels'] = labels
 
+        self.shape = histo_dict['signal'].shape
+        self.min_lim = min_lim
+        self.max_lim = max_lim
+        self.spacing = spacing
+
         P, T, S = self.get_transforms()
 
         histo_dict['transform'] = T

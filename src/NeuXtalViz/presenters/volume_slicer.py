@@ -11,6 +11,28 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_slice(self.redraw_data)
         self.view.connect_cut(self.redraw_data)
 
+        self.view.connect_min_slider(self.view.update_colorbar_min)
+        self.view.connect_max_slider(self.view.update_colorbar_max)
+
+        self.view.connect_slice_slider(self.update_slice)
+        self.view.connect_cut_slider(self.update_cut)
+
+    def update_slice(self):
+
+        if self.model.is_histo_loaded():
+
+            self.view.update_slice_value()
+
+            self.slice_data()
+
+    def update_cut(self):
+
+        if self.model.is_histo_loaded():
+
+            self.view.update_cut_value()
+
+            self.cut_data()
+
     def load_NXS(self):
 
         filename = self.view.load_NXS_file_dialog()
@@ -50,6 +72,20 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         return norm
 
+    def get_axis(self):
+
+        axis = [1 if not norm else 0 for norm in self.get_normal()]
+        ind = [i for i, ax in enumerate(axis) if ax == 1]
+
+        line_cut = self.view.get_cut()
+
+        if line_cut == 'Axis 1':
+            axis[ind[0]] = 0
+        else:
+            axis[ind[1]] = 0
+
+        return axis
+
     def get_clim_method(self):
 
         ctype = self.view.get_clim_clip_type()
@@ -63,6 +99,30 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         return method
 
+    def get_slice_cut_indices(self):
+
+        norm = self.get_normal()
+
+        sind = norm.index(1)
+
+        axis = self.get_axis()
+
+        cind = axis.index(1)
+
+        return sind, cind
+
+    def update_slice_cut_info(self):
+
+        sind, cind = self.get_slice_cut_indices()
+
+        self.view.update_slice_limits(self.model.shape[sind],
+                                      self.model.spacing[sind],
+                                      self.model.min_lim[sind])
+
+        self.view.update_cut_limits(self.model.shape[cind],
+                                    self.model.spacing[cind],
+                                    self.model.min_lim[cind])
+
     def redraw_data(self):
 
         if self.model.is_histo_loaded():
@@ -72,6 +132,8 @@ class VolumeSlicer(NeuXtalVizPresenter):
             self.update_processing('Updating volume...', 20)
 
             histo = self.model.get_histo_info()
+
+            self.update_slice_cut_info()
 
             data = histo['signal']
 
@@ -139,17 +201,9 @@ class VolumeSlicer(NeuXtalVizPresenter):
         if self.model.is_sliced():
 
             value = self.view.get_cut_value()
-            line_cut = self.view.get_cut()
-
-            axis = [1 if not norm else 0 for norm in self.model.normal]
-            ind = [i for i, ax in enumerate(axis) if ax == 1]
-
-            if line_cut == 'Axis 1':
-                axis[ind[0]] = 0
-            else:
-                axis[ind[1]] = 0
-
             thick = self.view.get_cut_thickness()
+
+            axis = self.get_axis()
 
             if value is not None and thick is not None:
 
