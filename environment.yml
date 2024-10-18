@@ -14,3 +14,10 @@ dependencies:
   - pytest
   - mantidworkbench
   - scikit-learn
+  - scikit-image
+  - astropy
+  - dill
+  - psutil
+  - multiprocess
+  - pip:
+    - pyqtdarktheme
