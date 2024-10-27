@@ -36,6 +36,7 @@ from mantid.simpleapi import (SelectCellWithForm,
                               HB3AAdjustSampleNorm,
                               LoadWANDSCD,
                               Load,
+                              Rebin,
                               SetGoniometer,
                               PreprocessDetectorsToMD,
                               ConvertToMD,
@@ -279,6 +280,7 @@ class UBModel(NeuXtalVizModel):
             if 'HFIR' in filepath:
                 ei = mtd['data'].getExperimentInfo(0)
                 two_theta = ei.run().getProperty('TwoTheta').value
+                az_phi = ei.run().getProperty('Azimuthal').value
                 Q_max = 4*np.pi/wavelength[0]*np.sin(0.5*max(two_theta))
                 ConvertHFIRSCDtoMDE(InputWorkspace='data',
                                     Wavelength=wavelength[0],
@@ -295,12 +297,15 @@ class UBModel(NeuXtalVizModel):
                               XMin=wavelength[0],
                               XMax=wavelength[1],
                               OutputWorkspace='data')
-                ws = mtd['data']
-                group = ws.isGroup()
-                input_ws = ws.getNames()[0] if group else 'data'
+                Rebin(InputWorkspace='data',
+                      OutputWorkspace='data',
+                      Params=[wavelength[0], 0.01, wavelength[1]])
+                group = mtd['data'].isGroup()
+                input_ws = mtd['data'].getNames()[0] if group else 'data'
                 PreprocessDetectorsToMD(InputWorkspace=input_ws,
                                         OutputWorkspace='detectors')
                 two_theta = mtd['detectors'].column('TwoTheta')
+                az_phi = mtd['detectors'].column('Azimuthal')
                 Q_max = 4*np.pi/min(wavelength)*np.sin(0.5*max(two_theta))
                 ConvertToMD(InputWorkspace='data',
                             QDimensions='Q3D',
@@ -330,11 +335,7 @@ class UBModel(NeuXtalVizModel):
                                    dim.getMaximum()-dim.getBinWidth()/2,
                                    dim.getNBins()) for dim in dims]
 
-            x, y, z = np.meshgrid(x, y, z, indexing='ij')
-
-            self.x = x
-            self.y = y
-            self.z = z
+            self.x, self.y, self.z = np.meshgrid(x, y, z, indexing='ij')
 
     def get_has_Q_vol(self):
 
@@ -358,13 +359,15 @@ class UBModel(NeuXtalVizModel):
 
             self.sort_peaks_by_d(self.table)
 
-            Qs, Is, pk_nos, Ts = [], [], [], []
+            Qs, Is, inds, pk_nos, Ts = [], [], [], [], []
 
             for j, peak in enumerate(mtd[self.table]):
 
                 T = np.zeros((4,4))
 
                 I = peak.getIntensity()
+
+                ind = (peak.getHKL().norm2() > 0)*1.0
 
                 shape = eval(peak.getPeakShape().toJSON())
 
@@ -400,11 +403,13 @@ class UBModel(NeuXtalVizModel):
 
                 Qs.append(Q)
                 Is.append(I)
+                inds.append(ind)
                 pk_nos.append(pk_no)
                 Ts.append(T)
 
             Q_dict['coordinates'] = Qs
             Q_dict['intensities'] = Is
+            Q_dict['indexings'] = inds
             Q_dict['numbers'] = pk_nos
             Q_dict['transforms'] = Ts
 

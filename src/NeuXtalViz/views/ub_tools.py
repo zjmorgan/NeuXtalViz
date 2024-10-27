@@ -1632,35 +1632,42 @@ class UBView(NeuXtalVizWidget):
 
         transforms = Q_dict.get('transforms')
         intensities = Q_dict.get('intensities')
+        indexings = Q_dict.get('indexings')
         numbers = Q_dict.get('numbers')
 
-        params = [transforms, intensities, numbers]
+        params = [transforms, intensities, indexings, numbers]
+
+        integrate = np.any(intensities)
 
         if all([elem is not None for elem in params]):
 
             sphere = pv.Icosphere(radius=1, nsub=1)
 
-            integrate = False
-
             geoms, self.indexing = [], {}
-            for i, (T, I, no) in enumerate(zip(*params)):
+            for i, (T, I, ind, no) in enumerate(zip(*params)):
                 ellipsoid = sphere.copy().transform(T)
-                ellipsoid['scalars'] = np.full(sphere.n_cells, I)
+                color = I if integrate else ind
+                ellipsoid['scalars'] = np.full(sphere.n_cells, color)
                 geoms.append(ellipsoid)
                 self.indexing[i] = i
-                if I > 0:
-                    integrate = True
 
             multiblock = pv.MultiBlock(geoms)
 
-            scalars = 'scalars' if integrate else None
-            color = 'lightblue' if not integrate else None
+            mu = np.nanmean(intensities)
+            sigma = np.nanstd(intensities)
+
+            cmap = 'viridis' if integrate else ['lightblue', 'lightgreen']
+            n_colors = 256 if integrate else 2
+            clim = [mu-3*sigma, mu+3*sigma] if integrate else [0, 1]
 
             _, mapper = self.plotter.add_composite(multiblock,
-                                                   scalars=scalars,
-                                                   color=color,
+                                                   scalars='scalars',
+                                                   color=None,
                                                    log_scale=False,
                                                    style='surface',
+                                                   cmap=cmap,
+                                                   clim=clim,
+                                                   n_colors=n_colors,
                                                    show_scalar_bar=False,
                                                    smooth_shading=True)
 
