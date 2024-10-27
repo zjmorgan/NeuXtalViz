@@ -8,20 +8,44 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         self.view.connect_load_NXS(self.load_NXS)
 
-        self.view.connect_slice(self.redraw_data)
-        self.view.connect_cut(self.redraw_data)
+        self.view.connect_slice_combo(self.redraw_data)
+        self.view.connect_cut_combo(self.redraw_data)
+
+        self.view.connect_slice_thickness_line(self.redraw_data)
+        self.view.connect_cut_thickness_line(self.redraw_data)
+
+        self.view.connect_clim_combo(self.redraw_data)
+        self.view.connect_cbar_combo(self.redraw_data)
 
         self.view.connect_min_slider(self.view.update_colorbar_min)
         self.view.connect_max_slider(self.view.update_colorbar_max)
 
-        self.view.connect_slice_slider(self.update_slice)
-        self.view.connect_cut_slider(self.update_cut)
+        self.view.connect_slice_slider(self.update_slice_value)
+        self.view.connect_cut_slider(self.update_cut_value)
+
+        self.view.connect_slice_scale_combo(self.update_slice)
+        self.view.connect_cut_scale_combo(self.update_cut)
+
+        self.view.connect_slice_line(self.redraw_data)
+        self.view.connect_cut_line(self.redraw_data)
+
+    def update_slice_value(self):
+
+        self.view.update_slice_value()
+
+        self.update_slice()
+
+    def update_cut_value(self):
+
+        self.view.update_cut_value()
+        
+        self.update_cut()
 
     def update_slice(self):
 
         if self.model.is_histo_loaded():
 
-            self.view.update_slice_value()
+            self.view.update_slice_slider()
 
             self.slice_data()
 
@@ -29,7 +53,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         if self.model.is_histo_loaded():
 
-            self.view.update_cut_value()
+            self.view.update_cut_slider()
 
             self.cut_data()
 
@@ -53,7 +77,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
             self.redraw_data()
 
-            self.update_complete('CIF loaded!')
+            self.update_complete('NeXus file loaded!')
 
         else:
 
@@ -99,25 +123,33 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         return method
 
-    def get_slice_cut_indices(self):
+    def get_slice_indices(self):
 
         norm = self.get_normal()
 
         sind = norm.index(1)
 
+        return sind
+
+    def get_cut_indices(self):
+
         axis = self.get_axis()
 
         cind = axis.index(1)
 
-        return sind, cind
+        return cind
 
-    def update_slice_cut_info(self):
+    def update_slice_info(self):
 
-        sind, cind = self.get_slice_cut_indices()
+        sind = self.get_slice_indices()
 
         self.view.update_slice_limits(self.model.shape[sind],
                                       self.model.spacing[sind],
                                       self.model.min_lim[sind])
+
+    def update_cut_info(self):
+
+        cind = self.get_cut_indices()
 
         self.view.update_cut_limits(self.model.shape[cind],
                                     self.model.spacing[cind],
@@ -132,8 +164,6 @@ class VolumeSlicer(NeuXtalVizPresenter):
             self.update_processing('Updating volume...', 20)
 
             histo = self.model.get_histo_info()
-
-            self.update_slice_cut_info()
 
             data = histo['signal']
 
@@ -161,7 +191,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
                 self.slice_data()
 
-                self.update_complete('Volume draw!')
+                self.update_complete('Volume drawn!')
 
             else:
 
@@ -194,7 +224,9 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
                 self.update_complete('Data sliced!')
 
-            self.cut_data()
+                self.update_slice_info()
+
+                self.cut_data()
 
     def cut_data(self):
 
@@ -216,3 +248,5 @@ class VolumeSlicer(NeuXtalVizPresenter):
                 self.view.add_cut(cut_histo)
 
                 self.update_complete('Data cut!')
+
+                self.update_cut_info()

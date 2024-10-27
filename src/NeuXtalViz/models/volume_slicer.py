@@ -17,6 +17,8 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         LoadMD(Filename=filename, OutputWorkspace='histo')
 
+        self.signal = mtd['histo'].getSignalArray().copy()
+
         self.set_B()
         self.set_W()
 
@@ -48,7 +50,7 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         histo_dict = {}
 
-        histo_dict['signal'] = np.log10(mtd['histo'].getSignalArray())
+        histo_dict['signal'] = np.log10(self.signal)
 
         dims = [mtd['histo'].getDimension(i) for i in range(3)]
 
