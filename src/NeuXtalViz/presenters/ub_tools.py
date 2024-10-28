@@ -82,6 +82,10 @@ class UB(NeuXtalVizPresenter):
 
             self.model.convert_data(instrument, wavelength, lorentz)
 
+            gamma, nu, counts = self.model.instrument_view()
+
+            self.view.update_instrument_view(gamma, nu, counts)
+
             self.update_processing('Data converted...', 99)
 
             self.visualize()
@@ -91,6 +95,12 @@ class UB(NeuXtalVizPresenter):
         else:
 
             self.update_invalid()
+
+    def update_instrument_view(self):
+
+        if self.model.has_Q():
+
+            self.model.get_instrument_data()
 
     def visualize(self):
 

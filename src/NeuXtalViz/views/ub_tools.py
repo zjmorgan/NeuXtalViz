@@ -21,7 +21,17 @@ from qtpy.QtWidgets import (QWidget,
 from qtpy.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtCore import Qt
 
+from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
+from matplotlib.figure import Figure
+from matplotlib.transforms import Affine2D
+
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
+
+cmaps = {'Sequential': 'viridis',
+         'Binary': 'binary',
+         'Diverging': 'bwr',
+         'Rainbow': 'turbo'}
 
 class UBView(NeuXtalVizWidget):
 
@@ -33,6 +43,7 @@ class UBView(NeuXtalVizWidget):
 
         self.parameters_tab()
         self.table_tab()
+        self.verify_tab()
 
         self.layout().addWidget(self.tab_widget, stretch=1)
 
@@ -379,131 +390,7 @@ class UBView(NeuXtalVizWidget):
 
         convert_to_q_tab.setLayout(convert_to_q_tab_layout)
 
-        convert_to_hkl_tab = QWidget()
-        convert_to_hkl_tab_layout = QVBoxLayout()
-
-        convert_to_hkl_params_layout = QGridLayout()
-
-        notation = QDoubleValidator.StandardNotation
-
-        validator = QDoubleValidator(-10, 10, 5, notation=notation)
-
-        self.U1_line = QLineEdit('1')
-        self.U2_line = QLineEdit('0')
-        self.U3_line = QLineEdit('0')
-
-        self.V1_line = QLineEdit('0')
-        self.V2_line = QLineEdit('1')
-        self.V3_line = QLineEdit('0')
-
-        self.W1_line = QLineEdit('0')
-        self.W2_line = QLineEdit('0')
-        self.W3_line = QLineEdit('1')
-
-        self.U1_line.setValidator(validator)
-        self.U2_line.setValidator(validator)
-        self.U3_line.setValidator(validator)
-
-        self.V1_line.setValidator(validator)
-        self.V2_line.setValidator(validator)
-        self.V3_line.setValidator(validator)
-
-        self.W1_line.setValidator(validator)
-        self.W2_line.setValidator(validator)
-        self.W3_line.setValidator(validator)
-
-        notation = QDoubleValidator.StandardNotation
-
-        validator = QDoubleValidator(-50, 50, 5, notation=notation)
-
-        self.min1_line = QLineEdit('-6')
-        self.min2_line = QLineEdit('-6')
-        self.min3_line = QLineEdit('-6')
-
-        self.max1_line = QLineEdit('6')
-        self.max2_line = QLineEdit('6')
-        self.max3_line = QLineEdit('6')
-
-        self.min1_line.setValidator(validator)
-        self.min2_line.setValidator(validator)
-        self.min3_line.setValidator(validator)
-
-        self.max1_line.setValidator(validator)
-        self.max2_line.setValidator(validator)
-        self.max3_line.setValidator(validator)
-
-        validator = QIntValidator(1, 1001, self)
-
-        self.bins1_line = QLineEdit('301')
-        self.bins2_line = QLineEdit('301')
-        self.bins3_line = QLineEdit('301')
-
-        self.bins1_line.setValidator(validator)
-        self.bins2_line.setValidator(validator)
-        self.bins3_line.setValidator(validator)
-
-        ax1_label = QLabel('1:')
-        ax2_label = QLabel('2:')
-        ax3_label = QLabel('3:')
-
-        h_label = QLabel('h')
-        k_label = QLabel('k')
-        l_label = QLabel('l')
-
-        min_label = QLabel('Min')
-        max_label = QLabel('Max')
-        bins_label = QLabel('Bins')
-
-        convert_to_hkl_params_layout.addWidget(h_label, 0, 1, Qt.AlignCenter)
-        convert_to_hkl_params_layout.addWidget(k_label, 0, 2, Qt.AlignCenter)
-        convert_to_hkl_params_layout.addWidget(l_label, 0, 3, Qt.AlignCenter)
-
-        convert_to_hkl_params_layout.addWidget(min_label, 0, 4, Qt.AlignCenter)
-        convert_to_hkl_params_layout.addWidget(max_label, 0, 5, Qt.AlignCenter)
-        convert_to_hkl_params_layout.addWidget(bins_label, 0, 6, Qt.AlignCenter)
-
-        convert_to_hkl_params_layout.addWidget(ax1_label, 1, 0, Qt.AlignCenter)
-        convert_to_hkl_params_layout.addWidget(ax2_label, 2, 0, Qt.AlignCenter)
-        convert_to_hkl_params_layout.addWidget(ax3_label, 3, 0, Qt.AlignCenter)
-
-        convert_to_hkl_params_layout.addWidget(self.U1_line, 1, 1)
-        convert_to_hkl_params_layout.addWidget(self.V1_line, 2, 1)
-        convert_to_hkl_params_layout.addWidget(self.W1_line, 3, 1)
-
-        convert_to_hkl_params_layout.addWidget(self.U2_line, 1, 2)
-        convert_to_hkl_params_layout.addWidget(self.V2_line, 2, 2)
-        convert_to_hkl_params_layout.addWidget(self.W2_line, 3, 2)
-
-        convert_to_hkl_params_layout.addWidget(self.U3_line, 1, 3)
-        convert_to_hkl_params_layout.addWidget(self.V3_line, 2, 3)
-        convert_to_hkl_params_layout.addWidget(self.W3_line, 3, 3)
-
-        convert_to_hkl_params_layout.addWidget(self.min1_line, 1, 4)
-        convert_to_hkl_params_layout.addWidget(self.min2_line, 2, 4)
-        convert_to_hkl_params_layout.addWidget(self.min3_line, 3, 4)
-
-        convert_to_hkl_params_layout.addWidget(self.max1_line, 1, 5)
-        convert_to_hkl_params_layout.addWidget(self.max2_line, 2, 5)
-        convert_to_hkl_params_layout.addWidget(self.max3_line, 3, 5)
-
-        convert_to_hkl_params_layout.addWidget(self.bins1_line, 1, 6)
-        convert_to_hkl_params_layout.addWidget(self.bins2_line, 2, 6)
-        convert_to_hkl_params_layout.addWidget(self.bins3_line, 3, 6)
-
-        self.convert_to_hkl_button = QPushButton('Convert', self)
-
-        convert_to_hkl_action_layout = QHBoxLayout()
-        convert_to_hkl_action_layout.addWidget(self.convert_to_hkl_button)
-        convert_to_hkl_action_layout.addStretch(1)
-
-        convert_to_hkl_tab_layout.addLayout(convert_to_hkl_params_layout)
-        convert_to_hkl_tab_layout.addStretch(1)
-        convert_to_hkl_tab_layout.addLayout(convert_to_hkl_action_layout)
-
-        convert_to_hkl_tab.setLayout(convert_to_hkl_tab_layout)
-
         convert_tab.addTab(convert_to_q_tab, 'Convert To Q')
-        convert_tab.addTab(convert_to_hkl_tab, 'Convert To HKL')
 
         return convert_tab
 
@@ -1229,6 +1116,124 @@ class UBView(NeuXtalVizWidget):
         peaks_layout.addLayout(extended_info)
 
         peaks_table_tab.setLayout(peaks_layout)
+
+    def verify_tab(self):
+
+        inspect_verify_tab = QTabWidget()
+        self.tab_widget.addTab(inspect_verify_tab, 'Inspection')
+
+        inspect_tab = self.__init_inspect_tab()
+        verify_tab = self.__init_verify_tab()
+
+        inspect_verify_tab.addTab(inspect_tab, 'Convert To HKL')
+        inspect_verify_tab.addTab(verify_tab, 'Instrument')
+
+    def __init_inspect_tab(self):
+
+        convert_to_hkl_tab = QWidget()
+        convert_to_hkl_tab_layout = QVBoxLayout()
+
+        convert_to_hkl_params_layout = QGridLayout()
+
+        notation = QDoubleValidator.StandardNotation
+
+        validator = QDoubleValidator(-10, 10, 5, notation=notation)
+
+        self.U1_line = QLineEdit('1')
+        self.U2_line = QLineEdit('0')
+        self.U3_line = QLineEdit('0')
+
+        self.V1_line = QLineEdit('0')
+        self.V2_line = QLineEdit('1')
+        self.V3_line = QLineEdit('0')
+
+        self.W1_line = QLineEdit('0')
+        self.W2_line = QLineEdit('0')
+        self.W3_line = QLineEdit('1')
+
+        self.U1_line.setValidator(validator)
+        self.U2_line.setValidator(validator)
+        self.U3_line.setValidator(validator)
+
+        self.V1_line.setValidator(validator)
+        self.V2_line.setValidator(validator)
+        self.V3_line.setValidator(validator)
+
+        self.W1_line.setValidator(validator)
+        self.W2_line.setValidator(validator)
+        self.W3_line.setValidator(validator)
+
+        ax1_label = QLabel('1:')
+        ax2_label = QLabel('2:')
+        ax3_label = QLabel('3:')
+
+        h_label = QLabel('h')
+        k_label = QLabel('k')
+        l_label = QLabel('l')
+
+        convert_to_hkl_params_layout.addWidget(h_label, 0, 1, Qt.AlignCenter)
+        convert_to_hkl_params_layout.addWidget(k_label, 0, 2, Qt.AlignCenter)
+        convert_to_hkl_params_layout.addWidget(l_label, 0, 3, Qt.AlignCenter)
+        convert_to_hkl_params_layout.addWidget(ax1_label, 1, 0, Qt.AlignCenter)
+        convert_to_hkl_params_layout.addWidget(ax2_label, 2, 0, Qt.AlignCenter)
+        convert_to_hkl_params_layout.addWidget(ax3_label, 3, 0, Qt.AlignCenter)
+
+        convert_to_hkl_params_layout.addWidget(self.U1_line, 1, 1)
+        convert_to_hkl_params_layout.addWidget(self.V1_line, 2, 1)
+        convert_to_hkl_params_layout.addWidget(self.W1_line, 3, 1)
+
+        convert_to_hkl_params_layout.addWidget(self.U2_line, 1, 2)
+        convert_to_hkl_params_layout.addWidget(self.V2_line, 2, 2)
+        convert_to_hkl_params_layout.addWidget(self.W2_line, 3, 2)
+
+        convert_to_hkl_params_layout.addWidget(self.U3_line, 1, 3)
+        convert_to_hkl_params_layout.addWidget(self.V3_line, 2, 3)
+        convert_to_hkl_params_layout.addWidget(self.W3_line, 3, 3)
+
+        self.convert_to_hkl_button = QPushButton('Convert', self)
+
+        convert_to_hkl_action_layout = QHBoxLayout()
+        convert_to_hkl_action_layout.addWidget(self.convert_to_hkl_button)
+        convert_to_hkl_action_layout.addStretch(1)
+
+        convert_to_hkl_tab_layout.addLayout(convert_to_hkl_params_layout)
+        convert_to_hkl_tab_layout.addStretch(1)
+        convert_to_hkl_tab_layout.addLayout(convert_to_hkl_action_layout)
+
+        self.canvas_slice = FigureCanvas(Figure(constrained_layout=True))
+
+        slice_layout = QVBoxLayout()
+
+        slice_layout.addWidget(NavigationToolbar2QT(self.canvas_slice, self))
+        slice_layout.addWidget(self.canvas_slice)
+
+        convert_to_hkl_tab_layout.addLayout(slice_layout)
+
+        convert_to_hkl_tab.setLayout(convert_to_hkl_tab_layout)
+
+        return convert_to_hkl_tab
+
+    def __init_verify_tab(self):
+
+        instrument_tab = QWidget()
+        instrument_tab_layout = QVBoxLayout()
+
+        self.canvas_inst = FigureCanvas(Figure(constrained_layout=True))
+
+        self.fig_inst = self.canvas_inst.figure
+
+        self.ax_inst = self.fig_inst.subplots(1, 1)
+
+        view_layout = QVBoxLayout()
+
+        view_layout.addWidget(NavigationToolbar2QT(self.canvas_inst, self))
+        view_layout.addWidget(self.canvas_inst)
+
+        instrument_tab_layout.addLayout(view_layout)
+
+        instrument_tab.setLayout(instrument_tab_layout)
+
+        return instrument_tab
 
     def connect_browse_calibration(self, load_detector_cal):
 
@@ -2163,3 +2168,25 @@ class UBView(NeuXtalVizWidget):
             self.phi_line.setText('{:.4f}'.format(phi_12))
         else:
             self.phi_line.setText('')
+
+    def update_instrument_view(self, gamma, nu, counts, norm='log'):
+        
+        self.ax_inst.clear()
+
+        self.im = self.ax_inst.hexbin(gamma, 
+                                      nu,
+                                      C=counts,
+                                      bins=norm,
+                                      gridsize=500,
+                                      mincnt=1e-16,
+                                      reduce_C_function=np.mean,
+                                      rasterized=True)
+
+        self.ax_inst.set_aspect(1)
+        self.ax_inst.minorticks_on()
+
+        #self.cb = self.fig_inst.colorbar(self.im, ax=self.ax_inst)
+        #self.cb.minorticks_on()
+
+        self.canvas_inst.draw_idle()
+        self.canvas_inst.flush_events()

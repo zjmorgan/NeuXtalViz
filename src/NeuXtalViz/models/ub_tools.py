@@ -281,6 +281,8 @@ class UBModel(NeuXtalVizModel):
                 ei = mtd['data'].getExperimentInfo(0)
                 two_theta = ei.run().getProperty('TwoTheta').value
                 az_phi = ei.run().getProperty('Azimuthal').value
+                counts = mtd['data'].getSignalArray().copy()
+                counts = counts.reshape(-1, counts.shape[2])
                 Q_max = 4*np.pi/wavelength[0]*np.sin(0.5*max(two_theta))
                 ConvertHFIRSCDtoMDE(InputWorkspace='data',
                                     Wavelength=wavelength[0],
@@ -306,6 +308,7 @@ class UBModel(NeuXtalVizModel):
                                         OutputWorkspace='detectors')
                 two_theta = mtd['detectors'].column('TwoTheta')
                 az_phi = mtd['detectors'].column('Azimuthal')
+                counts = mtd['data'].extractY().copy()
                 Q_max = 4*np.pi/min(wavelength)*np.sin(0.5*max(two_theta))
                 ConvertToMD(InputWorkspace='data',
                             QDimensions='Q3D',
@@ -336,6 +339,20 @@ class UBModel(NeuXtalVizModel):
                                    dim.getNBins()) for dim in dims]
 
             self.x, self.y, self.z = np.meshgrid(x, y, z, indexing='ij')
+
+            self.wavelength = wavelength
+            self.counts = counts
+
+            kf_x = np.sin(two_theta)*np.cos(az_phi)
+            kf_y = np.sin(two_theta)*np.sin(az_phi)
+            kf_z = np.cos(two_theta)
+
+            self.nu = np.rad2deg(np.arcsin(kf_y))
+            self.gamma = np.rad2deg(np.arctan2(kf_x, kf_z))
+
+    def instrument_view(self):
+
+        return self.gamma, self.nu, self.counts.sum(axis=1)
 
     def get_has_Q_vol(self):
 
