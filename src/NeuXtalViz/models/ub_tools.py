@@ -28,6 +28,7 @@ from mantid.simpleapi import (SelectCellWithForm,
                               CombinePeaksWorkspaces,
                               CreatePeaksWorkspace,
                               ConvertPeaksWorkspace,
+                              ConvertQtoHKLMDHisto,
                               CopySample,
                               CreateSampleWorkspace,
                               CloneWorkspace,
@@ -61,6 +62,7 @@ from mantid.geometry import PointGroupFactory, UnitCell
 from mantid.kernel import V3D
 
 import numpy as np
+import scipy
 import json
 
 from NeuXtalViz.models.base_model import NeuXtalVizModel
@@ -132,11 +134,17 @@ class UBModel(NeuXtalVizModel):
         else:
             return False
 
-    def update_UB(self):
+    def get_UB(self):
 
         if self.has_UB():
 
-            UB = mtd[self.table].sample().getOrientedLattice().getUB().copy()
+            return mtd[self.table].sample().getOrientedLattice().getUB().copy()
+
+    def update_UB(self):
+
+        UB = self.get_UB()
+
+        if UB is not None:
 
             self.set_UB(UB)
 
@@ -330,7 +338,12 @@ class UBModel(NeuXtalVizModel):
                   AlignedDim2='Q_sample_z,{},{},768'.format(-Q_max, Q_max),
                   OutputWorkspace='Q3D')
 
-            self.signal = mtd['Q3D'].getSignalArray().copy()
+            signal = mtd['Q3D'].getSignalArray().copy()
+
+            threshold = np.nanpercentile(signal[signal > 0], 95)
+            mask = signal >= threshold
+
+            self.signal = signal[mask]
 
             dims = [mtd['Q3D'].getDimension(i) for i in range(3)]
 
@@ -338,7 +351,13 @@ class UBModel(NeuXtalVizModel):
                                    dim.getMaximum()-dim.getBinWidth()/2,
                                    dim.getNBins()) for dim in dims]
 
-            self.x, self.y, self.z = np.meshgrid(x, y, z, indexing='ij')
+            x, y, z = np.meshgrid(x, y, z, indexing='ij')
+
+            self.x, self.y, self.z = x[mask], y[mask], z[mask]
+
+            self.Qx_min, self.Qx_max = self.x.min(), self.x.max()
+            self.Qy_min, self.Qy_max = self.y.min(), self.y.max()
+            self.Qz_min, self.Qz_max = self.z.min(), self.z.max()
 
             self.wavelength = wavelength
             self.counts = counts
@@ -353,6 +372,147 @@ class UBModel(NeuXtalVizModel):
     def instrument_view(self):
 
         return self.gamma, self.nu, self.counts.sum(axis=1)
+
+    def get_slice_info(self, U, V, W, normal, value, thickness, width):
+
+        UB = self.get_UB()
+
+        if self.has_UB() and self.has_Q():
+    
+            Wt = np.column_stack([U, V, W])        
+    
+            slice_dict = {}
+    
+            Bp = np.dot(UB, Wt)
+
+            bp_inv = np.linalg.inv(2*np.pi*Bp)
+
+            corners = np.array([[self.Qx_min, self.Qy_min, self.Qz_min],
+                                [self.Qx_max, self.Qy_min, self.Qz_min],
+                                [self.Qx_min, self.Qy_max, self.Qz_min],
+                                [self.Qx_max, self.Qy_max, self.Qz_min],
+                                [self.Qx_min, self.Qy_min, self.Qz_max],
+                                [self.Qx_max, self.Qy_min, self.Qz_max],
+                                [self.Qx_min, self.Qy_max, self.Qz_max],
+                                [self.Qx_max, self.Qy_max, self.Qz_max]])
+
+            trans_corners = np.einsum('ij,kj->ki', bp_inv, corners)
+
+            min_values = np.ceil(np.min(trans_corners, axis=0))
+            max_values = np.floor(np.max(trans_corners, axis=0))
+
+            bin_sizes = np.round((max_values-min_values)/width).astype(int)
+
+            min_values = min_values.tolist()
+            max_values = max_values.tolist()
+
+            bin_sizes = bin_sizes.tolist()
+
+            extents = []
+            bins = []
+
+            integrate = [value-thickness, value+thickness]
+
+            for ind, i in enumerate(normal):
+                if i == 0:
+                    extents += [min_values[ind], max_values[ind]]
+                    bins += [1+bin_sizes[ind]]
+                else:
+                    extents += integrate
+                    bins += [1]
+
+            ConvertQtoHKLMDHisto(InputWorkspace=self.Q,
+                                 PeaksWorkspace=self.table,
+                                 UProj=U,
+                                 VProj=V,
+                                 WProj=W,
+                                 Extents=extents,
+                                 Bins=bins,
+                                 OutputWorkspace='slice')
+    
+            i = np.array(normal).tolist().index(1)
+    
+            form = '{} = ({:.2f},{:.2f})'
+    
+            title = form.format(mtd['slice'].getDimension(i).name, *integrate)
+    
+            dims = mtd['slice'].getNonIntegratedDimensions()
+    
+            x, y = [np.linspace(dim.getMinimum(),
+                                dim.getMaximum(),
+                                dim.getNBoundaries()) for dim in dims]
+    
+            labels = ['{} ({})'.format(dim.name, dim.getUnits()) for dim in dims]
+    
+            slice_dict['x'] = x
+            slice_dict['y'] = y
+            slice_dict['labels'] = labels
+    
+            signal = mtd['slice'].getSignalArray().T.copy().squeeze()
+    
+            # signal[signal <= 0] = np.nan
+            # signal[np.isinf(signal)] = np.nan
+    
+            slice_dict['signal'] = signal
+        
+            Q, R = scipy.linalg.qr(Bp)
+    
+            ind = np.array(normal) != 1
+    
+            v = scipy.linalg.cholesky(np.dot(R.T, R)[ind][:,ind], lower=False)
+    
+            v /= v[0,0]
+    
+            T = np.eye(3)
+            T[:2,:2] = v
+    
+            s = np.diag(T).copy()
+            T[1,1] = 1
+    
+            T[0,2] = -T[0,1]*y.min()
+    
+            slice_dict['transform'] = T
+            slice_dict['aspect'] = s[1]
+            slice_dict['value'] = value
+            slice_dict['title'] = title
+    
+            return slice_dict
+
+    def calculate_clim(self, trans, method='normal'):
+
+        trans[~np.isfinite(trans)] = np.nan
+
+        vmin, vmax = np.nanmin(trans), np.nanmax(trans)
+
+        if method == 'normal':
+
+            mu, sigma = np.nanmean(trans), np.nanstd(trans)
+
+            spread = 3*sigma
+
+            cmin, cmax = mu-spread, mu+spread
+
+        elif method == 'boxplot':
+
+            Q1, Q3 = np.nanpercentile(trans, [25,75])
+
+            IQR = Q3-Q1
+
+            spread = 1.5*IQR
+
+            cmin, cmax = Q1-spread, Q3+spread
+
+        else:
+
+            cmin, cmax = vmin, vmax
+
+        clim = [cmin if cmin > vmin else vmin,
+                cmax if cmax < vmax else vmax]
+
+        trans[trans < clim[0]] = clim[0]
+        trans[trans > clim[1]] = clim[1]
+
+        return trans
 
     def get_has_Q_vol(self):
 

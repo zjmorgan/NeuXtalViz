@@ -40,6 +40,8 @@ class UB(NeuXtalVizPresenter):
         self.switch_instrument()
         self.lattice_transform()
 
+        self.view.connect_convert_to_hkl(self.convert_to_hkl)
+
     def convert_Q(self):
 
         instrument = self.view.get_instrument()
@@ -639,3 +641,70 @@ class UB(NeuXtalVizPresenter):
         if constants is not None:
             d_phi = self.model.calculate_peaks(hkl_1, hkl_2, *constants)
             self.view.set_d_phi(*d_phi)
+
+    def get_normal(self):
+
+        slice_plane = self.view.get_slice()
+
+        if slice_plane == 'Axis 1/2':
+            norm = [0,0,1]
+        elif slice_plane == 'Axis 1/3':
+            norm = [0,1,0]
+        else:
+            norm = [1,0,0]
+
+        return norm
+
+    def get_clim_method(self):
+
+        ctype = self.view.get_clim_clip_type()
+
+        if ctype == 'μ±3×σ':
+            method = 'normal'
+        elif ctype == 'Q₃/Q₁±1.5×IQR':
+            method = 'boxplot'
+        else:
+            method = None
+
+        return method
+
+    def convert_to_hkl(self):
+
+        proj = self.view.get_projection_matrix()
+
+        value = self.view.get_slice_value()
+
+        thickness = self.view.get_slice_thickness()
+
+        width = self.view.get_slice_width()
+
+        validate = [proj, value, thickness, width]
+
+        if all(elem is not None for elem in validate):
+
+            proj = np.array(proj).reshape(3,3)            
+
+            if not np.isclose(np.linalg.det(proj), 0):
+
+                U, V, W = proj
+
+                norm = self.get_normal()
+
+                slice_histo = self.model.get_slice_info(U,
+                                                        V,
+                                                        W,
+                                                        norm,
+                                                        value,
+                                                        thickness,
+                                                        width)
+
+                if slice_histo is not None:
+
+                    data = slice_histo['signal']
+    
+                    data = self.model.calculate_clim(data, 
+                                                     self.get_clim_method())
+    
+                    slice_histo['signal'] = data
+    
+                    self.view.update_slice(slice_histo)

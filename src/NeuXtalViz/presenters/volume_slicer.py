@@ -187,6 +187,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
             if value is not None:
 
                 self.view.add_histo(histo, normal, origin)
+             
                 self.view.set_transform(self.model.get_transform())
 
                 self.slice_data()

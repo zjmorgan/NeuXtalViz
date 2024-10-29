@@ -25,6 +25,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
+from matplotlib.ticker import FormatStrFormatter
 
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
 
@@ -1120,13 +1121,13 @@ class UBView(NeuXtalVizWidget):
     def verify_tab(self):
 
         inspect_verify_tab = QTabWidget()
-        self.tab_widget.addTab(inspect_verify_tab, 'Inspection')
+        self.tab_widget.addTab(inspect_verify_tab, 'Views')
 
         inspect_tab = self.__init_inspect_tab()
         verify_tab = self.__init_verify_tab()
 
-        inspect_verify_tab.addTab(inspect_tab, 'Convert To HKL')
-        inspect_verify_tab.addTab(verify_tab, 'Instrument')
+        inspect_verify_tab.addTab(inspect_tab, 'Slice View')
+        inspect_verify_tab.addTab(verify_tab, 'Detector View')
 
     def __init_inspect_tab(self):
 
@@ -1192,9 +1193,61 @@ class UBView(NeuXtalVizWidget):
 
         self.convert_to_hkl_button = QPushButton('Convert', self)
 
+        self.clim_combo = QComboBox(self)
+        self.clim_combo.addItem('Min/Max')
+        self.clim_combo.addItem('μ±3×σ')
+        self.clim_combo.addItem('Q₃/Q₁±1.5×IQR')
+        self.clim_combo.setCurrentIndex(1)
+
+        self.cbar_combo = QComboBox(self)
+        self.cbar_combo.addItem('Sequential')
+        self.cbar_combo.addItem('Rainbow')
+        self.cbar_combo.addItem('Binary')
+        self.cbar_combo.addItem('Diverging')
+
+        self.slice_combo = QComboBox(self)
+        self.slice_combo.addItem('Axis 1/2')
+        self.slice_combo.addItem('Axis 1/3')
+        self.slice_combo.addItem('Axis 2/3')
+        self.slice_combo.setCurrentIndex(0)
+
+        slice_label = QLabel('Slice:', self)
+
+        self.slice_line = QLineEdit('0.0')
+        self.slice_line.setValidator(validator)
+
+        validator = QDoubleValidator(0.0001, 100, 5, notation=notation)
+
+        slice_thickness_label = QLabel('Thickness:', self)
+
+        self.slice_thickness_line = QLineEdit('0.1')
+        self.slice_thickness_line.setValidator(validator)
+
+        validator = QDoubleValidator(0.01, 0.5, 5, notation=notation)
+
+        slice_width_label = QLabel('Width:', self)
+
+        self.slice_width_line = QLineEdit('0.05')
+        self.slice_width_line.setValidator(validator)
+
+        self.slice_scale_combo = QComboBox(self)
+        self.slice_scale_combo.addItem('Linear')
+        self.slice_scale_combo.addItem('Log')
+
         convert_to_hkl_action_layout = QHBoxLayout()
         convert_to_hkl_action_layout.addWidget(self.convert_to_hkl_button)
-        convert_to_hkl_action_layout.addStretch(1)
+        convert_to_hkl_action_layout.addWidget(self.slice_combo)
+        convert_to_hkl_action_layout.addWidget(slice_label)
+        convert_to_hkl_action_layout.addWidget(self.slice_line)
+        convert_to_hkl_action_layout.addWidget(slice_thickness_label)
+        convert_to_hkl_action_layout.addWidget(self.slice_thickness_line)
+        convert_to_hkl_action_layout.addWidget(slice_width_label)
+        convert_to_hkl_action_layout.addWidget(self.slice_width_line)
+
+        convert_to_hkl_view_layout = QHBoxLayout()
+        convert_to_hkl_view_layout.addWidget(self.cbar_combo)
+        convert_to_hkl_view_layout.addWidget(self.clim_combo)
+        convert_to_hkl_view_layout.addWidget(self.slice_scale_combo)
 
         convert_to_hkl_tab_layout.addLayout(convert_to_hkl_params_layout)
         convert_to_hkl_tab_layout.addStretch(1)
@@ -1202,12 +1255,17 @@ class UBView(NeuXtalVizWidget):
 
         self.canvas_slice = FigureCanvas(Figure(constrained_layout=True))
 
+        self.fig_slice = self.canvas_slice.figure
+
+        self.ax_slice = self.fig_slice.subplots(1, 1)
+
         slice_layout = QVBoxLayout()
 
         slice_layout.addWidget(NavigationToolbar2QT(self.canvas_slice, self))
         slice_layout.addWidget(self.canvas_slice)
 
         convert_to_hkl_tab_layout.addLayout(slice_layout)
+        convert_to_hkl_tab_layout.addLayout(convert_to_hkl_view_layout)
 
         convert_to_hkl_tab.setLayout(convert_to_hkl_tab_layout)
 
@@ -1234,6 +1292,10 @@ class UBView(NeuXtalVizWidget):
         instrument_tab.setLayout(instrument_tab_layout)
 
         return instrument_tab
+
+    def connect_convert_to_hkl(self, convert_to_hkl):
+
+        self.convert_to_hkl_button.clicked.connect(convert_to_hkl)
 
     def connect_browse_calibration(self, load_detector_cal):
 
@@ -1615,13 +1677,10 @@ class UBView(NeuXtalVizWidget):
 
         if all([elem is not None for elem in [signal, x, y, z]]):
 
-            threshold = np.nanpercentile(signal[signal > 0], 95)
-            mask = signal >= threshold
-
-            points = np.column_stack([x[mask], y[mask], z[mask]])
+            points = np.column_stack([x, y, z])
 
             point_cloud = pv.PolyData(points)
-            point_cloud['scalars'] = signal[mask]
+            point_cloud['scalars'] = signal
 
             self.plotter.add_mesh(point_cloud,
                                   scalars='scalars',
@@ -1822,6 +1881,20 @@ class UBView(NeuXtalVizWidget):
         params = self.T11_line, self.T12_line, self.T13_line, \
                  self.T21_line, self.T22_line, self.T23_line, \
                  self.T31_line, self.T32_line, self.T33_line, \
+
+        valid_params = all([param.hasAcceptableInput() for param in params])
+
+        if valid_params:
+
+            params = [float(param.text()) for param in params]
+
+            return params
+
+    def get_projection_matrix(self):
+
+        params = self.U1_line, self.U2_line, self.U3_line, \
+                 self.V1_line, self.V2_line, self.V3_line, \
+                 self.W1_line, self.W2_line, self.W3_line, \
 
         valid_params = all([param.hasAcceptableInput() for param in params])
 
@@ -2170,7 +2243,7 @@ class UBView(NeuXtalVizWidget):
             self.phi_line.setText('')
 
     def update_instrument_view(self, gamma, nu, counts, norm='log'):
-        
+
         self.ax_inst.clear()
 
         self.im = self.ax_inst.hexbin(gamma, 
@@ -2185,8 +2258,170 @@ class UBView(NeuXtalVizWidget):
         self.ax_inst.set_aspect(1)
         self.ax_inst.minorticks_on()
 
-        #self.cb = self.fig_inst.colorbar(self.im, ax=self.ax_inst)
-        #self.cb.minorticks_on()
+        self.ax_inst.set_xlabel(r'$\gamma$')
+        self.ax_inst.set_ylabel(r'$\nu$')
+
+        fmt_str_form = FormatStrFormatter(r'$%d^\circ$')
+
+        self.ax_inst.xaxis.set_major_formatter(fmt_str_form)
+        self.ax_inst.yaxis.set_major_formatter(fmt_str_form)
+
+        self.cb = self.fig_inst.colorbar(self.im, ax=self.ax_inst)
+        self.cb.minorticks_on()
 
         self.canvas_inst.draw_idle()
         self.canvas_inst.flush_events()
+
+    def get_slice_value(self):
+
+        if self.slice_line.hasAcceptableInput():
+
+            return float(self.slice_line.text())
+
+    def get_slice_thickness(self):
+
+        if self.slice_thickness_line.hasAcceptableInput():
+
+            return float(self.slice_thickness_line.text())
+
+    def get_slice_width(self):
+
+        if self.slice_width_line.hasAcceptableInput():
+
+            return float(self.slice_width_line.text())
+
+    def get_clim_clip_type(self):
+
+        return self.clim_combo.currentText()
+
+    def get_slice(self):
+
+        return self.slice_combo.currentText()
+
+    def get_slice_scale(self):
+
+        return self.slice_scale_combo.currentText().lower()
+
+    def get_colormap(self):
+
+        return self.cbar_combo.currentText()
+
+    def update_slice(self, slice_dict):
+
+        cmap = cmaps[self.get_colormap()]
+
+        x = slice_dict['x']
+        y = slice_dict['y']
+
+        labels = slice_dict['labels']
+        title = slice_dict['title']
+        signal = slice_dict['signal']
+
+        scale = self.get_slice_scale()
+
+        vmin = np.nanmin(signal)
+        vmax = np.nanmax(signal)
+
+        if np.isclose(vmax, vmin) or not np.isfinite([vmin, vmax]).all():
+            vmin, vmax = (0.1, 1) if scale == 'log' else (0, 1)
+
+        T = slice_dict['transform']
+        aspect = slice_dict['aspect']
+
+        transform = Affine2D(T)+self.ax_slice.transData
+        self.transform = transform
+
+        self.xlim = np.array([x.min(), x.max()])
+        self.ylim = np.array([y.min(), y.max()])
+
+        if self.cb is not None:
+            self.cb.remove()
+
+        self.ax_slice.clear()
+
+        im = self.ax_slice.pcolormesh(x,
+                                      y,
+                                      signal,
+                                      norm=scale,
+                                      cmap=cmap,
+                                      vmin=vmin,
+                                      vmax=vmax,
+                                      shading='flat',
+                                      rasterized=True,
+                                      transform=transform)
+
+        self.im = im
+        self.vmin, self.vmax = self.im.norm.vmin, self.im.norm.vmax
+
+        self.ax_slice.set_aspect(aspect)
+        self.ax_slice.set_xlabel(labels[0])
+        self.ax_slice.set_ylabel(labels[1])
+        self.ax_slice.set_title(title)
+        self.ax_slice.minorticks_on()
+
+        self.ax_slice.xaxis.get_major_locator().set_params(integer=True)
+        self.ax_slice.yaxis.get_major_locator().set_params(integer=True)
+
+        self.cb = self.fig_slice.colorbar(self.im, ax=self.ax_slice)
+        self.cb.minorticks_on()
+
+        self.ax_slice.grid(True)
+
+        self.canvas_slice.draw_idle()
+        self.canvas_slice.flush_events()
+
+    #     self.update_pending = False
+
+    #     self.ax_slice.callbacks.connect('xlim_changed',
+    #                                     self.update_grid_lines)
+
+    #     self.ax_slice.callbacks.connect('ylim_changed',
+    #                                     self.update_grid_lines)
+
+    #     # self.ax_slice.figure.canvas.mpl_connect('draw_event',
+    #     #                                         self.update_grid_lines_once)
+
+    #     self.update_grid_lines()
+
+    # def request_grid_update(self, *args):
+
+    #     self.update_pending = True
+
+    # def update_grid_lines_once(self, event):
+
+    #     if self.update_pending:
+
+    #         self.update_grid_lines()
+    #         self.update_pending = False
+
+    # def update_grid_lines(self, *args):
+
+    #     for line in self.ax_slice.lines:
+    #         line.remove()
+
+    #     x_ticks = self.ax_slice.get_xticks()
+    #     y_ticks = self.ax_slice.get_yticks()
+
+    #     x_min, x_max = self.xlim
+    #     y_min, y_max = self.ylim
+
+    #     for x_val in x_ticks:
+    #         if x_val > x_min and x_val < x_max:
+    #             self.ax_slice.plot([x_val,x_val],
+    #                                 [y_min,y_max],
+    #                                 color='gray',
+    #                                 linestyle='-',
+    #                                 linewidth=1,
+    #                                 transform=self.transform)
+
+    #     for y_val in y_ticks:
+    #         if y_val > y_min and y_val < y_max:
+    #             self.ax_slice.plot([x_min,x_max],
+    #                                 [y_val,y_val],
+    #                                 color='gray',
+    #                                 linestyle='-',
+    #                                 linewidth=1,
+    #                                 transform=self.transform)
+
+    #     self.canvas_slice.draw_idle()
+    #     self.canvas_slice.flush_events()
