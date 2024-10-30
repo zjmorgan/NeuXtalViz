@@ -29,6 +29,7 @@ from mantid.simpleapi import (SelectCellWithForm,
                               CreatePeaksWorkspace,
                               ConvertPeaksWorkspace,
                               ConvertQtoHKLMDHisto,
+                              CompactMD,
                               CopySample,
                               CreateSampleWorkspace,
                               CloneWorkspace,
@@ -429,7 +430,9 @@ class UBModel(NeuXtalVizModel):
                                  Extents=extents,
                                  Bins=bins,
                                  OutputWorkspace='slice')
-    
+
+            CompactMD(InputWorkspace='slice', OutputWorkspace='slice')
+
             i = np.array(normal).tolist().index(1)
     
             form = '{} = ({:.2f},{:.2f})'

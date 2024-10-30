@@ -27,6 +27,10 @@ from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
 from matplotlib.ticker import FormatStrFormatter
 
+from mpl_toolkits.axisartist import Axes, GridHelperCurveLinear
+from mpl_toolkits.axisartist.grid_finder import (ExtremeFinderSimple, 
+                                                 MaxNLocator)
+
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
 
 cmaps = {'Sequential': 'viridis',
@@ -49,6 +53,9 @@ class UBView(NeuXtalVizWidget):
         self.layout().addWidget(self.tab_widget, stretch=1)
 
         self.last_highlight = None
+
+        self.x_min, self.x_max = None, None
+        self.y_min, self.y_max = None, None
 
     def parameters_tab(self):
 
@@ -104,7 +111,7 @@ class UBView(NeuXtalVizWidget):
 
     def __init_values_tab(self):
 
-        values_tab = QTabWidget()        
+        values_tab = QTabWidget()
 
         parameters_tab = QWidget()
         orientation_tab = QWidget()
@@ -161,7 +168,7 @@ class UBView(NeuXtalVizWidget):
         parameters_layout.addWidget(gamma_label, 1, 4)
         parameters_layout.addWidget(self.gamma_line, 1, 5)
         parameters_layout.addWidget(degree_label, 1, 6)
-        
+
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(-5, 5, 4, notation=notation)
@@ -1253,7 +1260,7 @@ class UBView(NeuXtalVizWidget):
         convert_to_hkl_tab_layout.addStretch(1)
         convert_to_hkl_tab_layout.addLayout(convert_to_hkl_action_layout)
 
-        self.canvas_slice = FigureCanvas(Figure(constrained_layout=True))
+        self.canvas_slice = FigureCanvas(Figure(constrained_layout=False))
 
         self.fig_slice = self.canvas_slice.figure
 
@@ -2018,7 +2025,7 @@ class UBView(NeuXtalVizWidget):
 
         return self.centering_combo.currentText()
 
-    def get_predict_peaks_parameters(self):       
+    def get_predict_peaks_parameters(self):
 
         param = self.min_d_line
 
@@ -2077,7 +2084,7 @@ class UBView(NeuXtalVizWidget):
 
     def get_filter_value(self):
 
-        param = self.filter_line        
+        param = self.filter_line
 
         if param.hasAcceptableInput():
 
@@ -2246,7 +2253,7 @@ class UBView(NeuXtalVizWidget):
 
         self.ax_inst.clear()
 
-        self.im = self.ax_inst.hexbin(gamma, 
+        self.im = self.ax_inst.hexbin(gamma,
                                       nu,
                                       C=counts,
                                       bins=norm,
@@ -2322,22 +2329,41 @@ class UBView(NeuXtalVizWidget):
         vmin = np.nanmin(signal)
         vmax = np.nanmax(signal)
 
+        if scale == 'log' and np.isclose(vmin, 0):
+            vmin = np.nanmin(signal[signal > 0])
+
         if np.isclose(vmax, vmin) or not np.isfinite([vmin, vmax]).all():
             vmin, vmax = (0.1, 1) if scale == 'log' else (0, 1)
 
         T = slice_dict['transform']
         aspect = slice_dict['aspect']
 
-        transform = Affine2D(T)+self.ax_slice.transData
+        transform = Affine2D(T)
         self.transform = transform
-
-        self.xlim = np.array([x.min(), x.max()])
-        self.ylim = np.array([y.min(), y.max()])
 
         if self.cb is not None:
             self.cb.remove()
 
-        self.ax_slice.clear()
+        self.ax_slice.remove()
+
+        extreme_finder = ExtremeFinderSimple(20, 20)
+
+        grid_locator1 = MaxNLocator(nbins=10)
+        grid_locator2 = MaxNLocator(nbins=10)
+
+        grid_locator1.set_params(integer=True)
+        grid_locator2.set_params(integer=True)
+
+        grid_helper = GridHelperCurveLinear(transform,
+                                            extreme_finder=extreme_finder,
+                                            grid_locator1=grid_locator1,
+                                            grid_locator2=grid_locator2)
+        
+        self.ax_slice = self.fig_slice.add_subplot(1, 
+                                                   1, 
+                                                   1,
+                                                   axes_class=Axes, 
+                                                   grid_helper=grid_helper)
 
         im = self.ax_slice.pcolormesh(x,
                                       y,
@@ -2347,8 +2373,7 @@ class UBView(NeuXtalVizWidget):
                                       vmin=vmin,
                                       vmax=vmax,
                                       shading='flat',
-                                      rasterized=True,
-                                      transform=transform)
+                                      rasterized=True)
 
         self.im = im
         self.vmin, self.vmax = self.im.norm.vmin, self.im.norm.vmax
@@ -2358,70 +2383,10 @@ class UBView(NeuXtalVizWidget):
         self.ax_slice.set_ylabel(labels[1])
         self.ax_slice.set_title(title)
         self.ax_slice.minorticks_on()
-
-        self.ax_slice.xaxis.get_major_locator().set_params(integer=True)
-        self.ax_slice.yaxis.get_major_locator().set_params(integer=True)
+        self.ax_slice.grid(True)
 
         self.cb = self.fig_slice.colorbar(self.im, ax=self.ax_slice)
         self.cb.minorticks_on()
 
-        self.ax_slice.grid(True)
-
         self.canvas_slice.draw_idle()
         self.canvas_slice.flush_events()
-
-    #     self.update_pending = False
-
-    #     self.ax_slice.callbacks.connect('xlim_changed',
-    #                                     self.update_grid_lines)
-
-    #     self.ax_slice.callbacks.connect('ylim_changed',
-    #                                     self.update_grid_lines)
-
-    #     # self.ax_slice.figure.canvas.mpl_connect('draw_event',
-    #     #                                         self.update_grid_lines_once)
-
-    #     self.update_grid_lines()
-
-    # def request_grid_update(self, *args):
-
-    #     self.update_pending = True
-
-    # def update_grid_lines_once(self, event):
-
-    #     if self.update_pending:
-
-    #         self.update_grid_lines()
-    #         self.update_pending = False
-
-    # def update_grid_lines(self, *args):
-
-    #     for line in self.ax_slice.lines:
-    #         line.remove()
-
-    #     x_ticks = self.ax_slice.get_xticks()
-    #     y_ticks = self.ax_slice.get_yticks()
-
-    #     x_min, x_max = self.xlim
-    #     y_min, y_max = self.ylim
-
-    #     for x_val in x_ticks:
-    #         if x_val > x_min and x_val < x_max:
-    #             self.ax_slice.plot([x_val,x_val],
-    #                                 [y_min,y_max],
-    #                                 color='gray',
-    #                                 linestyle='-',
-    #                                 linewidth=1,
-    #                                 transform=self.transform)
-
-    #     for y_val in y_ticks:
-    #         if y_val > y_min and y_val < y_max:
-    #             self.ax_slice.plot([x_min,x_max],
-    #                                 [y_val,y_val],
-    #                                 color='gray',
-    #                                 linestyle='-',
-    #                                 linewidth=1,
-    #                                 transform=self.transform)
-
-    #     self.canvas_slice.draw_idle()
-    #     self.canvas_slice.flush_events()
