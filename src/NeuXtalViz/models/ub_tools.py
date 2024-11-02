@@ -445,7 +445,8 @@ class UBModel(NeuXtalVizModel):
                                 dim.getMaximum(),
                                 dim.getNBoundaries()) for dim in dims]
     
-            labels = ['{} ({})'.format(dim.name, dim.getUnits()) for dim in dims]
+            labels = ['{} ({})'.format(dim.name,
+                                       dim.getUnits()) for dim in dims]
     
             slice_dict['x'] = x
             slice_dict['y'] = y

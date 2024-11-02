@@ -27,8 +27,9 @@ from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
 from matplotlib.ticker import FormatStrFormatter
 
+# from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.axisartist import Axes, GridHelperCurveLinear
-from mpl_toolkits.axisartist.grid_finder import (ExtremeFinderSimple, 
+from mpl_toolkits.axisartist.grid_finder import (ExtremeFinderSimple,
                                                  MaxNLocator)
 
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
@@ -1260,7 +1261,12 @@ class UBView(NeuXtalVizWidget):
         convert_to_hkl_tab_layout.addStretch(1)
         convert_to_hkl_tab_layout.addLayout(convert_to_hkl_action_layout)
 
-        self.canvas_slice = FigureCanvas(Figure(constrained_layout=False))
+        self.canvas_slice = FigureCanvas(Figure(figsize=[12.8,12.8],
+                                                layout='constrained'))
+
+        self.ax_xint = None
+        self.ax_yint = None
+        self.cb_slice = None
 
         self.fig_slice = self.canvas_slice.figure
 
@@ -2257,7 +2263,7 @@ class UBView(NeuXtalVizWidget):
                                       nu,
                                       C=counts,
                                       bins=norm,
-                                      gridsize=500,
+                                      gridsize=600,
                                       mincnt=1e-16,
                                       reduce_C_function=np.mean,
                                       rasterized=True)
@@ -2273,8 +2279,8 @@ class UBView(NeuXtalVizWidget):
         self.ax_inst.xaxis.set_major_formatter(fmt_str_form)
         self.ax_inst.yaxis.set_major_formatter(fmt_str_form)
 
-        self.cb = self.fig_inst.colorbar(self.im, ax=self.ax_inst)
-        self.cb.minorticks_on()
+        self.cb_inst = self.fig_inst.colorbar(self.im, ax=self.ax_inst)
+        self.cb_inst.minorticks_on()
 
         self.canvas_inst.draw_idle()
         self.canvas_inst.flush_events()
@@ -2341,10 +2347,15 @@ class UBView(NeuXtalVizWidget):
         transform = Affine2D(T)
         self.transform = transform
 
-        if self.cb is not None:
-            self.cb.remove()
+        if self.cb_slice is not None:
+            self.cb_slice.remove()
 
         self.ax_slice.remove()
+
+        if self.ax_xint:
+            self.ax_xint.remove()
+        if self.ax_yint:
+            self.ax_yint.remove()
 
         extreme_finder = ExtremeFinderSimple(20, 20)
 
@@ -2358,12 +2369,28 @@ class UBView(NeuXtalVizWidget):
                                             extreme_finder=extreme_finder,
                                             grid_locator1=grid_locator1,
                                             grid_locator2=grid_locator2)
-        
-        self.ax_slice = self.fig_slice.add_subplot(1, 
-                                                   1, 
+
+        self.ax_slice = self.fig_slice.add_subplot(1,
                                                    1,
-                                                   axes_class=Axes, 
+                                                   1,
+                                                   axes_class=Axes,
                                                    grid_helper=grid_helper)
+
+        self.ax_slice.set_xlabel(labels[0])
+        self.ax_slice.set_ylabel(labels[1])
+        self.ax_slice.set_aspect(aspect)
+
+        # divider = make_axes_locatable(self.ax_slice)
+
+        # self.ax_yint = divider.append_axes('right',
+        #                                    '10%',
+        #                                    pad=0.15,
+        #                                    sharey=self.ax_slice)
+
+        # self.ax_xint = divider.append_axes('top',
+        #                                    '10%',
+        #                                    pad=0.15,
+        #                                    sharex=self.ax_slice)
 
         im = self.ax_slice.pcolormesh(x,
                                       y,
@@ -2375,18 +2402,66 @@ class UBView(NeuXtalVizWidget):
                                       shading='flat',
                                       rasterized=True)
 
+        xlim = self.ax_slice.get_xlim()
+        ylim = self.ax_slice.get_ylim()
+
+        ascale = (ylim[1]-ylim[0])/(xlim[1]-xlim[0])*aspect
+
+        xstart = 1+0.05 if ascale > 1 else 1+0.05*ascale
+        ystart = 1+0.05 if ascale < 1 else 1+0.05*ascale
+
+        xwidth = 0.1 if ascale > 1 else 0.1*ascale
+        ywidth = 0.1 if ascale < 1 else 0.1*ascale
+
+        self.ax_xint = self.ax_slice.inset_axes([0, xstart, 1, xwidth],
+                                                sharex=self.ax_slice)
+
+        self.ax_yint = self.ax_slice.inset_axes([ystart, 0, ywidth, 1],
+                                                sharey=self.ax_slice)
+
+        xint = signal.sum(axis=0)
+        yint = signal.sum(axis=1)
+        sigx = np.sqrt(xint)
+        sigy = np.sqrt(yint)
+
+        self.ax_xint.errorbar(0.5*(x[1:]+x[:-1]), 
+                              xint,
+                              yerr=sigx,
+                              fmt='.',
+                              linestyle='-',
+                              color='C0')
+
+        self.ax_yint.errorbar(yint,
+                              0.5*(y[1:]+y[:-1]),
+                              xerr=sigy, 
+                              fmt='.',
+                              linestyle='-',
+                              color='C1')
+
+        self.ax_xint.minorticks_on()
+        self.ax_yint.minorticks_on()
+
+        self.ax_xint.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        self.ax_yint.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+
+        self.ax_xint.xaxis.get_major_locator().set_params(integer=True)
+        self.ax_yint.yaxis.get_major_locator().set_params(integer=True)
+
+        self.ax_xint.set_xticks([])
+        self.ax_yint.set_yticks([])
+
         self.im = im
         self.vmin, self.vmax = self.im.norm.vmin, self.im.norm.vmax
 
-        self.ax_slice.set_aspect(aspect)
-        self.ax_slice.set_xlabel(labels[0])
-        self.ax_slice.set_ylabel(labels[1])
-        self.ax_slice.set_title(title)
-        self.ax_slice.minorticks_on()
+        self.ax_xint.set_title(title)
         self.ax_slice.grid(True)
 
-        self.cb = self.fig_slice.colorbar(self.im, ax=self.ax_slice)
-        self.cb.minorticks_on()
+        # ax = [self.ax_slice, self.ax_xint, self.ax_yint]
+
+        # cax = self.ax_yint.inset_axes([1.1, 0, 0.25, 1])
+
+        # self.cb_slice = self.fig_slice.colorbar(self.im, cax=cax)
+        # self.cb_slice.minorticks_on()
 
         self.canvas_slice.draw_idle()
         self.canvas_slice.flush_events()
