@@ -44,6 +44,21 @@ class UB(NeuXtalVizPresenter):
 
     def convert_Q(self):
 
+        self.convert_Q_worker = self.worker(self.convert_Q_process)
+        self.convert_Q_worker.signals.result.connect(self.convert_Q_complete)
+        self.convert_Q_worker.signals.finished.connect(self.visualize)
+        self.convert_Q_worker.signals.progress.connect(self.update_processing)
+
+        self.threadpool.start(self.convert_Q_worker)
+
+    def convert_Q_complete(self, result):
+
+        if result is not None:
+
+            self.view.update_instrument_view(*result)
+
+    def convert_Q_process(self, progress):
+
         instrument = self.view.get_instrument()
         wavelength = self.view.get_wavelength()
         tube_cal = self.view.get_tube_calibration()
@@ -62,9 +77,9 @@ class UB(NeuXtalVizPresenter):
 
         if all(elem is not None for elem in validate):
 
-            self.update_processing()
+            progress.emit('Processing', 1)
 
-            self.update_processing('Data loading...', 10)
+            progress.emit('Data loading...', 10)
 
             self.model.load_data(instrument,
                                  IPTS,
@@ -72,31 +87,29 @@ class UB(NeuXtalVizPresenter):
                                  exp,
                                  time_stop)
 
-            self.update_processing('Data loaded...', 40)
+            progress.emit('Data loaded...', 40)
 
-            self.update_processing('Data calibrating...', 50)
+            progress.emit('Data calibrating...', 50)
 
             self.model.calibrate_data(instrument, det_cal, tube_cal)
 
-            self.update_processing('Data calibrated...', 60)
+            progress.emit('Data calibrated...', 60)
 
-            self.update_processing('Data converting...', 70)
+            progress.emit('Data converting...', 70)
 
             self.model.convert_data(instrument, wavelength, lorentz)
 
-            gamma, nu, counts = self.model.instrument_view()
+            progress.emit('Data converted...', 99)
 
-            self.view.update_instrument_view(gamma, nu, counts)
+            progress.emit('Data converted!', 0)
 
-            self.update_processing('Data converted...', 99)
-
-            self.visualize()
-
-            self.update_complete('Data converted!')
+            return self.model.instrument_view()
 
         else:
 
-            self.update_invalid()
+            progress.emit('Invalid parameters.', 0)
+
+            return None
 
     def update_instrument_view(self):
 

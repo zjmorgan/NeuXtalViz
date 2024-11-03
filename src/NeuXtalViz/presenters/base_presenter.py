@@ -1,3 +1,5 @@
+from NeuXtalViz.views.utilities import Worker, ThreadPool
+
 class NeuXtalVizPresenter:
 
     def __init__(self, view, model):
@@ -17,6 +19,12 @@ class NeuXtalVizPresenter:
 
         self.view.connect_save_screenshot(self.save_screenshot)
         self.view.connect_reciprocal_real_compass(self.change_lattice)
+
+        self.threadpool = ThreadPool()
+
+    def worker(self, task):
+        
+        return Worker(task)
 
     def update_status(self, status):
         """

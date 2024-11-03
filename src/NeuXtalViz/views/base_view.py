@@ -19,6 +19,7 @@ import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
 
+
 class NeuXtalVizWidget(QWidget):
 
     def __init__(self, parent=None):
