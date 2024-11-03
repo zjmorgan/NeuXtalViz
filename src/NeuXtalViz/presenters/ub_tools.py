@@ -44,12 +44,12 @@ class UB(NeuXtalVizPresenter):
 
     def convert_Q(self):
 
-        self.convert_Q_worker = self.worker(self.convert_Q_process)
-        self.convert_Q_worker.signals.result.connect(self.convert_Q_complete)
-        self.convert_Q_worker.signals.finished.connect(self.visualize)
-        self.convert_Q_worker.signals.progress.connect(self.update_processing)
+        worker = self.worker(self.convert_Q_process)
+        worker.signals.result.connect(self.convert_Q_complete)
+        worker.signals.finished.connect(self.visualize)
+        worker.signals.progress.connect(self.update_processing)
 
-        self.threadpool.start(self.convert_Q_worker)
+        self.threadpool.start(worker)
 
     def convert_Q_complete(self, result):
 
@@ -77,7 +77,7 @@ class UB(NeuXtalVizPresenter):
 
         if all(elem is not None for elem in validate):
 
-            progress.emit('Processing', 1)
+            progress.emit('Processing...', 1)
 
             progress.emit('Data loading...', 10)
 
@@ -163,6 +163,19 @@ class UB(NeuXtalVizPresenter):
 
     def find_peaks(self):
 
+        worker = self.worker(self.find_peaks_process)
+        worker.signals.result.connect(self.find_peaks_complete)
+        worker.signals.finished.connect(self.visualize)
+        worker.signals.progress.connect(self.update_processing)
+
+        self.threadpool.start(worker)
+
+    def find_peaks_complete(self, result):
+
+        self.view.clear_niggli_info()
+
+    def find_peaks_process(self, progress):
+
         if self.model.has_Q():
 
             dist = self.view.get_find_peaks_distance()
@@ -171,25 +184,34 @@ class UB(NeuXtalVizPresenter):
 
             if dist is not None and params is not None:
 
-                self.update_processing()
+                progress.emit('Processing...', 1)
 
-                self.update_processing('Finding peaks...', 10)
+                progress.emit('Finding peaks...', 10)
 
                 self.model.find_peaks(dist, *params, edge)
 
-                self.update_processing('Peaks found...', 90)
+                progress.emit('Peaks found...', 90)
 
-                self.visualize()
-
-                self.view.clear_niggli_info()
-
-                self.update_complete('Peaks found!')
+                progress.emit('Peaks found!', 100)
 
             else:
 
-                self.update_invalid()
+                progress.emit('Invalid parameters.', 0)
 
     def find_conventional(self):
+
+        worker = self.worker(self.find_conventional_process)
+        worker.signals.result.connect(self.find_conventional_complete)
+        worker.signals.finished.connect(self.visualize)
+        worker.signals.progress.connect(self.update_processing)
+
+        self.threadpool.start(worker)
+
+    def find_conventional_complete(self, result):
+
+        self.view.clear_niggli_info()
+
+    def find_conventional_process(self, progress):
 
         if self.model.has_peaks():
 
@@ -198,25 +220,34 @@ class UB(NeuXtalVizPresenter):
 
             if params is not None and tol is not None:
 
-                self.update_processing()
+                progress.emit('Processing...', 1)
 
-                self.update_processing('Finding UB...', 10)
+                progress.emit('Finding UB...', 10)
 
                 self.model.determine_UB_with_lattice_parameters(*params, tol)
 
-                self.update_processing('UB found...', 90)
+                progress.emit('UB found...', 90)
 
-                self.visualize()
-
-                self.view.clear_niggli_info()
-
-                self.update_complete('UB found!')
+                progress.emit('UB found!', 100)
 
             else:
 
-                self.update_invalid()
+                progress.emit('Invalid parameters.', 0)
 
     def find_niggli(self):
+
+        worker = self.worker(self.find_niggli_process)
+        worker.signals.result.connect(self.find_niggli_complete)
+        worker.signals.finished.connect(self.visualize)
+        worker.signals.progress.connect(self.update_processing)
+
+        self.threadpool.start(worker)
+
+    def find_niggli_complete(self, result):
+
+        self.show_cells()
+
+    def find_niggli_process(self, progress):
 
         if self.model.has_peaks():
 
@@ -225,25 +256,36 @@ class UB(NeuXtalVizPresenter):
 
             if params is not None and tol is not None:
 
-                self.update_processing()
+                progress.emit('Processing...', 1)
 
-                self.update_processing('Finding UB...', 10)
+                progress.emit('Finding UB...', 10)
 
                 self.model.determine_UB_with_niggli_cell(*params, tol)
 
-                self.update_processing('UB found...', 90)
+                progress.emit('UB found...', 90)
 
-                self.visualize()
-
-                self.update_complete('UB found!')
-
-                self.show_cells()
+                progress.emit('UB found!', 100)
 
             else:
 
-                self.update_invalid()
+                progress.emit('Invalid parameters.', 0)
 
     def show_cells(self):
+
+        worker = self.worker(self.show_cells_process)
+        worker.signals.result.connect(self.show_cells_complete)
+        worker.signals.finished.connect(self.visualize)
+        worker.signals.progress.connect(self.update_processing)
+
+        self.threadpool.start(worker)
+
+    def show_cells_complete(self, result):
+
+        if result is not None:
+
+            self.view.update_cell_table(result)
+
+    def show_cells_process(self, progress):
 
         if self.model.has_peaks() and self.model.has_UB():
 
@@ -251,21 +293,34 @@ class UB(NeuXtalVizPresenter):
 
             if scalar is not None:
 
-                self.update_processing()
+                progress.emit('Processing...', 1)
 
-                self.update_processing('Finding possible cells...', 50)
+                progress.emit('Finding possible cells...', 50)
 
                 cells = self.model.possible_conventional_cells(scalar)
 
-                self.view.update_cell_table(cells)
+                progress.emit('Possible cells found!', 100)
 
-                self.update_complete('Possible cells found!')
+                return cells
 
             else:
 
-                self.update_invalid()
+                progress.emit('Invalid parameters.', 0)
 
     def select_cell(self):
+
+        worker = self.worker(self.select_cell_process)
+        worker.signals.result.connect(self.select_cell_complete)
+        worker.signals.finished.connect(self.visualize)
+        worker.signals.progress.connect(self.update_processing)
+
+        self.threadpool.start(worker)
+
+    def select_cell_complete(self, result):
+
+        self.view.clear_niggli_info()
+
+    def select_cell_process(self, progress):
 
         if self.model.has_peaks() and self.model.has_UB():
 
@@ -274,23 +329,19 @@ class UB(NeuXtalVizPresenter):
 
             if form is not None and tol is not None:
 
-                self.update_processing()
+                progress.emit('Processing...', 1)
 
-                self.update_processing('Selecting cell...', 50)
+                progress.emit('Selecting cell...', 50)
 
                 self.model.select_cell(form, tol)
 
-                self.update_processing('Cell selected...', 99)
+                progress.emit('Cell selected...', 99)
 
-                self.visualize()
-
-                self.view.clear_niggli_info()
-
-                self.update_complete('Cell selected!')
+                progress.emit('Cell selected!', 100)
 
             else:
 
-                self.update_invalid()
+                progress.emit('Invalid parameters.', 0)
 
     def highlight_cell(self):
 
