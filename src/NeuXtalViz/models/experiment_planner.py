@@ -216,10 +216,10 @@ class ExperimentModel(NeuXtalVizModel):
         saturation = np.ones_like(hue)
         lightness = theta/np.pi
 
-        rgb = self.hsl_to_rgb(hue, saturation, lightness) 
+        rgb = self.hsl_to_rgb(hue, saturation, lightness)
 
         Q = np.sqrt(x**2+y**2+z**2)
-        
+
         a = (Q-self.Q_min)/(self.Q_max-self.Q_min)*255
         a[self.hist == 0] = 0
 

@@ -109,8 +109,6 @@ class UB(NeuXtalVizPresenter):
 
             progress.emit('Invalid parameters.', 0)
 
-            return None
-
     def update_instrument_view(self):
 
         if self.model.has_Q():
@@ -382,6 +380,19 @@ class UB(NeuXtalVizPresenter):
 
     def transform_UB(self):
 
+        worker = self.worker(self.transform_UB_process)
+        worker.signals.result.connect(self.transform_UB_complete)
+        worker.signals.finished.connect(self.visualize)
+        worker.signals.progress.connect(self.update_processing)
+
+        self.threadpool.start(worker)
+
+    def transform_UB_complete(self, result):
+
+        self.view.clear_niggli_info()
+
+    def transform_UB_process(self, progress):
+
         if self.model.has_peaks() and self.model.has_UB():
 
             params = self.view.get_transform_matrix()
@@ -389,25 +400,34 @@ class UB(NeuXtalVizPresenter):
 
             if params is not None and tol is not None:
 
-                self.update_processing()
+                progress.emit('Processing...', 1)
 
-                self.update_processing('Transforming UB...', 50)
+                progress.emit('Transforming UB...', 50)
 
                 self.model.transform_lattice(params, tol)
 
-                self.update_processing('UB transformed...', 99)
+                progress.emit('UB transformed...', 99)
 
-                self.visualize()
-
-                self.view.clear_niggli_info()
-
-                self.update_complete('UB transformed!')
+                progress.emit('UB transformed!', 100)
 
             else:
 
-                self.update_invalid()
+                progress.emit('Invalid parameters.', 0)
 
     def refine_UB(self):
+
+        worker = self.worker(self.refine_UB_process)
+        worker.signals.result.connect(self.refine_UB_complete)
+        worker.signals.finished.connect(self.visualize)
+        worker.signals.progress.connect(self.update_processing)
+
+        self.threadpool.start(worker)
+
+    def refine_UB_complete(self, result):
+
+        self.view.clear_niggli_info()
+
+    def refine_UB_process(self, progress):
 
         if self.model.has_peaks() and self.model.has_UB():
 
@@ -417,42 +437,34 @@ class UB(NeuXtalVizPresenter):
 
             if option == 'Constrained' and params is not None:
 
-                self.update_processing()
+                progress.emit('Processing...', 1)
 
-                self.update_processing('Refining orientation...', 50)
+                progress.emit('Refining orientation...', 50)
 
                 self.model.refine_U_only(*params)
 
-                self.update_processing('Orientation refined...', 99)
+                progress.emit('Orientation refined...', 99)
 
-                self.visualize()
-
-                self.view.clear_niggli_info()
-
-                self.update_complete('Orientation refined!')
+                progress.emit('Orientation refined!', 100)
 
             elif tol is not None:
 
-                self.update_processing()
+                progress.emit('Processing...', 1)
 
-                self.update_processing('Refining UB...', 50)
+                progress.emit('Refining UB...', 50)
 
                 if option == 'Unconstrained':
                     self.model.refine_UB_without_constraints(tol)
                 else:
                     self.model.refine_UB_with_constraints(option, tol)
 
-                self.update_processing('UB refined...', 99)
+                progress.emit('UB refined...', 99)
 
-                self.visualize()
-
-                self.view.clear_niggli_info()
-
-                self.update_complete('UB refined!')
+                progress.emit('UB refined!', 100)
 
             else:
 
-                self.update_invalid()
+                progress.emit('Invalid parameters.', 0)
 
     def get_modulation_info(self):
 
