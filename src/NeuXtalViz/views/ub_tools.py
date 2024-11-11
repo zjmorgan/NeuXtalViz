@@ -1324,10 +1324,10 @@ class UBView(NeuXtalVizWidget):
         self.vertical_line = QLineEdit('0')
         self.vertical_line.setValidator(validator)
 
-        validator = QDoubleValidator(-90, 90, 5, notation=notation)
-
         self.horizontal_line = QLineEdit('0')
         self.horizontal_line.setValidator(validator)
+
+        validator = QDoubleValidator(0, 180, 5, notation=notation)
 
         self.vertical_roi_line = QLineEdit('5')
         self.vertical_roi_line.setValidator(validator)
@@ -1842,7 +1842,7 @@ class UBView(NeuXtalVizWidget):
 
         integrate = np.any(intensities)
 
-        if all([elem is not None for elem in params]):
+        if all([elem is not None for elem in params]) and len(numbers) > 0:
 
             sphere = pv.Icosphere(radius=1, nsub=1)
 

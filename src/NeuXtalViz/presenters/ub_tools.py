@@ -51,6 +51,8 @@ class UB(NeuXtalVizPresenter):
         self.view.connect_horizontal_roi(self.update_instrument_view)
         self.view.connect_vertical_roi(self.update_instrument_view)
 
+        self.view.connect_add_peak(self.add_peak)
+
     def convert_Q(self):
 
         worker = self.worker(self.convert_Q_process)
@@ -64,7 +66,7 @@ class UB(NeuXtalVizPresenter):
 
         if result is not None:
 
-            self.view.update_diffraction_label(result)            
+            self.view.update_diffraction_label(result)
 
             self.update_instrument_view()
 
@@ -88,7 +90,7 @@ class UB(NeuXtalVizPresenter):
 
         if all(elem is not None for elem in validate):
 
-            mono = np.isclose(wavelength[0], wavelength[1])    
+            mono = np.isclose(wavelength[0], wavelength[1])
 
             progress.emit('Processing...', 1)
 
@@ -122,7 +124,40 @@ class UB(NeuXtalVizPresenter):
 
             progress.emit('Invalid parameters.', 0)
 
+    def add_peak(self):
+
+        if self.model.has_Q():
+
+            ind = self.view.get_data_combo()
+            horz = self.view.get_horizontal()
+            vert = self.view.get_vertical()
+            val = self.view.get_diffraction()
+
+            validate = [horz, vert, val]
+
+            if all(elem is not None for elem in validate):
+
+                self.model.add_peak(ind, val, horz, vert)
+
+                self.visualize()
+
     def update_instrument_view(self):
+
+        worker = self.worker(self.update_instrument_view_process)
+        worker.signals.result.connect(self.update_instrument_view_complete)
+        worker.signals.finished.connect(self.visualize)
+        worker.signals.progress.connect(self.update_processing)
+
+        self.threadpool.start(worker)
+
+    def update_instrument_view_complete(self, result):
+
+        if result is not None:
+
+            self.view.update_instrument_view(result[0])
+            self.view.update_roi_view(result[1])
+
+    def  update_instrument_view_process(self, progress):
 
         if self.model.has_Q():
 
@@ -139,18 +174,30 @@ class UB(NeuXtalVizPresenter):
 
             if all(elem is not None for elem in validate):
 
+                progress.emit('Processing...', 1)
+
+                progress.emit('Detector viewing...', 10)
+
                 inst_view = self.model.get_instrument_view(ind, d_min, d_max)
 
-                self.view.update_instrument_view(inst_view)
+                progress.emit('Detector viewed...', 50)
 
                 roi_view = self.model.extract_roi(inst_view,
                                                   horz,
                                                   vert,
-                                                  horz_roi, 
+                                                  horz_roi,
                                                   vert_roi,
                                                   val)
 
-                self.view.update_roi_view(roi_view)
+                progress.emit('ROI viewed...', 70)
+
+                progress.emit('Data/ROI viewed!', 0)
+
+                return inst_view, roi_view
+
+        else:
+
+            progress.emit('Invalid parameters.', 0)
 
     def visualize(self):
 
@@ -795,7 +842,7 @@ class UB(NeuXtalVizPresenter):
 
         if all(elem is not None for elem in validate):
 
-            proj = np.array(proj).reshape(3,3)            
+            proj = np.array(proj).reshape(3,3)
 
             if not np.isclose(np.linalg.det(proj), 0):
 
@@ -814,10 +861,10 @@ class UB(NeuXtalVizPresenter):
                 if slice_histo is not None:
 
                     signal = slice_histo['signal']
-    
+
                     clip = self.model.calculate_clim(signal,
                                                      self.get_clim_method())
-    
+
                     slice_histo['clip'] = clip
-    
+
                     self.view.update_slice(slice_histo)

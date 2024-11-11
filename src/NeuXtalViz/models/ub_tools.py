@@ -426,6 +426,11 @@ class UBModel(NeuXtalVizModel):
                   AlignedDim2='Q_sample_z,{},{},192'.format(-Q_max, Q_max),
                   OutputWorkspace='Q3D')
 
+
+            CreatePeaksWorkspace(InstrumentWorkspace='Q3D',
+                                 NumberOfPeaks=0,
+                                 OutputWorkspace='ub_peaks')
+
             CompactMD(InputWorkspace='Q3D', OutputWorkspace='Q3D')
 
             dims = [mtd['Q3D'].getDimension(i) for i in range(3)]
@@ -474,6 +479,27 @@ class UBModel(NeuXtalVizModel):
 
             self.nu = np.rad2deg(np.arcsin(kf_y))
             self.gamma = np.rad2deg(np.arctan2(kf_x, kf_z))
+
+    def add_peak(self, ind, val, horz, vert):
+
+        R = self.Rs[ind]
+
+        if type(self.lamda) is float:
+            wl = self.lamda
+            x = np.rad2deg(np.arccos([0.5*(np.trace(r)-1) for r in R]))
+            R = R[np.argmin(np.abs(x-val))]
+        else:
+            wl = self.lamda[np.argmin(np.abs(self.lamda-val))]
+
+        k = 2*np.pi/wl
+
+        Qx = k*np.cos(np.deg2rad(vert))*np.sin(np.deg2rad(horz))
+        Qy = k*np.sin(np.deg2rad(vert))
+        Qz = k*(np.cos(np.deg2rad(vert))*np.cos(np.deg2rad(horz))-1)
+
+        mtd['ub_peaks'].run().getGoniometer().setR(R)
+        peak = mtd['ub_peaks'].createPeak([Qx, Qy, Qz])
+        mtd['ub_peaks'].addPeak(peak)
 
     def get_instrument_view(self, ind,
                                   d_min,
