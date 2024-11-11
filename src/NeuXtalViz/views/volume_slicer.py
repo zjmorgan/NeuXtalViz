@@ -191,7 +191,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         slice_tab.setLayout(plots_layout)
 
     def connect_clim_combo(self, update_clim):
-    
+
         self.clim_combo.currentIndexChanged.connect(update_clim)
 
     def connect_cbar_combo(self, update_cbar):
@@ -474,6 +474,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.reset_scene()
 
+    def __format_axis_coord(self, x, y):
+
+        x, y, _ = np.dot(self.T_inv, [x, y, 1])
+        return 'x={:.3f}, y={:.3f}'.format(x, y)
+
     def add_slice(self, slice_dict):
 
         self.max_slider.blockSignals(True)
@@ -503,6 +508,10 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         T = slice_dict['transform']
         aspect = slice_dict['aspect']
+
+        self.T_inv = np.linalg.inv(T)
+
+        self.ax_slice.format_coord = self.__format_axis_coord
 
         transform = Affine2D(T)+self.ax_slice.transData
         self.transform = transform
@@ -567,7 +576,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         ylim = self.ylim
 
         thick = self.get_cut_thickness()
-        
+
         delta = 0 if thick is None else thick/2
 
         if line_cut == 'Axis 2':

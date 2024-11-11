@@ -4,6 +4,8 @@ beamlines = {
         'InstrumentName': 'SNAP',
         'Facility': 'SNS',
         'Wavelength': [1, 4],
+        'Grouping': '4x4',
+        'BankPixels': [256, 256],
         'Goniometers': ['BL3:Mot:omega,0,1,0,1'],
         'Goniometer': {'BL3:Mot:omega': [0, 1, 0, 1, 0, 360]},
         'Motor': {
@@ -19,6 +21,8 @@ beamlines = {
         'InstrumentName': 'CORELLI',
         'Facility': 'SNS',
         'Wavelength': [0.6, 2.5],
+        'Grouping': '1x4',
+        'BankPixels': [16, 256],
         'Goniometers': [
             'BL9:Mot:Sample:Axis1,0,1,0,1',
             'BL9:Mot:Sample:Axis2,0,1,0,1',
@@ -36,6 +40,8 @@ beamlines = {
         'InstrumentName': 'TOPAZ',
         'Facility': 'SNS',
         'Wavelength': [0.4, 3.5],
+        'Grouping': '4x4',
+        'BankPixels': [256, 256],
         'Goniometers': [
             'BL12:Mot:omega,0,1,0,1',
             'BL12:Mot:chi,0,0,1,1',
@@ -53,6 +59,8 @@ beamlines = {
         'InstrumentName': 'MANDI',
         'Facility': 'SNS',
         'Wavelength': [2, 4],
+        'Grouping': '4x4',
+        'BankPixels': [256, 256],
         'Goniometers': [
             'BL11B:Mot:omega,0,1,0,1',
             'BL11B:Mot:chi,0,0,1,1',
@@ -70,6 +78,8 @@ beamlines = {
         'InstrumentName': 'HB2C',
         'Facility': 'HFIR',
         'Wavelength': 1.486,
+        'Grouping': '4x4',
+        'BankPixels': [480, 512],
         'Goniometers': ['s1,0,1,0,1'],
         'Goniometer': {
             'HB2C:Mot:sgl': [1, 0, 0, -1, 0, 0],
@@ -87,6 +97,8 @@ beamlines = {
         'InstrumentName': 'HB3A',
         'Facility': 'HFIR',
         'Wavelength': 1.546,
+        'Grouping': '4x4',
+        'BankPixels': [512, 512],
         'Goniometers': [
             'omega,0,1,0,-1',
             'chi,0,0,1,-1',

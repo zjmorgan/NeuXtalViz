@@ -42,6 +42,15 @@ class UB(NeuXtalVizPresenter):
 
         self.view.connect_convert_to_hkl(self.convert_to_hkl)
 
+        self.view.connect_data_combo(self.update_instrument_view)
+        self.view.connect_diffraction(self.update_instrument_view)
+        self.view.connect_d_min(self.update_instrument_view)
+        self.view.connect_d_max(self.update_instrument_view)
+        self.view.connect_horizontal(self.update_instrument_view)
+        self.view.connect_vertical(self.update_instrument_view)
+        self.view.connect_horizontal_roi(self.update_instrument_view)
+        self.view.connect_vertical_roi(self.update_instrument_view)
+
     def convert_Q(self):
 
         worker = self.worker(self.convert_Q_process)
@@ -55,7 +64,9 @@ class UB(NeuXtalVizPresenter):
 
         if result is not None:
 
-            self.view.update_instrument_view(*result)
+            self.view.update_diffraction_label(result)            
+
+            self.update_instrument_view()
 
     def convert_Q_process(self, progress):
 
@@ -76,6 +87,8 @@ class UB(NeuXtalVizPresenter):
             validate.append(exp)
 
         if all(elem is not None for elem in validate):
+
+            mono = np.isclose(wavelength[0], wavelength[1])    
 
             progress.emit('Processing...', 1)
 
@@ -103,7 +116,7 @@ class UB(NeuXtalVizPresenter):
 
             progress.emit('Data converted!', 0)
 
-            return self.model.instrument_view()
+            return mono
 
         else:
 
@@ -113,7 +126,31 @@ class UB(NeuXtalVizPresenter):
 
         if self.model.has_Q():
 
-            self.model.get_instrument_data()
+            ind = self.view.get_data_combo()
+            d_min = self.view.get_d_min()
+            d_max = self.view.get_d_max()
+            horz = self.view.get_horizontal()
+            vert = self.view.get_vertical()
+            horz_roi = self.view.get_horizontal_roi()
+            vert_roi = self.view.get_vertical_roi()
+            val = self.view.get_diffraction()
+
+            validate = [d_min, d_max, horz, vert, horz_roi, vert_roi, val]
+
+            if all(elem is not None for elem in validate):
+
+                inst_view = self.model.get_instrument_view(ind, d_min, d_max)
+
+                self.view.update_instrument_view(inst_view)
+
+                roi_view = self.model.extract_roi(inst_view,
+                                                  horz,
+                                                  vert,
+                                                  horz_roi, 
+                                                  vert_roi,
+                                                  val)
+
+                self.view.update_roi_view(roi_view)
 
     def visualize(self):
 
@@ -776,11 +813,11 @@ class UB(NeuXtalVizPresenter):
 
                 if slice_histo is not None:
 
-                    data = slice_histo['signal']
+                    signal = slice_histo['signal']
     
-                    data = self.model.calculate_clim(data, 
+                    clip = self.model.calculate_clim(signal,
                                                      self.get_clim_method())
     
-                    slice_histo['signal'] = data
+                    slice_histo['clip'] = clip
     
                     self.view.update_slice(slice_histo)

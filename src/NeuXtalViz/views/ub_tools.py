@@ -372,10 +372,10 @@ class UBView(NeuXtalVizWidget):
         wavelength_params_layout.addWidget(self.wl_max_line)
         wavelength_params_layout.addWidget(angstrom_label)
 
-        instrument_params_layout.addWidget(self.cal_line, 1, 1)
-        instrument_params_layout.addWidget(self.cal_browse_button, 1, 0)
-        instrument_params_layout.addWidget(self.tube_line, 2, 1)
-        instrument_params_layout.addWidget(self.tube_browse_button, 2, 0)
+        instrument_params_layout.addWidget(self.cal_line, 1, 0)
+        instrument_params_layout.addWidget(self.cal_browse_button, 1, 1)
+        instrument_params_layout.addWidget(self.tube_line, 2, 0)
+        instrument_params_layout.addWidget(self.tube_browse_button, 2, 1)
 
         self.convert_to_q_button = QPushButton('Convert', self)
 
@@ -1212,6 +1212,7 @@ class UBView(NeuXtalVizWidget):
         self.cbar_combo.addItem('Rainbow')
         self.cbar_combo.addItem('Binary')
         self.cbar_combo.addItem('Diverging')
+        self.cbar_combo.setCurrentIndex(2)
 
         self.slice_combo = QComboBox(self)
         self.slice_combo.addItem('Axis 1/2')
@@ -1261,12 +1262,12 @@ class UBView(NeuXtalVizWidget):
         convert_to_hkl_tab_layout.addStretch(1)
         convert_to_hkl_tab_layout.addLayout(convert_to_hkl_action_layout)
 
-        self.canvas_slice = FigureCanvas(Figure(figsize=[12.8,12.8],
-                                                layout='constrained'))
+        self.canvas_slice = FigureCanvas(Figure(figsize=[12.8,12.8]))
 
         self.ax_xint = None
         self.ax_yint = None
         self.cb_slice = None
+        self.cb_inst = None
 
         self.fig_slice = self.canvas_slice.figure
 
@@ -1289,22 +1290,140 @@ class UBView(NeuXtalVizWidget):
         instrument_tab = QWidget()
         instrument_tab_layout = QVBoxLayout()
 
+        notation = QDoubleValidator.StandardNotation
+
+        self.data_combo = QComboBox(self)
+
+        d_min_label = QLabel('d(min):', self)
+        d_max_label = QLabel('d(max):', self)
+
+        validator = QDoubleValidator(0, float('inf'), 5, notation=notation)
+
+        self.d_min_line = QLineEdit('0')
+        self.d_min_line.setValidator(validator)
+
+        self.d_max_line = QLineEdit('inf')
+        self.d_max_line.setValidator(validator)
+
+        data_layout = QHBoxLayout()
+        data_layout.addWidget(self.data_combo)
+        data_layout.addStretch(1)
+        data_layout.addWidget(d_min_label)
+        data_layout.addWidget(self.d_min_line)
+        data_layout.addWidget(d_max_label)
+        data_layout.addWidget(self.d_max_line)
+
+        vertical_label = QLabel('Vertical Angle:', self)
+        horizontal_label = QLabel('Horizontal Angle:', self)
+
+        vertical_roi_label = QLabel('ROI:', self)
+        horizontal_roi_label = QLabel('ROI:', self)
+
+        validator = QDoubleValidator(-180, 180, 5, notation=notation)
+
+        self.vertical_line = QLineEdit('0')
+        self.vertical_line.setValidator(validator)
+
+        validator = QDoubleValidator(-90, 90, 5, notation=notation)
+
+        self.horizontal_line = QLineEdit('0')
+        self.horizontal_line.setValidator(validator)
+
+        self.vertical_roi_line = QLineEdit('5')
+        self.vertical_roi_line.setValidator(validator)
+
+        self.horizontal_roi_line = QLineEdit('5')
+        self.horizontal_roi_line.setValidator(validator)
+
+        angle_layout = QHBoxLayout()
+        angle_layout.addWidget(horizontal_label)
+        angle_layout.addWidget(self.horizontal_line)
+        angle_layout.addWidget(horizontal_roi_label)
+        angle_layout.addWidget(self.horizontal_roi_line)
+        angle_layout.addWidget(vertical_label)
+        angle_layout.addWidget(self.vertical_line)
+        angle_layout.addWidget(vertical_roi_label)
+        angle_layout.addWidget(self.vertical_roi_line)
+
+        self.add_peak_button = QPushButton('Add Peak', self)
+
+        self.diffraction_label = QLabel('Axis:', self)
+
+        validator = QDoubleValidator(-float('inf'),
+                                     float('inf'),
+                                     5, notation=notation)
+
+        self.diffraction_line = QLineEdit('0')
+        self.diffraction_line.setValidator(validator)
+
+        peak_layout = QHBoxLayout()
+        peak_layout.addWidget(self.diffraction_label)
+        peak_layout.addWidget(self.diffraction_line)
+        peak_layout.addStretch(1)
+        peak_layout.addWidget(self.add_peak_button)
+
         self.canvas_inst = FigureCanvas(Figure(constrained_layout=True))
+        self.canvas_scan = FigureCanvas(Figure(constrained_layout=True))
 
         self.fig_inst = self.canvas_inst.figure
+        self.fig_scan = self.canvas_scan.figure
 
         self.ax_inst = self.fig_inst.subplots(1, 1)
+        self.ax_scan = self.fig_scan.subplots(1, 1)
 
         view_layout = QVBoxLayout()
-
+        
+        view_layout.addLayout(data_layout)
         view_layout.addWidget(NavigationToolbar2QT(self.canvas_inst, self))
         view_layout.addWidget(self.canvas_inst)
+
+        view_layout.addLayout(angle_layout)
+        view_layout.addWidget(NavigationToolbar2QT(self.canvas_scan, self))
+        view_layout.addWidget(self.canvas_scan)
+
+        view_layout.addLayout(peak_layout)
 
         instrument_tab_layout.addLayout(view_layout)
 
         instrument_tab.setLayout(instrument_tab_layout)
 
         return instrument_tab
+
+    def connect_data_combo(self, update_inst_data):
+
+        self.data_combo.currentIndexChanged.connect(update_inst_data)
+
+    def connect_add_peak(self, add_peak):
+
+        self.add_peak_button.clicked.connect(add_peak)
+
+    def connect_diffraction(self, update_inst_data):
+
+        self.diffraction_line.editingFinished.connect(update_inst_data)
+
+    def connect_d_min(self, update_inst_data):
+
+        self.d_min_line.editingFinished.connect(update_inst_data)
+
+    def connect_d_max(self, update_inst_data):
+
+        self.d_max_line.editingFinished.connect(update_inst_data)
+
+    def connect_horizontal(self, update_inst_data):
+
+        self.horizontal_line.editingFinished.connect(update_inst_data)
+
+    def connect_vertical(self, update_inst_data):
+
+        self.vertical_line.editingFinished.connect(update_inst_data)
+
+    def connect_horizontal_roi(self, update_inst_data):
+
+        self.horizontal_roi_line.editingFinished.connect(update_inst_data)
+
+    def connect_vertical_roi(self, update_inst_data):
+
+        self.vertical_roi_line.editingFinished.connect(update_inst_data)
 
     def connect_convert_to_hkl(self, convert_to_hkl):
 
@@ -1566,17 +1685,24 @@ class UBView(NeuXtalVizWidget):
     def update_wavelength(self, lamda_min):
 
         if not self.wl_max_line.isEnabled():
+
             self.wl_max_line.setText(str(lamda_min))
 
     def get_instrument(self):
 
         return self.instrument_combo.currentText()
 
+    def update_diffraction_label(self, mono):
+
+        text = 'Wavelength:' if not mono else 'Angle:'
+
+        self.diffraction_label.setText(text)
+
     def clear_run_info(self, filepath):
 
         self.exp_line.setText('')
-        self.run_line.setText('')
-        self.ipts_line.setText('')
+        # self.run_line.setText('')
+        # self.ipts_line.setText('')
         self.cal_line.setText('')
         self.tube_line.setText('')
 
@@ -2255,18 +2381,71 @@ class UBView(NeuXtalVizWidget):
         else:
             self.phi_line.setText('')
 
-    def update_instrument_view(self, gamma, nu, counts, norm='log'):
+    def get_data_combo(self):
+
+        return self.data_combo.currentIndex()
+
+    def get_diffraction(self):
+
+        if self.diffraction_line.hasAcceptableInput():
+
+            return float(self.diffraction_line.text())
+
+    def get_d_min(self):
+
+        if self.d_min_line.hasAcceptableInput():
+
+            return float(self.d_min_line.text())
+
+    def get_d_max(self):
+
+        text = self.d_max_line.text()         
+
+        if self.d_max_line.hasAcceptableInput() or text == 'inf':
+
+            return float(text)
+
+    def get_horizontal(self):
+
+        if self.horizontal_line.hasAcceptableInput():
+
+            return float(self.horizontal_line.text())
+
+    def get_vertical(self):
+
+        if self.vertical_line.hasAcceptableInput():
+
+            return float(self.vertical_line.text())
+
+    def get_horizontal_roi(self):
+
+        if self.horizontal_roi_line.hasAcceptableInput():
+
+            return float(self.horizontal_roi_line.text())
+
+    def get_vertical_roi(self,):
+
+        if self.vertical_roi_line.hasAcceptableInput():
+
+            return float(self.vertical_roi_line.text())
+
+    def update_instrument_view(self, inst_view, norm='log'):
+
+        gamma = inst_view['gamma']
+        nu = inst_view['nu']
+        counts = inst_view['counts']
+
+        if self.cb_inst is not None:
+            self.cb_inst.remove()
 
         self.ax_inst.clear()
 
-        self.im = self.ax_inst.hexbin(gamma,
-                                      nu,
-                                      C=counts,
-                                      bins=norm,
-                                      gridsize=600,
-                                      mincnt=1e-16,
-                                      reduce_C_function=np.mean,
-                                      rasterized=True)
+        self.im = self.ax_inst.scatter(gamma,
+                                       nu,
+                                       c=counts,
+                                       marker='o',
+                                       norm=norm,
+                                       rasterized=True)
 
         self.ax_inst.set_aspect(1)
         self.ax_inst.minorticks_on()
@@ -2279,8 +2458,50 @@ class UBView(NeuXtalVizWidget):
         self.ax_inst.xaxis.set_major_formatter(fmt_str_form)
         self.ax_inst.yaxis.set_major_formatter(fmt_str_form)
 
-        self.cb_inst = self.fig_inst.colorbar(self.im, ax=self.ax_inst)
-        self.cb_inst.minorticks_on()
+        # self.cb_inst = self.fig_inst.colorbar(self.im, ax=self.ax_inst)
+        # self.cb_inst.minorticks_on()
+
+        self.canvas_inst.draw_idle()
+        self.canvas_inst.flush_events()
+
+    def update_roi_view(self, roi_view):
+
+        x = roi_view['x']
+        y = roi_view['y']
+        val = roi_view['val']
+        label = roi_view['label']
+
+        horz = roi_view['horz']
+        vert = roi_view['vert']
+        horz_roi = roi_view['horz_roi']
+        vert_roi = roi_view['vert_roi']
+
+        self.ax_scan.clear()
+
+        self.ax_scan.errorbar(x, y, yerr=np.sqrt(y), fmt='o', color='C0')
+        self.ax_scan.plot(x, y, color='C1')
+        #self.ax_scan.set_yscale('log')
+        self.ax_scan.axvline(x=val, color='k')
+        self.ax_scan.minorticks_on()
+
+        for line in self.ax_inst.lines:
+            line.remove()
+
+        self.ax_inst.axvline(x=horz-horz_roi, color='k')
+        self.ax_inst.axvline(x=horz+horz_roi, color='k')
+
+        self.ax_inst.axhline(y=vert-vert_roi, color='k')
+        self.ax_inst.axhline(y=vert+vert_roi, color='k')
+
+        if label == 'wavelength':
+            xlabel = r'$\lambda$ [Å]'
+        else:
+            xlabel = r'$\vartheta$ [°]'
+
+        self.ax_scan.set_xlabel(xlabel)
+
+        self.canvas_scan.draw_idle()
+        self.canvas_scan.flush_events()
 
         self.canvas_inst.draw_idle()
         self.canvas_inst.flush_events()
@@ -2319,6 +2540,11 @@ class UBView(NeuXtalVizWidget):
 
         return self.cbar_combo.currentText()
 
+    def __format_axis_coord(self, x, y):
+        
+        x, y, _ = np.dot(self.T_inv, [x, y, 1])
+        return 'x={:.3f}, y={:.3f}'.format(x, y)
+
     def update_slice(self, slice_dict):
 
         cmap = cmaps[self.get_colormap()]
@@ -2329,11 +2555,12 @@ class UBView(NeuXtalVizWidget):
         labels = slice_dict['labels']
         title = slice_dict['title']
         signal = slice_dict['signal']
+        clip = slice_dict['clip']
 
         scale = self.get_slice_scale()
 
-        vmin = np.nanmin(signal)
-        vmax = np.nanmax(signal)
+        vmin = np.nanmin(clip)
+        vmax = np.nanmax(clip)
 
         if scale == 'log' and np.isclose(vmin, 0):
             vmin = np.nanmin(signal[signal > 0])
@@ -2345,7 +2572,10 @@ class UBView(NeuXtalVizWidget):
         aspect = slice_dict['aspect']
 
         transform = Affine2D(T)
-        self.transform = transform
+        
+        self.T_inv = np.linalg.inv(T)
+
+        self.ax_slice.format_coord = self.__format_axis_coord
 
         if self.cb_slice is not None:
             self.cb_slice.remove()
@@ -2394,7 +2624,7 @@ class UBView(NeuXtalVizWidget):
 
         im = self.ax_slice.pcolormesh(x,
                                       y,
-                                      signal,
+                                      clip,
                                       norm=scale,
                                       cmap=cmap,
                                       vmin=vmin,
@@ -2407,16 +2637,16 @@ class UBView(NeuXtalVizWidget):
 
         ascale = (ylim[1]-ylim[0])/(xlim[1]-xlim[0])*aspect
 
-        xstart = 1+0.05 if ascale > 1 else 1+0.05*ascale
-        ystart = 1+0.05 if ascale < 1 else 1+0.05*ascale
+        # xstart = 1+0.05 if ascale > 1 else 1+0.05*ascale
+        # ystart = 1+0.05 if ascale < 1 else 1+0.05*ascale
 
-        xwidth = 0.1 if ascale > 1 else 0.1*ascale
-        ywidth = 0.1 if ascale < 1 else 0.1*ascale
+        xwidth = 0.1 if ascale < 1 else 0.1*ascale
+        ywidth = 0.1 if ascale > 1 else 0.1/ascale
 
-        self.ax_xint = self.ax_slice.inset_axes([0, xstart, 1, xwidth],
+        self.ax_xint = self.ax_slice.inset_axes([0, 1, 1, ywidth],
                                                 sharex=self.ax_slice)
 
-        self.ax_yint = self.ax_slice.inset_axes([ystart, 0, ywidth, 1],
+        self.ax_yint = self.ax_slice.inset_axes([1, 0, xwidth, 1],
                                                 sharey=self.ax_slice)
 
         xint = signal.sum(axis=0)

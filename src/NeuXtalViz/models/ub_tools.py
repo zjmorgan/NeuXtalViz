@@ -41,6 +41,10 @@ from mantid.simpleapi import (SelectCellWithForm,
                               Rebin,
                               SetGoniometer,
                               PreprocessDetectorsToMD,
+                              GroupDetectors,
+                              GroupWorkspaces,
+                              UnGroupWorkspace,
+                              RenameWorkspace,
                               ConvertToMD,
                               ConvertHFIRSCDtoMDE,
                               LoadMD,
@@ -217,22 +221,33 @@ class UBModel(NeuXtalVizModel):
 
         filepath = self.get_raw_file_path(instrument)
 
+        inst = beamlines[instrument]
+
+        grouping = inst['Grouping']
+
         if instrument == 'DEMAND':
             filenames = [filepath.format(IPTS, exp, runs)]
             if np.all([os.path.exists(filename) for filename in filenames]):
                 HB3AAdjustSampleNorm(Filename=filenames,
                                      OutputType='Detector',
                                      NormaliseBy='None',
-                                     Grouping='4x4',
+                                     Grouping=grouping,
                                      OutputWorkspace='data')
-
+                group = mtd['data'].isGroup()
+                if not group:
+                    GroupWorkspaces(InputWorkspaces='data',
+                                    OutputWorkspace='data')
         elif instrument == 'WAND²':
             filenames = [filepath.format(IPTS, run) for run in runs]
             if np.all([os.path.exists(filename) for filename in filenames]):
                 filenames = ','.join([filename for filename in filenames])
                 LoadWANDSCD(Filename=filenames,
-                            Grouping='4x4',
+                            Grouping=grouping,
                             OutputWorkspace='data')
+                group = mtd['data'].isGroup()
+                if not group:
+                    GroupWorkspaces(InputWorkspaces='data',
+                                    OutputWorkspace='data')
         else:
             filenames = [filepath.format(IPTS, run) for run in runs]
             if np.all([os.path.exists(filename) for filename in filenames]):
@@ -241,7 +256,35 @@ class UBModel(NeuXtalVizModel):
                      FilterByTofMin=1500,
                      FilterByTofMax=16600,
                      FilterByTimeStop=time_stop,
+                     NumberBins=1,
                      OutputWorkspace='data')
+                group = mtd['data'].isGroup()
+                if not group:
+                    GroupWorkspaces(InputWorkspaces='data',
+                                    OutputWorkspace='data')
+                input_ws = mtd['data'].getNames()[0]
+                PreprocessDetectorsToMD(InputWorkspace=input_ws,
+                                        OutputWorkspace='detectors')
+                cols, rows = inst['BankPixels']
+                c, r = [int(val) for val in grouping.split('x')]
+                shape = (-1, cols, rows)
+                det_id = np.array(mtd['detectors'].column(4)).reshape(*shape)
+                det_map = np.array(mtd['detectors'].column(5)).reshape(*shape)
+                grouped_ids = {}
+                for i in range(det_id.shape[0]):
+                    for j in range(det_id.shape[1]):
+                        for k in range(det_id.shape[2]):
+                            key = (i, j // c, k // r)
+                            detector_id = str(det_map[i,j,k])
+                            if key in grouped_ids:
+                                grouped_ids[key].append(detector_id)
+                            else:
+                                grouped_ids[key] = [detector_id]
+                detector_list = ','.join(['+'.join(grouped_ids[key]) for key \
+                                          in grouped_ids.keys()])
+                GroupDetectors(InputWorkspace='data',
+                               OutputWorkspace='data',
+                               GroupingPattern=detector_list)
 
     def calibrate_data(self, instrument, det_cal, tube_cal):
 
@@ -286,39 +329,70 @@ class UBModel(NeuXtalVizModel):
 
         if mtd.doesExist('data'):
 
+            input_ws_names = mtd['data'].getNames()
+            input_ws = input_ws_names[0]
+
+            Rs = []
+
             if 'HFIR' in filepath:
-                ei = mtd['data'].getExperimentInfo(0)
-                two_theta = ei.run().getProperty('TwoTheta').value
-                az_phi = ei.run().getProperty('Azimuthal').value
-                counts = mtd['data'].getSignalArray().copy()
-                counts = counts.reshape(-1, counts.shape[2])
+
+                r = mtd[input_ws].getExperimentInfo(0).run()
+
+                two_theta = r.getProperty('TwoTheta').value
+                az_phi = r.getProperty('Azimuthal').value
+
+                for ws in input_ws_names:
+                    r = mtd[ws].getExperimentInfo(0).run()
+                    Rs.append([r.getGoniometer(i).getR()\
+                               for i in range(r.getNumGoniometers())])
+
+                lamda = wavelength[0]
+
+                counts = [mtd[ws].getSignalArray().copy()\
+                          for ws in input_ws_names]
+
+                counts = [c.reshape(-1, c.shape[2]) for c in counts]
+
                 Q_max = 4*np.pi/wavelength[0]*np.sin(0.5*max(two_theta))
+
                 ConvertHFIRSCDtoMDE(InputWorkspace='data',
                                     Wavelength=wavelength[0],
                                     LorentzCorrection=lorentz,
                                     MinValues=[-Q_max,-Q_max,-Q_max],
                                     MaxValues=[+Q_max,+Q_max,+Q_max],
+                                    MaxRecursionDepth=5,
                                     OutputWorkspace='md')
-
             else:
+
                 ConvertUnits(InputWorkspace='data',
                              Target='Wavelength',
                              OutputWorkspace='data')
+
                 CropWorkspace(InputWorkspace='data',
                               XMin=wavelength[0],
                               XMax=wavelength[1],
                               OutputWorkspace='data')
+
                 Rebin(InputWorkspace='data',
                       OutputWorkspace='data',
                       Params=[wavelength[0], 0.01, wavelength[1]])
-                group = mtd['data'].isGroup()
-                input_ws = mtd['data'].getNames()[0] if group else 'data'
+
+                lamda = mtd[input_ws].extractX()[0]
+                lamda = 0.5*(lamda[1:]+lamda[:-1])
+
                 PreprocessDetectorsToMD(InputWorkspace=input_ws,
                                         OutputWorkspace='detectors')
+
                 two_theta = mtd['detectors'].column('TwoTheta')
                 az_phi = mtd['detectors'].column('Azimuthal')
-                counts = mtd['data'].extractY().copy()
+
+                for ws in input_ws_names:
+                    Rs.append(mtd[ws].run().getGoniometer().getR())
+
+                counts = [mtd[ws].extractY().copy() for ws in input_ws_names]
+
                 Q_max = 4*np.pi/min(wavelength)*np.sin(0.5*max(two_theta))
+
                 ConvertToMD(InputWorkspace='data',
                             QDimensions='Q3D',
                             dEAnalysisMode='Elastic',
@@ -326,17 +400,44 @@ class UBModel(NeuXtalVizModel):
                             LorentzCorrection=lorentz,
                             MinValues=[-Q_max,-Q_max,-Q_max],
                             MaxValues=[+Q_max,+Q_max,+Q_max],
+                            MaxRecursionDepth=5,
                             PreprocDetectorsWS='detectors',
                             OutputWorkspace='md')
-                if group:
-                    MergeMD(InputWorkspaces='md', OutputWorkspace='md')
+
+            input_ws_names = mtd['md'].getNames()
+            input_ws = input_ws_names[0]
+
+            if len(input_ws_names) > 1:
+
+                MergeMD(InputWorkspaces='md', OutputWorkspace='md')
+
+            else:
+
+                UnGroupWorkspace(InputWorkspace='md')
+
+                RenameWorkspace(InputWorkspace=input_ws,
+                                OutputWorkspace='md')
 
             self.Q = 'md'
 
             BinMD(InputWorkspace=self.Q,
-                  AlignedDim0='Q_sample_x,{},{},768'.format(-Q_max, Q_max),
-                  AlignedDim1='Q_sample_y,{},{},768'.format(-Q_max, Q_max),
-                  AlignedDim2='Q_sample_z,{},{},768'.format(-Q_max, Q_max),
+                  AlignedDim0='Q_sample_x,{},{},192'.format(-Q_max, Q_max),
+                  AlignedDim1='Q_sample_y,{},{},192'.format(-Q_max, Q_max),
+                  AlignedDim2='Q_sample_z,{},{},192'.format(-Q_max, Q_max),
+                  OutputWorkspace='Q3D')
+
+            CompactMD(InputWorkspace='Q3D', OutputWorkspace='Q3D')
+
+            dims = [mtd['Q3D'].getDimension(i) for i in range(3)]
+
+            xmin, ymin, zmin = [dim.getMinimum() for dim in dims]
+            xmax, ymax, zmax = [dim.getMaximum() for dim in dims]
+            xn, yn, zn = [4*dim.getNBins() for dim in dims]
+
+            BinMD(InputWorkspace=self.Q,
+                  AlignedDim0='Q_sample_x,{},{},{}'.format(xmin, xmax, xn),
+                  AlignedDim1='Q_sample_y,{},{},{}'.format(ymin, ymax, yn),
+                  AlignedDim2='Q_sample_z,{},{},{}'.format(zmin, zmax, zn),
                   OutputWorkspace='Q3D')
 
             signal = mtd['Q3D'].getSignalArray().copy()
@@ -352,16 +453,20 @@ class UBModel(NeuXtalVizModel):
                                    dim.getMaximum()-dim.getBinWidth()/2,
                                    dim.getNBins()) for dim in dims]
 
+            self.Qx_min, self.Qx_max = x[0], x[-1]
+            self.Qy_min, self.Qy_max = y[0], y[-1]
+            self.Qz_min, self.Qz_max = z[0], z[-1]
+
             x, y, z = np.meshgrid(x, y, z, indexing='ij')
 
             self.x, self.y, self.z = x[mask], y[mask], z[mask]
 
-            self.Qx_min, self.Qx_max = self.x.min(), self.x.max()
-            self.Qy_min, self.Qy_max = self.y.min(), self.y.max()
-            self.Qz_min, self.Qz_max = self.z.min(), self.z.max()
-
             self.wavelength = wavelength
             self.counts = counts
+
+            self.two_theta = np.array(two_theta)
+            self.lamda = lamda
+            self.Rs = Rs
 
             kf_x = np.sin(two_theta)*np.cos(az_phi)
             kf_y = np.sin(two_theta)*np.sin(az_phi)
@@ -370,20 +475,121 @@ class UBModel(NeuXtalVizModel):
             self.nu = np.rad2deg(np.arcsin(kf_y))
             self.gamma = np.rad2deg(np.arctan2(kf_x, kf_z))
 
-    def instrument_view(self):
+    def get_instrument_view(self, ind,
+                                  d_min,
+                                  d_max):
 
-        return self.gamma, self.nu, self.counts.sum(axis=1)
+        inst_view = {}
+
+        R = self.Rs[ind]
+
+        if type(self.lamda) is float:
+            lamda = np.full_like(R, self.lamda)
+        else:
+            lamda = self.lamda
+
+        if np.isclose(d_min, d_max) or d_max < d_min:
+            d_min, d_max = 0, np.inf
+
+        d = 0.5*lamda/np.sin(0.5*self.two_theta[:,np.newaxis])
+        mask = (d > d_min) & (d < d_max)
+
+        rows, cols = np.nonzero(mask)
+
+        vals = self.counts[ind].copy()
+        vals[~mask] = np.nan
+
+        uni_rows = np.unique(rows)
+
+        counts = np.nansum(vals[uni_rows], axis=1)
+
+        sort = np.argsort(counts)
+
+        inst_view['d'] = d
+        inst_view['d_min'] = d_min
+        inst_view['d_max'] = d_max
+        inst_view['gamma'] = self.gamma[uni_rows][sort]
+        inst_view['nu'] = self.nu[uni_rows][sort]
+        inst_view['counts'] = counts[sort]
+        inst_view['ind'] = ind
+
+        return inst_view
+
+    def extract_roi(self, inst_view, horz, vert, horz_roi, vert_roi, val):
+
+        roi_view = {}
+
+        d = inst_view['d']
+        d_min = inst_view['d_min']
+        d_max = inst_view['d_max']
+        gamma = inst_view['gamma']
+        nu = inst_view['nu']
+        ind = inst_view['ind']
+
+        if horz_roi == 0:
+            horz_roi = (gamma.max()-gamma.min())/2
+
+        if vert_roi == 0:
+            vert_roi = (nu.max()-nu.min())/2
+
+        if horz < gamma.min() or val > gamma.max():
+            val = (gamma.max()+gamma.min())/2
+
+        if vert < nu.min() or val > nu.max():
+            val = (nu.max()+nu.min())/2
+
+        R = self.Rs[ind]
+
+        if type(self.lamda) is float:
+            x = np.rad2deg(np.arccos([0.5*(np.trace(r)-1) for r in R]))
+            label = 'angle'
+        else:
+            x = self.lamda
+            label = 'wavelength'
+
+        mask = (d > d_min) & (d < d_max) \
+             & (self.gamma[:,np.newaxis] > horz-horz_roi) \
+             & (self.gamma[:,np.newaxis] < horz+horz_roi) \
+             & (self.nu[:,np.newaxis] > vert-vert_roi) \
+             & (self.nu[:,np.newaxis] < vert+vert_roi)
+
+        rows, cols = np.nonzero(mask)
+
+        vals = self.counts[ind]
+
+        uni_cols, inv_ind = np.unique(cols, return_inverse=True)
+
+        x = x[uni_cols]
+        y = np.bincount(inv_ind, weights=vals[mask])
+
+        if len(x) > 1:
+            if val < x.min() or val > x.max():
+                val = (x.max()+x.min())/2
+        else:
+            val = 0
+
+        roi_view['horz'] = horz
+        roi_view['vert'] = vert
+        roi_view['horz_roi'] = horz_roi
+        roi_view['vert_roi'] = vert_roi
+        roi_view['val'] = val
+        roi_view['label'] = label
+        roi_view['x'] = x
+        roi_view['y'] = y
+        roi_view['label'] = label
+
+        return roi_view
 
     def get_slice_info(self, U, V, W, normal, value, thickness, width):
 
         UB = self.get_UB()
 
         if self.has_UB() and self.has_Q():
-    
-            Wt = np.column_stack([U, V, W])        
-    
+
+            Wt = np.column_stack([U, V, W])
+
             slice_dict = {}
-    
+
             Bp = np.dot(UB, Wt)
 
             bp_inv = np.linalg.inv(2*np.pi*Bp)
@@ -434,56 +640,57 @@ class UBModel(NeuXtalVizModel):
             CompactMD(InputWorkspace='slice', OutputWorkspace='slice')
 
             i = np.array(normal).tolist().index(1)
-    
+
             form = '{} = ({:.2f},{:.2f})'
-    
+
             title = form.format(mtd['slice'].getDimension(i).name, *integrate)
-    
+
             dims = mtd['slice'].getNonIntegratedDimensions()
-    
+
             x, y = [np.linspace(dim.getMinimum(),
                                 dim.getMaximum(),
                                 dim.getNBoundaries()) for dim in dims]
-    
+
             labels = ['{} ({})'.format(dim.name,
                                        dim.getUnits()) for dim in dims]
-    
+
             slice_dict['x'] = x
             slice_dict['y'] = y
             slice_dict['labels'] = labels
-    
+
             signal = mtd['slice'].getSignalArray().T.copy().squeeze()
-    
+
             # signal[signal <= 0] = np.nan
             # signal[np.isinf(signal)] = np.nan
-    
+
             slice_dict['signal'] = signal
-        
+
             Q, R = scipy.linalg.qr(Bp)
-    
+
             ind = np.array(normal) != 1
-    
+
             v = scipy.linalg.cholesky(np.dot(R.T, R)[ind][:,ind], lower=False)
-    
+
             v /= v[0,0]
-    
+
             T = np.eye(3)
             T[:2,:2] = v
-    
+
             s = np.diag(T).copy()
             T[1,1] = 1
-    
+
             T[0,2] = -T[0,1]*y.min()
-    
+
             slice_dict['transform'] = T
             slice_dict['aspect'] = s[1]
             slice_dict['value'] = value
             slice_dict['title'] = title
-    
+
             return slice_dict
 
-    def calculate_clim(self, trans, method='normal'):
+    def calculate_clim(self, data, method='normal'):
 
+        trans = data.copy()
         trans[~np.isfinite(trans)] = np.nan
 
         vmin, vmax = np.nanmin(trans), np.nanmax(trans)
