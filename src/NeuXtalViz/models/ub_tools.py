@@ -426,7 +426,6 @@ class UBModel(NeuXtalVizModel):
                   AlignedDim2='Q_sample_z,{},{},192'.format(-Q_max, Q_max),
                   OutputWorkspace='Q3D')
 
-
             CreatePeaksWorkspace(InstrumentWorkspace='Q3D',
                                  NumberOfPeaks=0,
                                  OutputWorkspace='ub_peaks')

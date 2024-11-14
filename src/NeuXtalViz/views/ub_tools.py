@@ -2622,6 +2622,8 @@ class UBView(NeuXtalVizWidget):
         #                                    pad=0.15,
         #                                    sharex=self.ax_slice)
 
+        trans = transform+self.ax_slice.transData
+
         im = self.ax_slice.pcolormesh(x,
                                       y,
                                       clip,
@@ -2630,6 +2632,7 @@ class UBView(NeuXtalVizWidget):
                                       vmin=vmin,
                                       vmax=vmax,
                                       shading='flat',
+                                      transform=trans,
                                       rasterized=True)
 
         xlim = self.ax_slice.get_xlim()
