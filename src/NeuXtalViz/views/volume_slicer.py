@@ -375,9 +375,12 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def load_NXS_file_dialog(self):
 
         options = QFileDialog.Options()
-        #options |= QFileDialog.DontUseNativeDialog
+        options |= QFileDialog.DontUseNativeDialog
 
-        filename, _ = QFileDialog.getOpenFileName(self,
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getOpenFileName(self,
                                                   'Load NXS file',
                                                   '',
                                                   'NXS files (*.nxs)',

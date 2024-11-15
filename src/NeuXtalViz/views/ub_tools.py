@@ -1546,9 +1546,12 @@ class UBView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
         file_filters = 'Calibration files (*.DetCal *.detcal *.xml)'
 
-        filename, _ = QFileDialog.getOpenFileName(self,
+        filename, _ = file_dialog.getOpenFileName(self,
                                                   'Load calibration file',
                                                   path,
                                                   file_filters,
@@ -1561,9 +1564,12 @@ class UBView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
         file_filters = 'Tube files (*.h5 *.nxs)'
 
-        filename, _ = QFileDialog.getOpenFileName(self,
+        filename, _ = file_dialog.getOpenFileName(self,
                                                   'Load calibration file',
                                                   path,
                                                   file_filters,
@@ -1576,7 +1582,10 @@ class UBView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
-        filename, _ = QFileDialog.getOpenFileName(self,
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getOpenFileName(self,
                                                   'Load Q file',
                                                   path,
                                                   'Q files (*.nxs)',
@@ -1589,7 +1598,10 @@ class UBView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
-        filename, _ = QFileDialog.getSaveFileName(self,
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getSaveFileName(self,
                                                   'Save Q file',
                                                   path,
                                                   'Q files (*.nxs)',
@@ -1606,6 +1618,9 @@ class UBView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
         filename, _ = QFileDialog.getOpenFileName(self,
                                                   'Load peaks file',
                                                   path,
@@ -1619,7 +1634,10 @@ class UBView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
-        filename, _ = QFileDialog.getSaveFileName(self,
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getSaveFileName(self,
                                                   'Save peaks file',
                                                   path,
                                                   'Peaks files (*.nxs)',
@@ -1636,7 +1654,10 @@ class UBView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
-        filename, _ = QFileDialog.getOpenFileName(self,
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getOpenFileName(self,
                                                   'Load UB file',
                                                   path,
                                                   'UB files (*.mat)',
@@ -1649,7 +1670,10 @@ class UBView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
-        filename, _ = QFileDialog.getSaveFileName(self,
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getSaveFileName(self,
                                                   'Save UB file',
                                                   path,
                                                   'UB files (*.mat)',

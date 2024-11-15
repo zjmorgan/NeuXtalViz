@@ -327,7 +327,10 @@ class CrystalStructureView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
-        filename, _ = QFileDialog.getOpenFileName(self,
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getOpenFileName(self,
                                                   'Load CIF file',
                                                   '',
                                                   'CIF files (*.cif)',

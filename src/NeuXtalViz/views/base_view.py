@@ -401,7 +401,10 @@ class NeuXtalVizWidget(QWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
-        filename, _ = QFileDialog.getSaveFileName(self,
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getSaveFileName(self,
                                                   'Save PNG file',
                                                   '',
                                                   'PNG files (*.png)',

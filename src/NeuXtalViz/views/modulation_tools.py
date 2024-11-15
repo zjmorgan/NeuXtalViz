@@ -134,7 +134,10 @@ class ModulationView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
-        filename, _ = QFileDialog.getOpenFileName(self,
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getOpenFileName(self,
                                                   'Load UB file',
                                                   '',
                                                   'UB files (*.mat)',
@@ -147,9 +150,12 @@ class ModulationView(NeuXtalVizWidget):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
         filter_string = 'Peaks files (*.integrate *.peaks *.nxs)'
 
-        filename, _ = QFileDialog.getOpenFileName(self,
+        filename, _ = file_dialog.getOpenFileName(self,
                                                   'Load peaks file',
                                                   '',
                                                   filter_string,
