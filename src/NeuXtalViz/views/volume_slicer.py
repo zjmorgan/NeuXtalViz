@@ -131,14 +131,13 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         slider_layout.addLayout(bar_layout)
 
-        self.slice_slider = QSlider(Qt.Horizontal)
-        self.cut_slider = QSlider(Qt.Horizontal)
+        # self.slice_slider = QSlider(Qt.Horizontal)
+        # self.cut_slider = QSlider(Qt.Horizontal)
 
-        self.slice_slider.setTracking(False)
-        self.cut_slider.setTracking(False)
+        # self.slice_slider.setTracking(False)
+        # self.cut_slider.setTracking(False)
 
         slice_params_layout.addWidget(self.slice_combo)
-        slice_params_layout.addWidget(self.slice_slider)
         slice_params_layout.addWidget(slice_label)
         slice_params_layout.addWidget(self.slice_line)
         slice_params_layout.addWidget(slice_thickness_label)
@@ -146,7 +145,6 @@ class VolumeSlicerView(NeuXtalVizWidget):
         slice_params_layout.addWidget(self.slice_scale_combo)
 
         cut_params_layout.addWidget(self.cut_combo)
-        cut_params_layout.addWidget(self.cut_slider)
         cut_params_layout.addWidget(cut_label)
         cut_params_layout.addWidget(self.cut_line)
         cut_params_layout.addWidget(cut_thickness_label)
@@ -230,13 +228,13 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.cut_combo.currentIndexChanged.connect(update_cut)
 
-    def connect_slice_slider(self, update_slice):
+    # def connect_slice_slider(self, update_slice):
 
-        self.slice_slider.valueChanged.connect(update_slice)
+    #     self.slice_slider.valueChanged.connect(update_slice)
 
-    def connect_cut_slider(self, update_cut):
+    # def connect_cut_slider(self, update_cut):
 
-        self.cut_slider.valueChanged.connect(update_cut)
+    #     self.cut_slider.valueChanged.connect(update_cut)
 
     def connect_min_slider(self, update_colorbar):
 
@@ -246,83 +244,83 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.max_slider.valueChanged.connect(update_colorbar)
 
-    def update_slice_limits(self, n, delta, start):
+    # def update_slice_limits(self, n, delta, start):
 
-        val = self.get_slice_value()
+    #     val = self.get_slice_value()
 
-        if val is None:
-            ind = n // 2
-        else:
-            ind = int(round((val-start)/delta))
+    #     if val is None:
+    #         ind = n // 2
+    #     else:
+    #         ind = int(round((val-start)/delta))
 
-        self.slice_slider.blockSignals(True)
-        self.slice_slider.setRange(0, n-1)
-        self.slice_slider.setValue(ind)
-        self.slice_slider.setSingleStep(1)
-        self.slice_slider.blockSignals(False)
+    #     self.slice_slider.blockSignals(True)
+    #     self.slice_slider.setRange(0, n-1)
+    #     self.slice_slider.setValue(ind)
+    #     self.slice_slider.setSingleStep(1)
+    #     self.slice_slider.blockSignals(False)
 
-        # self.set_slice_thickness(round(delta, 4))
-        self.slice_start = start
-        self.slice_step = delta
+    #     # self.set_slice_thickness(round(delta, 4))
+    #     self.slice_start = start
+    #     self.slice_step = delta
 
-    def update_cut_limits(self, n, delta, start):
+    # def update_cut_limits(self, n, delta, start):
 
-        val = self.get_cut_value()
+    #     val = self.get_cut_value()
 
-        if val is None:
-            ind = n // 2
-        else:
-            ind = int(round((val-start)/delta))
+    #     if val is None:
+    #         ind = n // 2
+    #     else:
+    #         ind = int(round((val-start)/delta))
 
-        self.cut_slider.blockSignals(True)
-        self.cut_slider.setRange(0, n-1)
-        self.cut_slider.setValue(ind)
-        self.cut_slider.setSingleStep(1)
-        self.cut_slider.blockSignals(False)
+    #     self.cut_slider.blockSignals(True)
+    #     self.cut_slider.setRange(0, n-1)
+    #     self.cut_slider.setValue(ind)
+    #     self.cut_slider.setSingleStep(1)
+    #     self.cut_slider.blockSignals(False)
 
-        # self.set_cut_thickness(round(delta, 4))
-        self.cut_start = start
-        self.cut_step = delta
+    #     # self.set_cut_thickness(round(delta, 4))
+    #     self.cut_start = start
+    #     self.cut_step = delta
 
-    def update_slice_value(self):
+    # def update_slice_value(self):
 
-        val = self.slice_slider.value()
-        thick = self.slice_step
+    #     val = self.slice_slider.value()
+    #     thick = self.slice_step
 
-        if val is not None:
+    #     if val is not None:
 
-            val = self.slice_start+val*thick
-            self.set_slice_value(val)
+    #         val = self.slice_start+val*thick
+    #         self.set_slice_value(val)
 
-    def update_cut_value(self):
+    # def update_cut_value(self):
 
-        val = self.cut_slider.value()
-        thick = self.cut_step
+    #     val = self.cut_slider.value()
+    #     thick = self.cut_step
 
-        if val is not None:
+    #     if val is not None:
 
-            val = self.cut_start+val*thick
-            self.set_cut_value(val)
+    #         val = self.cut_start+val*thick
+    #         self.set_cut_value(val)
 
-    def update_slice_slider(self):
+    # def update_slice_slider(self):
 
-        val = self.get_slice_value()
+    #     val = self.get_slice_value()
 
-        val = (val-self.slice_start)/self.slice_step
+    #     val = (val-self.slice_start)/self.slice_step
 
-        self.slice_slider.blockSignals(True)
-        self.slice_slider.setValue(int(val))
-        self.slice_slider.blockSignals(False)
+    #     self.slice_slider.blockSignals(True)
+    #     self.slice_slider.setValue(int(val))
+    #     self.slice_slider.blockSignals(False)
 
-    def update_cut_slider(self):
+    # def update_cut_slider(self):
 
-        val = self.get_cut_value()
+    #     val = self.get_cut_value()
 
-        val = (val-self.cut_start)/self.cut_step
+    #     val = (val-self.cut_start)/self.cut_step
 
-        self.cut_slider.blockSignals(True)
-        self.cut_slider.setValue(int(val))
-        self.cut_slider.blockSignals(False)
+    #     self.cut_slider.blockSignals(True)
+    #     self.cut_slider.setValue(int(val))
+    #     self.cut_slider.blockSignals(False)
 
     def update_colorbar_min(self):
 
@@ -439,13 +437,16 @@ class VolumeSlicerView(NeuXtalVizWidget):
                                                        clim=clim,
                                                        normal=normal,
                                                        origin=origin,
-                                                       origin_translation=True,
+                                                       origin_translation=False,
                                                        show_scalar_bar=False,
-                                                       normal_rotation=True,
+                                                       normal_rotation=False,
                                                        cmap=cmap,
                                                        user_matrix=b)
 
         prop = self.clip.GetOutlineProperty()
+        prop.SetOpacity(0)
+
+        prop = self.clip.GetEdgesProperty()
         prop.SetOpacity(0)
 
         actor = self.plotter.show_grid(xtitle=labels[0],

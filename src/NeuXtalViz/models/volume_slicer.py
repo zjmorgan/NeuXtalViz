@@ -5,6 +5,8 @@ from mantid.simpleapi import (LoadMD,
 import numpy as np
 import scipy.linalg
 
+import skimage.measure
+
 from NeuXtalViz.models.base_model import NeuXtalVizModel
 
 class VolumeSlicerModel(NeuXtalVizModel):
@@ -17,7 +19,47 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         LoadMD(Filename=filename, OutputWorkspace='histo')
 
-        self.signal = mtd['histo'].getSignalArray().copy()
+        signal = mtd['histo'].getSignalArray().copy()
+
+        self.shape = signal.shape
+
+        dims = [mtd['histo'].getDimension(i) for i in range(3)]
+
+        self.min_lim = np.array([dim.getMinimum()+\
+                                 dim.getBinWidth()*0.5 for dim in dims])
+
+        self.max_lim = np.array([dim.getMaximum()-\
+                                 dim.getBinWidth()*0.5 for dim in dims])
+
+        # data_lim = np.array([dim.getMaximum()-\
+        #                       dim.getMinimum()-\
+        #                       dim.getBinWidth() for dim in dims])
+
+        self.labels = ['{} ({})'.format(dim.name,
+                                        dim.getUnits()) for dim in dims]
+
+        self.spacing = np.array([dim.getBinWidth() for dim in dims])
+
+        # n_bins = np.array([dim.getNBins() for dim in dims])
+
+        scale = 0.25/self.spacing
+        scale[scale <= 1] = 1
+        scale = scale.round().astype(int)
+
+        # m_bins = (((n_bins-1)/scale+1).round()).astype(int)
+
+        blocks = [(scale[0],1,1),
+                  (1,scale[1],1),
+                  (1,1,scale[2])]
+
+        self.signals = []
+        self.spacings = []
+        for block in blocks:
+            self.spacings.append(self.spacing*np.array(block))
+            self.signals.append(skimage.measure.block_reduce(signal, 
+                                                             block_size=block,
+                                                             func=np.nanmean,
+                                                             cval=np.nan))
 
         self.set_B()
         self.set_W()
@@ -44,35 +86,29 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         ei = mtd['histo'].getExperimentInfo(0)
 
-        self.W = ei.run().getLogData('W_MATRIX').value.reshape(3,3)
+        self.W = np.eye(3)
 
-    def get_histo_info(self):
+        if ei.run().hasProperty('W_MATRIX'):
+
+            self.W = ei.run().getLogData('W_MATRIX').value.reshape(3,3)
+
+    def get_histo_info(self, normal):
+
+        ind = normal.index(1)
 
         histo_dict = {}
 
-        histo_dict['signal'] = np.log10(self.signal)
+        histo_dict['signal'] = np.log10(self.signals[ind])
 
-        dims = [mtd['histo'].getDimension(i) for i in range(3)]
+        histo_dict['min_lim'] = self.min_lim
+        histo_dict['max_lim'] = self.max_lim
+        histo_dict['spacing'] = self.spacings[ind]
+        histo_dict['labels'] = self.labels
 
-        min_lim = np.array([dim.getMinimum() for dim in dims])
-        max_lim = np.array([dim.getMaximum() for dim in dims])
-
-        spacing = np.array([dim.getBinWidth() for dim in dims])
-
-        min_lim += spacing*0.5
-        max_lim -= spacing*0.5
-
-        labels = ['{} ({})'.format(dim.name, dim.getUnits()) for dim in dims]
-
-        histo_dict['min_lim'] = min_lim
-        histo_dict['max_lim'] = max_lim
-        histo_dict['spacing'] = spacing
-        histo_dict['labels'] = labels
-
-        self.shape = histo_dict['signal'].shape
-        self.min_lim = min_lim
-        self.max_lim = max_lim
-        self.spacing = spacing
+        # self.shape = histo_dict['signal'].shape
+        # self.min_lim = min_lim
+        # self.max_lim = max_lim
+        # self.spacing = spacing
 
         P, T, S = self.get_transforms()
 
