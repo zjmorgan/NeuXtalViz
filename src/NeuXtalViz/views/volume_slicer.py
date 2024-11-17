@@ -4,7 +4,6 @@ from qtpy.QtWidgets import (QWidget,
                             QPushButton,
                             QLabel,
                             QTabWidget,
-                            QCheckBox,
                             QComboBox,
                             QLineEdit,
                             QSlider,
@@ -29,9 +28,14 @@ cmaps = {'Sequential': 'viridis',
          'Diverging': 'bwr',
          'Rainbow': 'turbo'}
 
+opacities = {'Linear': {'Low->High' : 'linear', 'High->Low' : 'linear_r'},
+             'Geometric': {'Low->High' : 'geom', 'High->Low' : 'geom_r'},
+             'Sigmoid': {'Low->High' : 'sigmoid', 'High->Low' : 'sigmoid_r'}}
+
 class VolumeSlicerView(NeuXtalVizWidget):
 
     slice_ready = pyqtSignal()
+    cut_ready = pyqtSignal()
 
     def __init__(self, parent=None):
 
@@ -57,6 +61,22 @@ class VolumeSlicerView(NeuXtalVizWidget):
         cut_params_layout = QHBoxLayout()
         draw_layout = QHBoxLayout()
 
+        self.vol_scale_combo = QComboBox(self)
+        self.vol_scale_combo.addItem('Linear')
+        self.vol_scale_combo.addItem('Log')
+        self.vol_scale_combo.setCurrentIndex(0)
+
+        self.opacity_combo = QComboBox(self)
+        self.opacity_combo.addItem('Linear')
+        self.opacity_combo.addItem('Geometric')
+        self.opacity_combo.addItem('Sigmoid')
+        self.opacity_combo.setCurrentIndex(0)
+
+        self.range_combo = QComboBox(self)
+        self.range_combo.addItem('Low->High')
+        self.range_combo.addItem('High->Low')
+        self.range_combo.setCurrentIndex(0)
+
         self.clim_combo = QComboBox(self)
         self.clim_combo.addItem('Min/Max')
         self.clim_combo.addItem('μ±3×σ')
@@ -71,6 +91,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.load_NXS_button = QPushButton('Load NXS', self)
 
+        draw_layout.addWidget(self.vol_scale_combo)
+        draw_layout.addWidget(self.opacity_combo)
+        draw_layout.addWidget(self.range_combo)
         draw_layout.addWidget(self.clim_combo)
         draw_layout.addWidget(self.cbar_combo)
         draw_layout.addWidget(self.load_NXS_button)
@@ -151,7 +174,8 @@ class VolumeSlicerView(NeuXtalVizWidget):
         plots_layout.addLayout(draw_layout)
 
         self.canvas_slice = FigureCanvas(Figure(constrained_layout=True))
-        self.canvas_cut = FigureCanvas(Figure(constrained_layout=True))
+        self.canvas_cut = FigureCanvas(Figure(constrained_layout=True,
+                                              figsize=(6.4,3.2)))
 
         image_layout = QHBoxLayout()
         line_layout = QHBoxLayout()
@@ -184,6 +208,18 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.cb = None
 
         slice_tab.setLayout(plots_layout)
+
+    def connect_vol_scale_combo(self, update_vol):
+
+        self.vol_scale_combo.currentIndexChanged.connect(update_vol)
+
+    def connect_opacity_combo(self, update_opacity):
+
+        self.opacity_combo.currentIndexChanged.connect(update_opacity)
+
+    def connect_range_comboo(self, update_range):
+
+        self.range_combo.currentIndexChanged.connect(update_range)
 
     def connect_clim_combo(self, update_clim):
 
@@ -299,6 +335,10 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def add_histo(self, histo_dict, normal, origin):
 
+        opacity = opacities[self.get_opacity()][self.get_range()]
+
+        log_scale = True if self.get_vol_scale() == 'Log' else False
+
         cmap = cmaps[self.get_colormap()]
 
         self.clear_scene()
@@ -343,8 +383,8 @@ class VolumeSlicerView(NeuXtalVizWidget):
         clim = [np.nanmin(signal), np.nanmax(signal)]
 
         self.clip = self.plotter.add_volume_clip_plane(grid,
-                                                       opacity='linear',
-                                                       log_scale=False,
+                                                       opacity=opacity,
+                                                       log_scale=log_scale,
                                                        clim=clim,
                                                        normal=normal,
                                                        origin=origin,
@@ -524,9 +564,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
         if line_cut == 'Axis 2':
             l0 = [val-delta, val-delta], ylim
             l1 = [val+delta, val+delta], ylim
+            direction = 'vertical'
         else:
             l0 = xlim, [val-delta, val-delta]
             l1 = xlim, [val+delta, val+delta]
+            direction = 'horizontal'
 
         self.ax_slice.plot(*l0, 'w--', linewidth=1, transform=self.transform)
         self.ax_slice.plot(*l1, 'w--', linewidth=1, transform=self.transform)
@@ -546,6 +588,85 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.canvas_slice.draw_idle()
         self.canvas_slice.flush_events()
+
+        self.linecut = {'is_dragging': False,
+                        'line_cut': (xlim, ylim, delta, direction)}
+
+        self.fig_slice.canvas.mpl_connect('button_press_event',
+                                          self.on_press)
+
+        self.fig_slice.canvas.mpl_connect('button_release_event',
+                                          self.on_release)
+
+        self.fig_slice.canvas.mpl_connect('motion_notify_event',
+                                          self.on_motion)
+
+    def on_press(self, event):
+
+        if event.inaxes == self.ax_slice and \
+            self.fig_slice.canvas.toolbar.mode == '':
+
+            self.linecut['is_dragging'] = True
+
+    def on_release(self, event):
+
+        self.linecut['is_dragging'] = False
+
+        self.cut_ready.emit()
+
+    def connect_cut_ready(self, recut):
+
+        self.cut_ready.connect(recut)
+
+    def on_motion(self, event):
+
+        if self.linecut['is_dragging'] and event.inaxes == self.ax_slice:
+
+            lines = self.ax_slice.get_lines()
+            for line in lines:
+                line.remove()
+
+            xlim, ylim, delta, direction = self.linecut['line_cut']
+
+            x, y, _ = np.dot(self.T_inv, [event.xdata, event.ydata, 1])
+
+            self.cut_line.blockSignals(True)
+
+            if direction == 'vertical':
+                l0 = [x-delta, x-delta], ylim
+                l1 = [x+delta, x+delta], ylim
+                self.set_cut_value(x)
+            else:
+                l0 = xlim, [y-delta, y-delta]
+                l1 = xlim, [y+delta, y+delta]
+                self.set_cut_value(y)
+
+            self.cut_line.blockSignals(False)
+
+            self.ax_slice.plot(*l0,
+                               'w--',
+                               linewidth=1,
+                               transform=self.transform)
+
+            self.ax_slice.plot(*l1,
+                               'w--',
+                               linewidth=1,
+                               transform=self.transform)
+
+            self.canvas_slice.draw_idle()
+            self.canvas_slice.flush_events()
+
+    def get_vol_scale(self):
+
+        return self.vol_scale_combo.currentText()
+
+    def get_opacity(self):
+
+        return self.opacity_combo.currentText()
+
+    def get_range(self):
+
+        return self.range_combo.currentText()
 
     def get_colormap(self):
 

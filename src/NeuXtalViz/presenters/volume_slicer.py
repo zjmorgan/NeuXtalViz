@@ -9,7 +9,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_load_NXS(self.load_NXS)
 
         self.view.connect_slice_combo(self.redraw_data)
-        self.view.connect_cut_combo(self.redraw_data)
+        self.view.connect_cut_combo(self.update_cut)
 
         self.view.connect_slice_thickness_line(self.update_slice)
         self.view.connect_cut_thickness_line(self.update_cut)
@@ -27,6 +27,11 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_cut_line(self.update_cut)
 
         self.view.connect_slice_ready(self.update_slice)
+        self.view.connect_cut_ready(self.update_cut)
+
+        self.view.connect_vol_scale_combo(self.redraw_data)
+        self.view.connect_opacity_combo(self.redraw_data)
+        self.view.connect_range_comboo(self.redraw_data)
 
     def update_slice_value(self):
 

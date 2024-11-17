@@ -98,7 +98,7 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         histo_dict = {}
 
-        histo_dict['signal'] = np.log10(self.signals[ind])
+        histo_dict['signal'] = self.signals[ind]
 
         histo_dict['min_lim'] = self.min_lim
         histo_dict['max_lim'] = self.max_lim

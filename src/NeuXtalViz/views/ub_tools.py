@@ -19,7 +19,8 @@ from qtpy.QtWidgets import (QWidget,
                             QFileDialog)
 
 from qtpy.QtGui import QDoubleValidator, QIntValidator
-from PyQt5.QtCore import Qt
+from qtpy.QtCore import Qt
+from PyQt5.QtCore import pyqtSignal
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
@@ -40,6 +41,8 @@ cmaps = {'Sequential': 'viridis',
          'Rainbow': 'turbo'}
 
 class UBView(NeuXtalVizWidget):
+
+    roi_ready = pyqtSignal()
 
     def __init__(self, parent=None):
 
@@ -1372,7 +1375,7 @@ class UBView(NeuXtalVizWidget):
         self.ax_scan = self.fig_scan.subplots(1, 1)
 
         view_layout = QVBoxLayout()
-        
+
         view_layout.addLayout(data_layout)
         view_layout.addWidget(NavigationToolbar2QT(self.canvas_inst, self))
         view_layout.addWidget(self.canvas_inst)
@@ -2415,6 +2418,10 @@ class UBView(NeuXtalVizWidget):
 
             return float(self.diffraction_line.text())
 
+    def set_diffraction(self, val):
+
+        self.diffraction_line.setText(str(round(val, 3)))
+
     def get_d_min(self):
 
         if self.d_min_line.hasAcceptableInput():
@@ -2423,7 +2430,7 @@ class UBView(NeuXtalVizWidget):
 
     def get_d_max(self):
 
-        text = self.d_max_line.text()         
+        text = self.d_max_line.text()
 
         if self.d_max_line.hasAcceptableInput() or text == 'inf':
 
@@ -2440,6 +2447,14 @@ class UBView(NeuXtalVizWidget):
         if self.vertical_line.hasAcceptableInput():
 
             return float(self.vertical_line.text())
+
+    def set_horizontal(self, val):
+
+        self.horizontal_line.setText(str(round(val, 2)))
+
+    def set_vertical(self, val):
+
+        self.vertical_line.setText(str(round(val, 2)))
 
     def get_horizontal_roi(self):
 
@@ -2505,17 +2520,17 @@ class UBView(NeuXtalVizWidget):
         self.ax_scan.errorbar(x, y, yerr=np.sqrt(y), fmt='o', color='C0')
         self.ax_scan.plot(x, y, color='C1')
         #self.ax_scan.set_yscale('log')
-        self.ax_scan.axvline(x=val, color='k')
+        self.line_scan = self.ax_scan.axvline(x=val, color='k', linestyle='--')
         self.ax_scan.minorticks_on()
 
         for line in self.ax_inst.lines:
             line.remove()
 
-        self.ax_inst.axvline(x=horz-horz_roi, color='k')
-        self.ax_inst.axvline(x=horz+horz_roi, color='k')
+        self.ax_inst.axvline(x=horz-horz_roi, color='k', linestyle='--')
+        self.ax_inst.axvline(x=horz+horz_roi, color='k', linestyle='--')
 
-        self.ax_inst.axhline(y=vert-vert_roi, color='k')
-        self.ax_inst.axhline(y=vert+vert_roi, color='k')
+        self.ax_inst.axhline(y=vert-vert_roi, color='k', linestyle='--')
+        self.ax_inst.axhline(y=vert+vert_roi, color='k', linestyle='--')
 
         if label == 'wavelength':
             xlabel = r'$\lambda$ [Å]'
@@ -2529,6 +2544,65 @@ class UBView(NeuXtalVizWidget):
 
         self.canvas_inst.draw_idle()
         self.canvas_inst.flush_events()
+
+        self.inst_roi = {'roi': (horz_roi, vert_roi)}
+
+        self.fig_inst.canvas.mpl_connect('button_press_event',
+                                         self.on_press_inst)
+
+        self.fig_scan.canvas.mpl_connect('button_press_event',
+                                         self.on_press_scan)
+
+    def on_press_scan(self, event):
+
+        if event.inaxes == self.ax_scan and \
+            self.fig_scan.canvas.toolbar.mode == '':
+
+            val = event.xdata
+
+            self.diffraction_line.blockSignals(True)
+
+            self.set_diffraction(val)
+
+            self.diffraction_line.blockSignals(False)
+
+            self.line_scan.set_xdata([val])
+
+            self.canvas_scan.draw_idle()
+            self.canvas_scan.flush_events()
+
+    def on_press_inst(self, event):
+
+        if event.inaxes == self.ax_inst and \
+            self.fig_inst.canvas.toolbar.mode == '':
+
+            horz_roi, vert_roi = self.inst_roi['roi']
+
+            horz, vert = event.xdata, event.ydata
+
+            self.horizontal_line.blockSignals(True)
+            self.vertical_line.blockSignals(True)
+
+            self.set_horizontal(horz)
+            self.set_vertical(vert)
+
+            self.horizontal_line.blockSignals(False)
+            self.vertical_line.blockSignals(False)
+
+            self.ax_inst.axvline(x=horz-horz_roi, color='k', linestyle='--')
+            self.ax_inst.axvline(x=horz+horz_roi, color='k', linestyle='--')
+
+            self.ax_inst.axhline(y=vert-vert_roi, color='k', linestyle='--')
+            self.ax_inst.axhline(y=vert+vert_roi, color='k', linestyle='--')
+
+            self.canvas_inst.draw_idle()
+            self.canvas_inst.flush_events()
+
+            self.roi_ready.emit()
+
+    def connect_roi_ready(self, replot):
+
+        self.roi_ready.connect(replot)
 
     def get_slice_value(self):
 
@@ -2565,7 +2639,7 @@ class UBView(NeuXtalVizWidget):
         return self.cbar_combo.currentText()
 
     def __format_axis_coord(self, x, y):
-        
+
         x, y, _ = np.dot(self.T_inv, [x, y, 1])
         return 'x={:.3f}, y={:.3f}'.format(x, y)
 
@@ -2596,7 +2670,7 @@ class UBView(NeuXtalVizWidget):
         aspect = slice_dict['aspect']
 
         transform = Affine2D(T)
-        
+
         self.T_inv = np.linalg.inv(T)
 
         self.ax_slice.format_coord = self.__format_axis_coord
@@ -2681,7 +2755,7 @@ class UBView(NeuXtalVizWidget):
         sigx = np.sqrt(xint)
         sigy = np.sqrt(yint)
 
-        self.ax_xint.errorbar(0.5*(x[1:]+x[:-1]), 
+        self.ax_xint.errorbar(0.5*(x[1:]+x[:-1]),
                               xint,
                               yerr=sigx,
                               fmt='.',
@@ -2690,7 +2764,7 @@ class UBView(NeuXtalVizWidget):
 
         self.ax_yint.errorbar(yint,
                               0.5*(y[1:]+y[:-1]),
-                              xerr=sigy, 
+                              xerr=sigy,
                               fmt='.',
                               linestyle='-',
                               color='C1')

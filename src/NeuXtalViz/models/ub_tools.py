@@ -348,7 +348,7 @@ class UBModel(NeuXtalVizModel):
 
                 lamda = wavelength[0]
 
-                counts = [mtd[ws].getSignalArray().copy()\
+                counts = [np.swapaxes(mtd[ws].getSignalArray().copy(), 0, 1)\
                           for ws in input_ws_names]
 
                 counts = [c.reshape(-1, c.shape[2]) for c in counts]
@@ -500,16 +500,16 @@ class UBModel(NeuXtalVizModel):
         peak = mtd['ub_peaks'].createPeak([Qx, Qy, Qz])
         mtd['ub_peaks'].addPeak(peak)
 
-    def get_instrument_view(self, ind,
-                                  d_min,
-                                  d_max):
+    def calculate_instrument_view(self, ind, d_min, d_max):
 
         inst_view = {}
 
         R = self.Rs[ind]
 
+        print(np.shape(R))
+
         if type(self.lamda) is float:
-            lamda = np.full_like(R, self.lamda)
+            lamda = np.full(len(R), self.lamda)
         else:
             lamda = self.lamda
 
@@ -538,9 +538,11 @@ class UBModel(NeuXtalVizModel):
         inst_view['counts'] = counts[sort]
         inst_view['ind'] = ind
 
-        return inst_view
+        self.inst_view = inst_view
 
-    def extract_roi(self, inst_view, horz, vert, horz_roi, vert_roi, val):
+    def extract_roi(self, horz, vert, horz_roi, vert_roi, val):
+
+        inst_view = self.inst_view
 
         roi_view = {}
 
@@ -603,7 +605,7 @@ class UBModel(NeuXtalVizModel):
         roi_view['y'] = y
         roi_view['label'] = label
 
-        return roi_view
+        self.roi_view = roi_view
 
     def get_slice_info(self, U, V, W, normal, value, thickness, width):
 

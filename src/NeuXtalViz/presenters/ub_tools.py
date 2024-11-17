@@ -43,15 +43,17 @@ class UB(NeuXtalVizPresenter):
         self.view.connect_convert_to_hkl(self.convert_to_hkl)
 
         self.view.connect_data_combo(self.update_instrument_view)
-        self.view.connect_diffraction(self.update_instrument_view)
+        self.view.connect_diffraction(self.update_roi)
         self.view.connect_d_min(self.update_instrument_view)
         self.view.connect_d_max(self.update_instrument_view)
-        self.view.connect_horizontal(self.update_instrument_view)
-        self.view.connect_vertical(self.update_instrument_view)
-        self.view.connect_horizontal_roi(self.update_instrument_view)
-        self.view.connect_vertical_roi(self.update_instrument_view)
+        self.view.connect_horizontal(self.update_roi)
+        self.view.connect_vertical(self.update_roi)
+        self.view.connect_horizontal_roi(self.update_roi)
+        self.view.connect_vertical_roi(self.update_roi)
 
         self.view.connect_add_peak(self.add_peak)
+
+        self.view.connect_roi_ready(self.update_roi)
 
     def convert_Q(self):
 
@@ -157,7 +159,7 @@ class UB(NeuXtalVizPresenter):
             self.view.update_instrument_view(result[0])
             self.view.update_roi_view(result[1])
 
-    def  update_instrument_view_process(self, progress):
+    def update_instrument_view_process(self, progress):
 
         if self.model.has_Q():
 
@@ -178,26 +180,39 @@ class UB(NeuXtalVizPresenter):
 
                 progress.emit('Detector viewing...', 10)
 
-                inst_view = self.model.get_instrument_view(ind, d_min, d_max)
+                self.model.calculate_instrument_view(ind, d_min, d_max)
 
                 progress.emit('Detector viewed...', 50)
 
-                roi_view = self.model.extract_roi(inst_view,
-                                                  horz,
-                                                  vert,
-                                                  horz_roi,
-                                                  vert_roi,
-                                                  val)
+                self.model.extract_roi(horz, vert, horz_roi, vert_roi, val)
 
                 progress.emit('ROI viewed...', 70)
 
                 progress.emit('Data/ROI viewed!', 0)
 
-                return inst_view, roi_view
+                return self.model.inst_view, self.model.roi_view
 
         else:
 
             progress.emit('Invalid parameters.', 0)
+
+    def update_roi(self):
+
+        if self.model.has_Q():
+
+            horz = self.view.get_horizontal()
+            vert = self.view.get_vertical()
+            horz_roi = self.view.get_horizontal_roi()
+            vert_roi = self.view.get_vertical_roi()
+            val = self.view.get_diffraction()
+
+            validate = [horz, vert, horz_roi, vert_roi, val]
+
+            if all(elem is not None for elem in validate):
+
+                self.model.extract_roi(horz, vert, horz_roi, vert_roi, val)
+
+                self.view.update_roi_view(self.model.roi_view)
 
     def visualize(self):
 
