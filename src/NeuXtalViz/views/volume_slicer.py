@@ -12,6 +12,7 @@ from qtpy.QtWidgets import (QWidget,
 
 from qtpy.QtGui import QDoubleValidator
 from qtpy.QtCore import Qt
+from PyQt5.QtCore import pyqtSignal
 
 import numpy as np
 import pyvista as pv
@@ -29,6 +30,8 @@ cmaps = {'Sequential': 'viridis',
          'Rainbow': 'turbo'}
 
 class VolumeSlicerView(NeuXtalVizWidget):
+
+    slice_ready = pyqtSignal()
 
     def __init__(self, parent=None):
 
@@ -131,12 +134,6 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         slider_layout.addLayout(bar_layout)
 
-        # self.slice_slider = QSlider(Qt.Horizontal)
-        # self.cut_slider = QSlider(Qt.Horizontal)
-
-        # self.slice_slider.setTracking(False)
-        # self.cut_slider.setTracking(False)
-
         slice_params_layout.addWidget(self.slice_combo)
         slice_params_layout.addWidget(slice_label)
         slice_params_layout.addWidget(self.slice_line)
@@ -228,14 +225,6 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.cut_combo.currentIndexChanged.connect(update_cut)
 
-    # def connect_slice_slider(self, update_slice):
-
-    #     self.slice_slider.valueChanged.connect(update_slice)
-
-    # def connect_cut_slider(self, update_cut):
-
-    #     self.cut_slider.valueChanged.connect(update_cut)
-
     def connect_min_slider(self, update_colorbar):
 
         self.min_slider.valueChanged.connect(update_colorbar)
@@ -243,84 +232,6 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def connect_max_slider(self, update_colorbar):
 
         self.max_slider.valueChanged.connect(update_colorbar)
-
-    # def update_slice_limits(self, n, delta, start):
-
-    #     val = self.get_slice_value()
-
-    #     if val is None:
-    #         ind = n // 2
-    #     else:
-    #         ind = int(round((val-start)/delta))
-
-    #     self.slice_slider.blockSignals(True)
-    #     self.slice_slider.setRange(0, n-1)
-    #     self.slice_slider.setValue(ind)
-    #     self.slice_slider.setSingleStep(1)
-    #     self.slice_slider.blockSignals(False)
-
-    #     # self.set_slice_thickness(round(delta, 4))
-    #     self.slice_start = start
-    #     self.slice_step = delta
-
-    # def update_cut_limits(self, n, delta, start):
-
-    #     val = self.get_cut_value()
-
-    #     if val is None:
-    #         ind = n // 2
-    #     else:
-    #         ind = int(round((val-start)/delta))
-
-    #     self.cut_slider.blockSignals(True)
-    #     self.cut_slider.setRange(0, n-1)
-    #     self.cut_slider.setValue(ind)
-    #     self.cut_slider.setSingleStep(1)
-    #     self.cut_slider.blockSignals(False)
-
-    #     # self.set_cut_thickness(round(delta, 4))
-    #     self.cut_start = start
-    #     self.cut_step = delta
-
-    # def update_slice_value(self):
-
-    #     val = self.slice_slider.value()
-    #     thick = self.slice_step
-
-    #     if val is not None:
-
-    #         val = self.slice_start+val*thick
-    #         self.set_slice_value(val)
-
-    # def update_cut_value(self):
-
-    #     val = self.cut_slider.value()
-    #     thick = self.cut_step
-
-    #     if val is not None:
-
-    #         val = self.cut_start+val*thick
-    #         self.set_cut_value(val)
-
-    # def update_slice_slider(self):
-
-    #     val = self.get_slice_value()
-
-    #     val = (val-self.slice_start)/self.slice_step
-
-    #     self.slice_slider.blockSignals(True)
-    #     self.slice_slider.setValue(int(val))
-    #     self.slice_slider.blockSignals(False)
-
-    # def update_cut_slider(self):
-
-    #     val = self.get_cut_value()
-
-    #     val = (val-self.cut_start)/self.cut_step
-
-    #     self.cut_slider.blockSignals(True)
-    #     self.cut_slider.setValue(int(val))
-    #     self.cut_slider.blockSignals(False)
 
     def update_colorbar_min(self):
 
@@ -440,6 +351,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
                                                        origin_translation=False,
                                                        show_scalar_bar=False,
                                                        normal_rotation=False,
+                                                       interaction_event='end',
                                                        cmap=cmap,
                                                        user_matrix=b)
 
@@ -448,6 +360,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         prop = self.clip.GetEdgesProperty()
         prop.SetOpacity(0)
+
 
         actor = self.plotter.show_grid(xtitle=labels[0],
                                        ytitle=labels[1],
@@ -477,6 +390,31 @@ class VolumeSlicerView(NeuXtalVizWidget):
         actor.SetAxisLabels(2, axis2_label)
 
         self.reset_scene()
+
+        self.clip.AddObserver('InteractionEvent',  self.interaction_callback)
+
+        self.P_inv = np.linalg.inv(P)
+
+    def interaction_callback(self, caller, event):
+
+        orig = caller.GetOrigin()
+        norm = caller.GetNormal()
+
+        norm /= np.linalg.norm(norm)
+
+        ind = np.isclose(np.abs(norm), 1).tolist().index(True)
+
+        value = np.dot(self.P_inv, orig)[ind]
+
+        self.max_slider.blockSignals(True)
+        self.set_slice_value(value)
+        self.max_slider.blockSignals(False)
+
+        self.slice_ready.emit()
+
+    def connect_slice_ready(self, reslice):
+
+        self.slice_ready.connect(reslice)
 
     def __format_axis_coord(self, x, y):
 

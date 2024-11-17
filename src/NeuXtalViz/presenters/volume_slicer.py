@@ -20,14 +20,13 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_min_slider(self.view.update_colorbar_min)
         self.view.connect_max_slider(self.view.update_colorbar_max)
 
-        # self.view.connect_slice_slider(self.redraw_data)
-        # self.view.connect_cut_slider(self.redraw_data)
-
         self.view.connect_slice_scale_combo(self.redraw_data)
         self.view.connect_cut_scale_combo(self.redraw_data)
 
         self.view.connect_slice_line(self.redraw_data)
         self.view.connect_cut_line(self.redraw_data)
+
+        self.view.connect_slice_ready(self.update_slice)
 
     def update_slice_value(self):
 
@@ -45,15 +44,11 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         if self.model.is_histo_loaded():
 
-            self.view.update_slice_slider()
-
             self.slice_data()
 
     def update_cut(self):
 
         if self.model.is_histo_loaded():
-
-            self.view.update_cut_slider()
 
             self.cut_data()
 
@@ -132,38 +127,6 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         return method
 
-    def get_slice_indices(self):
-
-        norm = self.get_normal()
-
-        sind = norm.index(1)
-
-        return sind
-
-    def get_cut_indices(self):
-
-        axis = self.get_axis()
-
-        cind = axis.index(1)
-
-        return cind
-
-    # def update_slice_info(self):
-
-    #     sind = self.get_slice_indices()
-
-    #     self.view.update_slice_limits(self.model.shape[sind],
-    #                                   self.model.spacing[sind],
-    #                                   self.model.min_lim[sind])
-
-    # def update_cut_info(self):
-
-    #     cind = self.get_cut_indices()
-
-    #     self.view.update_cut_limits(self.model.shape[cind],
-    #                                 self.model.spacing[cind],
-    #                                 self.model.min_lim[cind])
-
     def redraw_data(self):
 
         worker = self.worker(self.redraw_data_process)
@@ -237,8 +200,6 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
             self.view.add_slice(result)
 
-            # self.update_slice_info()
-
     def slice_data_process(self, progress):
 
         if self.model.is_histo_loaded():
@@ -280,8 +241,6 @@ class VolumeSlicer(NeuXtalVizPresenter):
         if result is not None:
 
             self.view.add_cut(result)
-
-            # self.update_cut_info()
 
     def cut_data_process(self, progress):
 
