@@ -11,8 +11,8 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_slice_combo(self.redraw_data)
         self.view.connect_cut_combo(self.redraw_data)
 
-        self.view.connect_slice_thickness_line(self.redraw_data)
-        self.view.connect_cut_thickness_line(self.redraw_data)
+        self.view.connect_slice_thickness_line(self.update_slice)
+        self.view.connect_cut_thickness_line(self.update_cut)
 
         self.view.connect_clim_combo(self.redraw_data)
         self.view.connect_cbar_combo(self.redraw_data)
@@ -20,11 +20,11 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_min_slider(self.view.update_colorbar_min)
         self.view.connect_max_slider(self.view.update_colorbar_max)
 
-        self.view.connect_slice_scale_combo(self.redraw_data)
-        self.view.connect_cut_scale_combo(self.redraw_data)
+        self.view.connect_slice_scale_combo(self.update_slice)
+        self.view.connect_cut_scale_combo(self.update_cut)
 
         self.view.connect_slice_line(self.redraw_data)
-        self.view.connect_cut_line(self.redraw_data)
+        self.view.connect_cut_line(self.update_cut)
 
         self.view.connect_slice_ready(self.update_slice)
 
