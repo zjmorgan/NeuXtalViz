@@ -43,6 +43,7 @@ cmaps = {'Sequential': 'viridis',
 class UBView(NeuXtalVizWidget):
 
     roi_ready = pyqtSignal()
+    index_ready = pyqtSignal()
 
     def __init__(self, parent=None):
 
@@ -1392,6 +1393,42 @@ class UBView(NeuXtalVizWidget):
 
         return instrument_tab
 
+    def connect_h_index(self, update_index):
+
+        self.h_line.editingFinished.connect(update_index)
+
+    def connect_k_index(self, update_index):
+
+        self.k_line.editingFinished.connect(update_index)
+
+    def connect_l_index(self, update_index):
+
+        self.l_line.editingFinished.connect(update_index)
+
+    def connect_integer_h_index(self, update_index):
+
+        self.int_h_line.editingFinished.connect(update_index)
+
+    def connect_integer_k_index(self, update_index):
+
+        self.int_k_line.editingFinished.connect(update_index)
+
+    def connect_integer_l_index(self, update_index):
+
+        self.int_l_line.editingFinished.connect(update_index)
+
+    def connect_integer_m_index(self, update_index):
+
+        self.int_m_line.editingFinished.connect(update_index)
+
+    def connect_integer_n_index(self, update_index):
+
+        self.int_n_line.editingFinished.connect(update_index)
+
+    def connect_integer_p_index(self, update_index):
+
+        self.int_p_line.editingFinished.connect(update_index)
+
     def connect_data_combo(self, update_inst_data):
 
         self.data_combo.currentIndexChanged.connect(update_inst_data)
@@ -2344,10 +2381,47 @@ class UBView(NeuXtalVizWidget):
         hkl, d, lamda, intens, signal_noise, sigma, int_hkl, int_mnp, \
         run, bank, row, col, ind = peak
 
+        self.set_indices(hkl, int_hkl, int_mnp)
+
+        self.intensity_line.setText('{:.2e}'.format(intens))
+        self.sigma_line.setText('{:.2e}'.format(sigma))
+
+        self.lambda_line.setText('{:.4f}'.format(lamda))
+        self.d_line.setText('{:.4f}'.format(d))
+
+        self.run_line.setText(str(run))
+        self.bank_line.setText(str(bank))
+        self.row_line.setText(str(row))
+        self.col_line.setText(str(col))
+
+    def update_table_index(self, row, hkl):
+
+        h, k, l = hkl
+        h = '{:.3f}'.format(h)
+        k = '{:.3f}'.format(k)
+        l = '{:.3f}'.format(l)
+        self.peaks_table.setItem(row, 0, QTableWidgetItem(h))
+        self.peaks_table.setItem(row, 1, QTableWidgetItem(k))
+        self.peaks_table.setItem(row, 2, QTableWidgetItem(l))
+
+    def set_indices(self, hkl, int_hkl, int_mnp):
+
         H, K, L = hkl
 
         h, k, l = int_hkl
         m, n, p = int_mnp
+
+        self.h_line.blockSignals(True)
+        self.k_line.blockSignals(True)
+        self.l_line.blockSignals(True)
+
+        self.int_h_line.blockSignals(True)
+        self.int_k_line.blockSignals(True)
+        self.int_l_line.blockSignals(True)
+
+        self.int_m_line.blockSignals(True)
+        self.int_n_line.blockSignals(True)
+        self.int_p_line.blockSignals(True)
 
         self.h_line.setText('{:.3f}'.format(H))
         self.k_line.setText('{:.3f}'.format(K))
@@ -2361,16 +2435,37 @@ class UBView(NeuXtalVizWidget):
         self.int_n_line.setText('{:.0f}'.format(n))
         self.int_p_line.setText('{:.0f}'.format(p))
 
-        self.intensity_line.setText('{:.2e}'.format(intens))
-        self.sigma_line.setText('{:.2e}'.format(sigma))
+        self.h_line.blockSignals(False)
+        self.k_line.blockSignals(False)
+        self.l_line.blockSignals(False)
 
-        self.lambda_line.setText('{:.4f}'.format(lamda))
-        self.d_line.setText('{:.4f}'.format(d))
+        self.int_h_line.blockSignals(False)
+        self.int_k_line.blockSignals(False)
+        self.int_l_line.blockSignals(False)
 
-        self.run_line.setText(str(run))
-        self.bank_line.setText(str(bank))
-        self.row_line.setText(str(row))
-        self.col_line.setText(str(col))
+        self.int_m_line.blockSignals(False)
+        self.int_n_line.blockSignals(False)
+        self.int_p_line.blockSignals(False)
+
+    def get_indices(self):
+
+        params_hkl = self.h_line, self.k_line, self.l_line
+        params_int_hkl = self.int_h_line, self.int_k_line, self.int_l_line
+        params_int_mnp = self.int_m_line, self.int_n_line, self.int_p_line
+
+        params = params_hkl+params_int_hkl+params_int_mnp
+
+        valid_params = all([param.hasAcceptableInput() for param in params])
+
+        if valid_params:
+            hkl = [float(param.text()) for param in params_hkl]
+            int_hkl = [int(param.text()) for param in params_int_hkl]
+            int_mnp = [int(param.text()) for param in params_int_mnp]
+            return hkl, int_hkl, int_mnp
+
+    def connect_hand_index_peak(self, reindex):
+
+        self.index_ready.connect(reindex)
 
     def get_input_hkls(self):
 
@@ -2505,23 +2600,10 @@ class UBView(NeuXtalVizWidget):
 
     def update_roi_view(self, roi_view):
 
-        x = roi_view['x']
-        y = roi_view['y']
-        val = roi_view['val']
-        label = roi_view['label']
-
         horz = roi_view['horz']
         vert = roi_view['vert']
         horz_roi = roi_view['horz_roi']
         vert_roi = roi_view['vert_roi']
-
-        self.ax_scan.clear()
-
-        self.ax_scan.errorbar(x, y, yerr=np.sqrt(y), fmt='o', color='C0')
-        self.ax_scan.plot(x, y, color='C1')
-        #self.ax_scan.set_yscale('log')
-        self.line_scan = self.ax_scan.axvline(x=val, color='k', linestyle='--')
-        self.ax_scan.minorticks_on()
 
         for line in self.ax_inst.lines:
             line.remove()
@@ -2532,6 +2614,29 @@ class UBView(NeuXtalVizWidget):
         self.ax_inst.axhline(y=vert-vert_roi, color='k', linestyle='--')
         self.ax_inst.axhline(y=vert+vert_roi, color='k', linestyle='--')
 
+        self.canvas_inst.draw_idle()
+        self.canvas_inst.flush_events()
+
+        self.inst_roi = {'roi': (horz_roi, vert_roi)}
+
+        self.fig_inst.canvas.mpl_connect('button_press_event',
+                                         self.on_press_inst)
+
+    def update_scan_view(self, roi_view):
+
+        x = roi_view['x']
+        y = roi_view['y']
+        val = roi_view['val']
+        label = roi_view['label']
+
+        self.ax_scan.clear()
+
+        self.ax_scan.errorbar(x, y, yerr=np.sqrt(y), fmt='o', color='C0')
+        self.ax_scan.plot(x, y, color='C1')
+        #self.ax_scan.set_yscale('log')
+        self.line_scan = self.ax_scan.axvline(x=val, color='k', linestyle='--')
+        self.ax_scan.minorticks_on()
+
         if label == 'wavelength':
             xlabel = r'$\lambda$ [Å]'
         else:
@@ -2541,14 +2646,6 @@ class UBView(NeuXtalVizWidget):
 
         self.canvas_scan.draw_idle()
         self.canvas_scan.flush_events()
-
-        self.canvas_inst.draw_idle()
-        self.canvas_inst.flush_events()
-
-        self.inst_roi = {'roi': (horz_roi, vert_roi)}
-
-        self.fig_inst.canvas.mpl_connect('button_press_event',
-                                         self.on_press_inst)
 
         self.fig_scan.canvas.mpl_connect('button_press_event',
                                          self.on_press_scan)
@@ -2575,6 +2672,9 @@ class UBView(NeuXtalVizWidget):
 
         if event.inaxes == self.ax_inst and \
             self.fig_inst.canvas.toolbar.mode == '':
+
+            for line in self.ax_inst.lines:
+                line.remove()
 
             horz_roi, vert_roi = self.inst_roi['roi']
 

@@ -53,7 +53,64 @@ class UB(NeuXtalVizPresenter):
 
         self.view.connect_add_peak(self.add_peak)
 
-        self.view.connect_roi_ready(self.update_roi)
+        self.view.connect_roi_ready(self.update_scan)
+
+        self.view.connect_h_index(self.hand_index_fractional)
+        self.view.connect_k_index(self.hand_index_fractional)
+        self.view.connect_l_index(self.hand_index_fractional)
+
+        self.view.connect_integer_h_index(self.hand_index_integer)
+        self.view.connect_integer_k_index(self.hand_index_integer)
+        self.view.connect_integer_l_index(self.hand_index_integer)
+
+        self.view.connect_integer_m_index(self.hand_index_integer)
+        self.view.connect_integer_n_index(self.hand_index_integer)
+        self.view.connect_integer_p_index(self.hand_index_integer)
+
+    def hand_index_fractional(self):
+
+        mod_info = self.get_modulation_info()
+        hkl_info = self.view.get_indices()
+        index_row = self.view.get_peak()
+
+        if mod_info is not None and hkl_info is not None:
+
+            mod_vec_1, mod_vec_2, mod_vec_3, *_ = mod_info
+            hkl, int_hkl, int_mnp = hkl_info
+
+            int_hkl, int_mnp = self.model.calculate_integer(mod_vec_1, 
+                                                            mod_vec_2,
+                                                            mod_vec_3,
+                                                            hkl)
+
+            self.model.set_peak(index_row, hkl, int_hkl, int_mnp)
+
+            self.view.update_table_index(index_row, hkl)
+
+            self.view.set_indices(hkl, int_hkl, int_mnp)
+
+    def hand_index_integer(self):
+
+        mod_info = self.get_modulation_info()
+        hkl_info = self.view.get_indices()
+        index_row = self.view.get_peak()
+
+        if mod_info is not None and hkl_info is not None:
+
+            mod_vec_1, mod_vec_2, mod_vec_3, *_ = mod_info
+            hkl, int_hkl, int_mnp = hkl_info
+
+            hkl = self.model.calculate_fractional(mod_vec_1,
+                                                  mod_vec_2,
+                                                  mod_vec_3,
+                                                  int_hkl,
+                                                  int_mnp)
+
+            self.model.set_peak(index_row, hkl, int_hkl, int_mnp)
+
+            self.view.update_table_index(index_row, hkl)
+
+            self.view.set_indices(hkl, int_hkl, int_mnp)
 
     def convert_Q(self):
 
@@ -158,6 +215,7 @@ class UB(NeuXtalVizPresenter):
 
             self.view.update_instrument_view(result[0])
             self.view.update_roi_view(result[1])
+            self.view.update_scan_view(result[1])
 
     def update_instrument_view_process(self, progress):
 
@@ -213,6 +271,24 @@ class UB(NeuXtalVizPresenter):
                 self.model.extract_roi(horz, vert, horz_roi, vert_roi, val)
 
                 self.view.update_roi_view(self.model.roi_view)
+
+    def update_scan(self):
+
+        if self.model.has_Q():
+
+            horz = self.view.get_horizontal()
+            vert = self.view.get_vertical()
+            horz_roi = self.view.get_horizontal_roi()
+            vert_roi = self.view.get_vertical_roi()
+            val = self.view.get_diffraction()
+
+            validate = [horz, vert, horz_roi, vert_roi, val]
+
+            if all(elem is not None for elem in validate):
+
+                self.model.extract_roi(horz, vert, horz_roi, vert_roi, val)
+
+                self.view.update_scan_view(self.model.roi_view)
 
     def visualize(self):
 

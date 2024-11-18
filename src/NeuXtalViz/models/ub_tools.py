@@ -774,7 +774,7 @@ class UBModel(NeuXtalVizModel):
 
             self.sort_peaks_by_d(self.table)
 
-            Qs, Is, inds, pk_nos, Ts = [], [], [], [], []
+            Qs, Is, inds, pk_nos, Ts, rows = [], [], [], [], [], []
 
             for j, peak in enumerate(mtd[self.table]):
 
@@ -821,12 +821,14 @@ class UBModel(NeuXtalVizModel):
                 inds.append(ind)
                 pk_nos.append(pk_no)
                 Ts.append(T)
+                rows.append(j)
 
             Q_dict['coordinates'] = Qs
             Q_dict['intensities'] = Is
             Q_dict['indexings'] = inds
             Q_dict['numbers'] = pk_nos
             Q_dict['transforms'] = Ts
+            Q_dict['rows'] = rows
 
         return Q_dict if len(Q_dict.keys()) > 0 else None
 
@@ -1276,7 +1278,7 @@ class UBModel(NeuXtalVizModel):
                          UseCentroid=True,
                          MaxIterations=3,
                          ReplaceIntensity=True,
-                         IntegrateIfOnEdge=False,
+                         IntegrateIfOnEdge=True,
                          AdaptiveQBackground=False,
                          MaskEdgeTubes=False,
                          OutputWorkspace=self.table)
@@ -1720,13 +1722,66 @@ class UBModel(NeuXtalVizModel):
         if self.peak_info is not None:
             return self.peak_info[i]
 
+    def calculate_fractional(self, mod_vec_1,
+                                   mod_vec_2,
+                                   mod_vec_3,
+                                   int_hkl,
+                                   int_mnp):
+
+        if self.has_UB():
+
+            ol = mtd[self.table].sample().getOrientedLattice()
+
+            ol.setModVec1(V3D(*mod_vec_1))
+            ol.setModVec2(V3D(*mod_vec_2))
+            ol.setModVec3(V3D(*mod_vec_3))
+
+        delta_hkl = np.column_stack([mod_vec_1, mod_vec_2, mod_vec_3])
+
+        return np.array(int_hkl)+np.dot(delta_hkl, int_mnp)
+
+    def calculate_integer(self, mod_vec_1,
+                                mod_vec_2,
+                                mod_vec_3,
+                                hkl):
+
+        if self.has_UB():
+
+            ol = mtd[self.table].sample().getOrientedLattice()
+
+            ol.setModVec1(V3D(*mod_vec_1))
+            ol.setModVec2(V3D(*mod_vec_2))
+            ol.setModVec3(V3D(*mod_vec_3))
+
+        delta_hkl = np.column_stack([mod_vec_1, mod_vec_2, mod_vec_3])
+
+        bounds_m = range(-3, 4) if np.linalg.norm(mod_vec_1) > 0 else [0]
+        bounds_n = range(-3, 4) if np.linalg.norm(mod_vec_2) > 0 else [0]
+        bounds_p = range(-3, 4) if np.linalg.norm(mod_vec_3) > 0 else [0]
+
+        min_error = np.inf
+
+        for m in bounds_m:
+            for n in bounds_n:
+                for p in bounds_p:
+                    int_mnp = np.array([m, n, p])
+                    residual = np.array(hkl)-np.dot(delta_hkl, int_mnp)
+                    int_hkl = np.round(residual).astype(int)
+                    model = int_hkl+np.dot(delta_hkl, int_mnp)
+                    error = np.linalg.norm(hkl-model)
+                    if error < min_error:
+                        min_error = error
+                        best_solution = (int_hkl, int_mnp)
+
+        return best_solution
+
     def set_peak(self, i, hkl, int_hkl, int_mnp):
 
-        peak = self.table.getPeak(i)
+        peak = mtd[self.table].getPeak(i)
 
         peak.setHKL(*hkl)
-        peak.setIntHKL(V3D(*int_hkl))
-        peak.setIntMNP(V3D(*int_mnp))
+        peak.setIntHKL(V3D(*np.array(int_hkl).astype(float).tolist()))
+        peak.setIntMNP(V3D(*np.array(int_mnp).astype(float).tolist()))
 
     def calculate_peaks(self, hkl_1, hkl_2, a, b, c, alpha, beta, gamma):
 
