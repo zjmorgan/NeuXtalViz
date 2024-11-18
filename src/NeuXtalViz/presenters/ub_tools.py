@@ -114,12 +114,12 @@ class UB(NeuXtalVizPresenter):
 
     def convert_Q(self):
 
-        worker = self.worker(self.convert_Q_process)
-        worker.signals.result.connect(self.convert_Q_complete)
-        worker.signals.finished.connect(self.visualize)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.convert_Q_process)
+        worker.connect_result(self.convert_Q_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def convert_Q_complete(self, result):
 
@@ -151,37 +151,41 @@ class UB(NeuXtalVizPresenter):
 
             mono = np.isclose(wavelength[0], wavelength[1])
 
-            progress.emit('Processing...', 1)
+            progress('Processing...', 1)
 
-            progress.emit('Data loading...', 10)
+            progress('Data loading...', 10)
 
-            self.model.load_data(instrument,
-                                 IPTS,
-                                 runs,
-                                 exp,
-                                 time_stop)
+            data_load = self.model.load_data(instrument,
+                                             IPTS,
+                                             runs,
+                                             exp,
+                                             time_stop)
 
-            progress.emit('Data loaded...', 40)
+            if data_load is None:
 
-            progress.emit('Data calibrating...', 50)
+                progress('Files do not exist.', 0)
+
+            progress('Data loaded...', 40)
+
+            progress('Data calibrating...', 50)
 
             self.model.calibrate_data(instrument, det_cal, tube_cal)
 
-            progress.emit('Data calibrated...', 60)
+            progress('Data calibrated...', 60)
 
-            progress.emit('Data converting...', 70)
+            progress('Data converting...', 70)
 
             self.model.convert_data(instrument, wavelength, lorentz)
 
-            progress.emit('Data converted...', 99)
+            progress('Data converted...', 99)
 
-            progress.emit('Data converted!', 0)
+            progress('Data converted!', 0)
 
             return mono
 
         else:
 
-            progress.emit('Invalid parameters.', 0)
+            progress('Invalid parameters.', 0)
 
     def add_peak(self):
 
@@ -202,12 +206,12 @@ class UB(NeuXtalVizPresenter):
 
     def update_instrument_view(self):
 
-        worker = self.worker(self.update_instrument_view_process)
-        worker.signals.result.connect(self.update_instrument_view_complete)
-        worker.signals.finished.connect(self.visualize)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.update_instrument_view_process)
+        worker.connect_result(self.update_instrument_view_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def update_instrument_view_complete(self, result):
 
@@ -234,25 +238,25 @@ class UB(NeuXtalVizPresenter):
 
             if all(elem is not None for elem in validate):
 
-                progress.emit('Processing...', 1)
+                progress('Processing...', 1)
 
-                progress.emit('Detector viewing...', 10)
+                progress('Detector viewing...', 10)
 
                 self.model.calculate_instrument_view(ind, d_min, d_max)
 
-                progress.emit('Detector viewed...', 50)
+                progress('Detector viewed...', 50)
 
                 self.model.extract_roi(horz, vert, horz_roi, vert_roi, val)
 
-                progress.emit('ROI viewed...', 70)
+                progress('ROI viewed...', 70)
 
-                progress.emit('Data/ROI viewed!', 0)
+                progress('Data/ROI viewed!', 0)
 
                 return self.model.inst_view, self.model.roi_view
 
         else:
 
-            progress.emit('Invalid parameters.', 0)
+            progress('Invalid parameters.', 0)
 
     def update_roi(self):
 
@@ -336,12 +340,12 @@ class UB(NeuXtalVizPresenter):
 
     def find_peaks(self):
 
-        worker = self.worker(self.find_peaks_process)
-        worker.signals.result.connect(self.find_peaks_complete)
-        worker.signals.finished.connect(self.visualize)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.find_peaks_process)
+        worker.connect_result(self.find_peaks_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def find_peaks_complete(self, result):
 
@@ -357,28 +361,28 @@ class UB(NeuXtalVizPresenter):
 
             if dist is not None and params is not None:
 
-                progress.emit('Processing...', 1)
+                progress('Processing...', 1)
 
-                progress.emit('Finding peaks...', 10)
+                progress('Finding peaks...', 10)
 
                 self.model.find_peaks(dist, *params, edge)
 
-                progress.emit('Peaks found...', 90)
+                progress('Peaks found...', 90)
 
-                progress.emit('Peaks found!', 100)
+                progress('Peaks found!', 100)
 
             else:
 
-                progress.emit('Invalid parameters.', 0)
+                progress('Invalid parameters.', 0)
 
     def find_conventional(self):
 
-        worker = self.worker(self.find_conventional_process)
-        worker.signals.result.connect(self.find_conventional_complete)
-        worker.signals.finished.connect(self.visualize)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.find_conventional_process)
+        worker.connect_result(self.find_conventional_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def find_conventional_complete(self, result):
 
@@ -393,28 +397,28 @@ class UB(NeuXtalVizPresenter):
 
             if params is not None and tol is not None:
 
-                progress.emit('Processing...', 1)
+                progress('Processing...', 1)
 
-                progress.emit('Finding UB...', 10)
+                progress('Finding UB...', 10)
 
                 self.model.determine_UB_with_lattice_parameters(*params, tol)
 
-                progress.emit('UB found...', 90)
+                progress('UB found...', 90)
 
-                progress.emit('UB found!', 100)
+                progress('UB found!', 100)
 
             else:
 
-                progress.emit('Invalid parameters.', 0)
+                progress('Invalid parameters.', 0)
 
     def find_niggli(self):
 
-        worker = self.worker(self.find_niggli_process)
-        worker.signals.result.connect(self.find_niggli_complete)
-        worker.signals.finished.connect(self.visualize)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.find_niggli_process)
+        worker.connect_result(self.find_niggli_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def find_niggli_complete(self, result):
 
@@ -429,28 +433,28 @@ class UB(NeuXtalVizPresenter):
 
             if params is not None and tol is not None:
 
-                progress.emit('Processing...', 1)
+                progress('Processing...', 1)
 
-                progress.emit('Finding UB...', 10)
+                progress('Finding UB...', 10)
 
                 self.model.determine_UB_with_niggli_cell(*params, tol)
 
-                progress.emit('UB found...', 90)
+                progress('UB found...', 90)
 
-                progress.emit('UB found!', 100)
+                progress('UB found!', 100)
 
             else:
 
-                progress.emit('Invalid parameters.', 0)
+                progress('Invalid parameters.', 0)
 
     def show_cells(self):
 
-        worker = self.worker(self.show_cells_process)
-        worker.signals.result.connect(self.show_cells_complete)
-        worker.signals.finished.connect(self.visualize)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.show_cells_process)
+        worker.connect_result(self.show_cells_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def show_cells_complete(self, result):
 
@@ -466,28 +470,28 @@ class UB(NeuXtalVizPresenter):
 
             if scalar is not None:
 
-                progress.emit('Processing...', 1)
+                progress('Processing...', 1)
 
-                progress.emit('Finding possible cells...', 50)
+                progress('Finding possible cells...', 50)
 
                 cells = self.model.possible_conventional_cells(scalar)
 
-                progress.emit('Possible cells found!', 100)
+                progress('Possible cells found!', 100)
 
                 return cells
 
             else:
 
-                progress.emit('Invalid parameters.', 0)
+                progress('Invalid parameters.', 0)
 
     def select_cell(self):
 
-        worker = self.worker(self.select_cell_process)
-        worker.signals.result.connect(self.select_cell_complete)
-        worker.signals.finished.connect(self.visualize)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.select_cell_process)
+        worker.connect_result(self.select_cell_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def select_cell_complete(self, result):
 
@@ -502,19 +506,19 @@ class UB(NeuXtalVizPresenter):
 
             if form is not None and tol is not None:
 
-                progress.emit('Processing...', 1)
+                progress('Processing...', 1)
 
-                progress.emit('Selecting cell...', 50)
+                progress('Selecting cell...', 50)
 
                 self.model.select_cell(form, tol)
 
-                progress.emit('Cell selected...', 99)
+                progress('Cell selected...', 99)
 
-                progress.emit('Cell selected!', 100)
+                progress('Cell selected!', 100)
 
             else:
 
-                progress.emit('Invalid parameters.', 0)
+                progress('Invalid parameters.', 0)
 
     def highlight_cell(self):
 
@@ -555,12 +559,12 @@ class UB(NeuXtalVizPresenter):
 
     def transform_UB(self):
 
-        worker = self.worker(self.transform_UB_process)
-        worker.signals.result.connect(self.transform_UB_complete)
-        worker.signals.finished.connect(self.visualize)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.transform_UB_process)
+        worker.connect_result(self.transform_UB_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def transform_UB_complete(self, result):
 
@@ -575,28 +579,28 @@ class UB(NeuXtalVizPresenter):
 
             if params is not None and tol is not None:
 
-                progress.emit('Processing...', 1)
+                progress('Processing...', 1)
 
-                progress.emit('Transforming UB...', 50)
+                progress('Transforming UB...', 50)
 
                 self.model.transform_lattice(params, tol)
 
-                progress.emit('UB transformed...', 99)
+                progress('UB transformed...', 99)
 
-                progress.emit('UB transformed!', 100)
+                progress('UB transformed!', 100)
 
             else:
 
-                progress.emit('Invalid parameters.', 0)
+                progress('Invalid parameters.', 0)
 
     def refine_UB(self):
 
-        worker = self.worker(self.refine_UB_process)
-        worker.signals.result.connect(self.refine_UB_complete)
-        worker.signals.finished.connect(self.visualize)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.refine_UB_process)
+        worker.connect_result(self.refine_UB_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def refine_UB_complete(self, result):
 
@@ -612,34 +616,34 @@ class UB(NeuXtalVizPresenter):
 
             if option == 'Constrained' and params is not None:
 
-                progress.emit('Processing...', 1)
+                progress('Processing...', 1)
 
-                progress.emit('Refining orientation...', 50)
+                progress('Refining orientation...', 50)
 
                 self.model.refine_U_only(*params)
 
-                progress.emit('Orientation refined...', 99)
+                progress('Orientation refined...', 99)
 
-                progress.emit('Orientation refined!', 100)
+                progress('Orientation refined!', 100)
 
             elif tol is not None:
 
-                progress.emit('Processing...', 1)
+                progress('Processing...', 1)
 
-                progress.emit('Refining UB...', 50)
+                progress('Refining UB...', 50)
 
                 if option == 'Unconstrained':
                     self.model.refine_UB_without_constraints(tol)
                 else:
                     self.model.refine_UB_with_constraints(option, tol)
 
-                progress.emit('UB refined...', 99)
+                progress('UB refined...', 99)
 
-                progress.emit('UB refined!', 100)
+                progress('UB refined!', 100)
 
             else:
 
-                progress.emit('Invalid parameters.', 0)
+                progress('Invalid parameters.', 0)
 
     def get_modulation_info(self):
 

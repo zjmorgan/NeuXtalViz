@@ -132,12 +132,12 @@ class CrystalStructure(NeuXtalVizPresenter):
 
     def calculate_F2(self):
 
-        worker = self.worker(self.calculate_F2_process)
-        worker.signals.result.connect(self.calculate_F2_complete)
-        worker.signals.finished.connect(self.update_complete)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.calculate_F2_process)
+        worker.connect_result(self.calculate_F2_complete)
+        worker.connect_finished(self.update_complete)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def calculate_F2_complete(self, result):
 
@@ -153,33 +153,33 @@ class CrystalStructure(NeuXtalVizPresenter):
 
         if params is not None:
 
-            progress.emit('Processing...', 1)
+            progress('Processing...', 1)
 
-            progress.emit('Calculating factors...', 10)
+            progress('Calculating factors...', 10)
 
             if d_min is None:
                 d_min = min(params[0:2])*0.2
 
             hkls, ds, F2s = self.model.generate_F2(d_min)
 
-            progress.emit('Factors calculated...', 99)
+            progress('Factors calculated...', 99)
 
-            progress.emit('Factors calculated!', 100)
+            progress('Factors calculated!', 100)
 
             return hkls, ds, F2s
 
         else:
 
-            progress.emit('Invalid parameters.', 0)
+            progress('Invalid parameters.', 0)
 
     def calculate_hkl(self):
 
-        worker = self.worker(self.calculate_hkl_process)
-        worker.signals.result.connect(self.calculate_hkl_complete)
-        worker.signals.finished.connect(self.update_complete)
-        worker.signals.progress.connect(self.update_processing)
+        worker = self.view.worker(self.calculate_hkl_process)
+        worker.connect_result(self.calculate_hkl_complete)
+        worker.connect_finished(self.update_complete)
+        worker.connect_progress(self.update_processing)
 
-        self.threadpool.start(worker)
+        self.view.start_worker_pool(worker)
 
     def calculate_hkl_complete(self, result):
 
@@ -193,21 +193,21 @@ class CrystalStructure(NeuXtalVizPresenter):
 
         if hkl is not None:
 
-            progress.emit('Processing...', 1)
+            progress('Processing...', 1)
 
-            progress.emit('Calculating equivalents...', 10)
+            progress('Calculating equivalents...', 10)
 
             hkls, d, F2 = self.model.calculate_F2(*hkl)
 
-            progress.emit('Equivalents calculated...', 99)
+            progress('Equivalents calculated...', 99)
 
-            progress.emit('Equivalents calculated!', 100)
+            progress('Equivalents calculated!', 100)
 
             return hkls, d, F2
 
         else:
 
-            progress.emit('Invalid parameters.', 0)
+            progress('Invalid parameters.', 0)
 
     def select_isotope(self):
 

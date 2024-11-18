@@ -2804,8 +2804,8 @@ class UBView(NeuXtalVizWidget):
                                                    axes_class=Axes,
                                                    grid_helper=grid_helper)
 
-        self.ax_slice.set_xlabel(labels[0])
-        self.ax_slice.set_ylabel(labels[1])
+        # self.ax_slice.set_xlabel(labels[0])
+        # self.ax_slice.set_ylabel(labels[1])
         self.ax_slice.set_aspect(aspect)
 
         # divider = make_axes_locatable(self.ax_slice)
@@ -2833,6 +2833,9 @@ class UBView(NeuXtalVizWidget):
                                       transform=trans,
                                       rasterized=True)
 
+        # self.ax_slice.set_xticks([])
+        # self.ax_slice.set_yticks([])
+
         xlim = self.ax_slice.get_xlim()
         ylim = self.ax_slice.get_ylim()
 
@@ -2844,10 +2847,10 @@ class UBView(NeuXtalVizWidget):
         xwidth = 0.1 if ascale < 1 else 0.1*ascale
         ywidth = 0.1 if ascale > 1 else 0.1/ascale
 
-        self.ax_xint = self.ax_slice.inset_axes([0, 1, 1, ywidth],
+        self.ax_xint = self.ax_slice.inset_axes([0, 0-ywidth, 1, ywidth],
                                                 sharex=self.ax_slice)
 
-        self.ax_yint = self.ax_slice.inset_axes([1, 0, xwidth, 1],
+        self.ax_yint = self.ax_slice.inset_axes([0-xwidth, 0, xwidth, 1],
                                                 sharey=self.ax_slice)
 
         xint = signal.sum(axis=0)
@@ -2872,19 +2875,46 @@ class UBView(NeuXtalVizWidget):
         self.ax_xint.minorticks_on()
         self.ax_yint.minorticks_on()
 
-        self.ax_xint.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        self.ax_yint.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-
         self.ax_xint.xaxis.get_major_locator().set_params(integer=True)
         self.ax_yint.yaxis.get_major_locator().set_params(integer=True)
 
-        self.ax_xint.set_xticks([])
-        self.ax_yint.set_yticks([])
+        self.ax_xint.set_xlabel(labels[0])
+        self.ax_yint.set_ylabel(labels[1])
+
+        self.ax_xint.yaxis.tick_right()
+        self.ax_yint.xaxis.tick_top()
+
+        # self.ax_xint.tick_params(bottom=True,
+        #                          top=False,
+        #                          right=True,
+        #                          left=False,
+        #                          labelbottom=True,
+        #                          labeltop=False, 
+        #                          labelright=True,
+        #                          labelleft=False)
+
+        # self.ax_yint.tick_params(bottom=False,
+        #                          top=True,
+        #                          right=False,
+        #                          left=True,
+        #                          labelbottom=False,
+        #                          labeltop=True, 
+        #                          labelright=False,
+        #                          labelleft=True)
+
+        self.ax_xint.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        self.ax_yint.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+
+        self.ax_xint.grid(True)
+        self.ax_yint.grid(True)
+
+        # self.ax_xint.set_xticks([])
+        # self.ax_yint.set_yticks([])
 
         self.im = im
         self.vmin, self.vmax = self.im.norm.vmin, self.im.norm.vmax
 
-        self.ax_xint.set_title(title)
+        self.ax_slice.set_title(title)
         self.ax_slice.grid(True)
 
         # ax = [self.ax_slice, self.ax_xint, self.ax_yint]
@@ -2893,6 +2923,8 @@ class UBView(NeuXtalVizWidget):
 
         # self.cb_slice = self.fig_slice.colorbar(self.im, cax=cax)
         # self.cb_slice.minorticks_on()
+
+        self.fig_slice.tight_layout()
 
         self.canvas_slice.draw_idle()
         self.canvas_slice.flush_events()

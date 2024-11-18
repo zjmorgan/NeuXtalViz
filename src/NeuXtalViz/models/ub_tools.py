@@ -237,6 +237,7 @@ class UBModel(NeuXtalVizModel):
                 if not group:
                     GroupWorkspaces(InputWorkspaces='data',
                                     OutputWorkspace='data')
+                return True
         elif instrument == 'WAND²':
             filenames = [filepath.format(IPTS, run) for run in runs]
             if np.all([os.path.exists(filename) for filename in filenames]):
@@ -248,6 +249,7 @@ class UBModel(NeuXtalVizModel):
                 if not group:
                     GroupWorkspaces(InputWorkspaces='data',
                                     OutputWorkspace='data')
+                return True
         else:
             filenames = [filepath.format(IPTS, run) for run in runs]
             if np.all([os.path.exists(filename) for filename in filenames]):
@@ -256,7 +258,7 @@ class UBModel(NeuXtalVizModel):
                      FilterByTofMin=1500,
                      FilterByTofMax=16600,
                      FilterByTimeStop=time_stop,
-                     NumberBins=1,
+                     NumberOfBins=1,
                      OutputWorkspace='data')
                 group = mtd['data'].isGroup()
                 if not group:
@@ -285,6 +287,7 @@ class UBModel(NeuXtalVizModel):
                 GroupDetectors(InputWorkspace='data',
                                OutputWorkspace='data',
                                GroupingPattern=detector_list)
+                return True
 
     def calibrate_data(self, instrument, det_cal, tube_cal):
 

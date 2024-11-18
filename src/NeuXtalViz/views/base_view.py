@@ -19,6 +19,8 @@ import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
 
+from NeuXtalViz.views.utilities import Worker, ThreadPool
+
 class NeuXtalVizWidget(QWidget):
 
     def __init__(self, parent=None):
@@ -47,10 +49,6 @@ class NeuXtalVizWidget(QWidget):
         self.axis1_line.setValidator(validator)
         self.axis2_line.setValidator(validator)
         self.axis3_line.setValidator(validator)
-
-        # self.axis1_line.setFixedWidth(40)
-        # self.axis2_line.setFixedWidth(40)
-        # self.axis3_line.setFixedWidth(40)
 
         self.axis1_label = QLabel('h', self)
         self.axis2_label = QLabel('k', self)
@@ -214,6 +212,20 @@ class NeuXtalVizWidget(QWidget):
         self.setLayout(layout)
 
         self.camera_position = None
+
+        self.threadpool = ThreadPool()
+
+    def start_worker_pool(self, worker):
+
+        self.threadpool.start_worker_pool(worker)
+
+    def worker(self, task):
+        """
+        Worker task.
+
+        """
+        
+        return Worker(task)
 
     def set_info(self, status):
         """

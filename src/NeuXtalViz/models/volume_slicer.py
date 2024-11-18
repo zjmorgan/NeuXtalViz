@@ -31,22 +31,14 @@ class VolumeSlicerModel(NeuXtalVizModel):
         self.max_lim = np.array([dim.getMaximum()-\
                                  dim.getBinWidth()*0.5 for dim in dims])
 
-        # data_lim = np.array([dim.getMaximum()-\
-        #                       dim.getMinimum()-\
-        #                       dim.getBinWidth() for dim in dims])
-
         self.labels = ['{} ({})'.format(dim.name,
                                         dim.getUnits()) for dim in dims]
 
         self.spacing = np.array([dim.getBinWidth() for dim in dims])
 
-        # n_bins = np.array([dim.getNBins() for dim in dims])
-
         scale = 0.25/self.spacing
         scale[scale <= 1] = 1
         scale = scale.round().astype(int)
-
-        # m_bins = (((n_bins-1)/scale+1).round()).astype(int)
 
         blocks = [(scale[0],1,1),
                   (1,scale[1],1),
@@ -98,17 +90,12 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         histo_dict = {}
 
-        histo_dict['signal'] = self.signals[ind]
+        histo_dict['signal'] = self.signals[ind].copy()
 
         histo_dict['min_lim'] = self.min_lim
         histo_dict['max_lim'] = self.max_lim
         histo_dict['spacing'] = self.spacings[ind]
         histo_dict['labels'] = self.labels
-
-        # self.shape = histo_dict['signal'].shape
-        # self.min_lim = min_lim
-        # self.max_lim = max_lim
-        # self.spacing = spacing
 
         P, T, S = self.get_transforms()
 

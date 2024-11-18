@@ -81,7 +81,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.clim_combo.addItem('Min/Max')
         self.clim_combo.addItem('μ±3×σ')
         self.clim_combo.addItem('Q₃/Q₁±1.5×IQR')
-        self.clim_combo.setCurrentIndex(1)
+        self.clim_combo.setCurrentIndex(2)
 
         self.cbar_combo = QComboBox(self)
         self.cbar_combo.addItem('Sequential')
@@ -391,7 +391,6 @@ class VolumeSlicerView(NeuXtalVizWidget):
                                                        origin_translation=False,
                                                        show_scalar_bar=False,
                                                        normal_rotation=False,
-                                                       interaction_event='end',
                                                        cmap=cmap,
                                                        user_matrix=b)
 
@@ -400,7 +399,6 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         prop = self.clip.GetEdgesProperty()
         prop.SetOpacity(0)
-
 
         actor = self.plotter.show_grid(xtitle=labels[0],
                                        ytitle=labels[1],
