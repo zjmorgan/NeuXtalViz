@@ -2884,24 +2884,6 @@ class UBView(NeuXtalVizWidget):
         self.ax_xint.yaxis.tick_right()
         self.ax_yint.xaxis.tick_top()
 
-        # self.ax_xint.tick_params(bottom=True,
-        #                          top=False,
-        #                          right=True,
-        #                          left=False,
-        #                          labelbottom=True,
-        #                          labeltop=False, 
-        #                          labelright=True,
-        #                          labelleft=False)
-
-        # self.ax_yint.tick_params(bottom=False,
-        #                          top=True,
-        #                          right=False,
-        #                          left=True,
-        #                          labelbottom=False,
-        #                          labeltop=True, 
-        #                          labelright=False,
-        #                          labelleft=True)
-
         self.ax_xint.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         self.ax_yint.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
 
