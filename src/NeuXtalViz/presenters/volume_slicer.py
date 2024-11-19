@@ -145,9 +145,9 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         if result is not None:
 
-            histo, normal, origin, trans = result
+            histo, normal, norm, value, trans = result
 
-            self.view.add_histo(histo, normal, origin)
+            self.view.add_histo(histo, normal, norm, value)
 
             self.view.set_transform(trans)
 
@@ -175,16 +175,13 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
             normal = -self.model.get_normal('[uvw]', norm)
 
-            origin = norm
-            origin[origin.index(1)] = value
-
             # origin = self.model.get_normal('[hkl]', orig)
 
             if value is not None:
 
                 progress('Volume drawn!', 100)
 
-                return histo, normal, origin, self.model.get_transform()
+                return histo, normal, norm, value, self.model.get_transform()
 
             else:
 

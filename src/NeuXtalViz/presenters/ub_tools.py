@@ -608,7 +608,7 @@ class UB(NeuXtalVizPresenter):
 
     def refine_UB_process(self, progress):
 
-        if self.model.has_peaks() and self.model.has_UB():
+        if self.model.has_peaks():
 
             params = self.view.get_lattice_constants()
             tol = self.view.get_refine_UB_tol()

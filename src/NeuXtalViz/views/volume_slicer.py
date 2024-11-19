@@ -333,7 +333,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         return filename
 
-    def add_histo(self, histo_dict, normal, origin):
+    def add_histo(self, histo_dict, normal, norm, value):
 
         opacity = opacities[self.get_opacity()][self.get_range()]
 
@@ -342,6 +342,10 @@ class VolumeSlicerView(NeuXtalVizWidget):
         cmap = cmaps[self.get_colormap()]
 
         self.clear_scene()
+        
+        self.norm = np.array(norm).copy()
+        origin = norm
+        origin[origin.index(1)] = value
 
         signal = histo_dict['signal']
         labels = histo_dict['labels']
@@ -436,11 +440,12 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def interaction_callback(self, caller, event):
 
         orig = caller.GetOrigin()
-        norm = caller.GetNormal()
+        #norm = caller.GetNormal()
 
-        norm /= np.linalg.norm(norm)
+        #norm /= np.linalg.norm(norm)
+        #norm = self.norm
 
-        ind = np.isclose(np.abs(norm), 1).tolist().index(True)
+        ind = np.array(self.norm).tolist().index(1)
 
         value = np.dot(self.P_inv, orig)[ind]
 
