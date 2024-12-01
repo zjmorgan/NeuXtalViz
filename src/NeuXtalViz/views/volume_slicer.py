@@ -433,7 +433,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.reset_scene()
 
-        self.clip.AddObserver('InteractionEvent',  self.interaction_callback)
+        self.clip.AddObserver('InteractionEvent', self.interaction_callback)
 
         self.P_inv = np.linalg.inv(P)
 
@@ -449,9 +449,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         value = np.dot(self.P_inv, orig)[ind]
 
-        self.max_slider.blockSignals(True)
+        self.slice_line.blockSignals(True)
         self.set_slice_value(value)
-        self.max_slider.blockSignals(False)
+        self.slice_line.blockSignals(False)
 
         self.slice_ready.emit()
 

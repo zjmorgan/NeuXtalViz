@@ -255,8 +255,6 @@ class UBModel(NeuXtalVizModel):
             if np.all([os.path.exists(filename) for filename in filenames]):
                 filenames = ','.join([filename for filename in filenames])
                 Load(Filename=filenames,
-                     FilterByTofMin=1500,
-                     FilterByTofMax=16600,
                      FilterByTimeStop=time_stop,
                      NumberOfBins=1,
                      OutputWorkspace='data')
