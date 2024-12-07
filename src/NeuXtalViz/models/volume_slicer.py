@@ -8,6 +8,7 @@ import scipy.linalg
 import skimage.measure
 
 from NeuXtalViz.models.base_model import NeuXtalVizModel
+from NeuXtalViz.models.utilities import SaveMDToAscii
 
 class VolumeSlicerModel(NeuXtalVizModel):
 
@@ -56,6 +57,14 @@ class VolumeSlicerModel(NeuXtalVizModel):
         self.set_B()
         self.set_W()
 
+    def save_slice(self, filename):
+
+        SaveMDToAscii('slice', filename)
+
+    def save_cut(self, filename):
+
+        SaveMDToAscii('cut', filename)
+
     def is_histo_loaded(self):
 
         return mtd.doesExist('histo')
@@ -63,6 +72,10 @@ class VolumeSlicerModel(NeuXtalVizModel):
     def is_sliced(self):
 
         return mtd.doesExist('slice')
+
+    def is_cut(self):
+
+        return mtd.doesExist('cut')
 
     def set_B(self):
 

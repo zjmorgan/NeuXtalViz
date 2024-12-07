@@ -214,6 +214,14 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         slice_tab.setLayout(plots_layout)
 
+    def connect_save_slice(self, save_slice):
+
+        self.save_slice_button.clicked.connect(save_slice)
+
+    def connect_save_cut(self, save_cut):
+
+        self.save_cut_button.clicked.connect(save_cut)
+
     def connect_vol_scale_combo(self, update_vol):
 
         self.vol_scale_combo.currentIndexChanged.connect(update_vol)
@@ -273,6 +281,22 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def connect_max_slider(self, update_colorbar):
 
         self.max_slider.valueChanged.connect(update_colorbar)
+
+    def save_file_dialog(self):
+
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getSaveFileName(self,
+                                                  'Save csv file',
+                                                  '',
+                                                  'CSV files (*.csv)',
+                                                  options=options)
+
+        return filename
 
     def update_colorbar_min(self):
 

@@ -33,6 +33,9 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_opacity_combo(self.redraw_data)
         self.view.connect_range_comboo(self.redraw_data)
 
+        self.view.connect_save_slice(self.save_slice)
+        self.view.connect_save_cut(self.save_cut)
+
     def update_slice_value(self):
 
         self.view.update_slice_value()
@@ -264,3 +267,23 @@ class VolumeSlicer(NeuXtalVizPresenter):
                 cut_histo = self.model.get_cut_info(axis, value, thick)
 
                 return cut_histo
+
+    def save_slice(self):
+
+        if self.model.is_sliced():
+
+            filename = self.view.save_file_dialog()
+
+            if filename:
+
+                self.model.save_slice(filename)
+
+    def save_cut(self):
+
+        if self.model.is_cut():
+
+            filename = self.view.save_file_dialog()
+
+            if filename:
+
+                self.model.save_cut(filename)

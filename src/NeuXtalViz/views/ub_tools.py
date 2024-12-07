@@ -2295,7 +2295,7 @@ class UBView(NeuXtalVizWidget):
         ind, tot = 0, 0
         for row, peak in enumerate(peaks):
             self.set_peak(row, peak)
-            ind += peak[-1]
+            ind += peak[-2]
             tot += 1
 
         self.index_line.setText('{}'.format(ind))
@@ -2379,7 +2379,7 @@ class UBView(NeuXtalVizWidget):
     def set_peak_info(self, peak):
 
         hkl, d, lamda, intens, signal_noise, sigma, int_hkl, int_mnp, \
-        run, bank, row, col, ind = peak
+        run, bank, row, col, ind, Q = peak
 
         self.set_indices(hkl, int_hkl, int_mnp)
 

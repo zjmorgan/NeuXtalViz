@@ -23,10 +23,10 @@ from pyvistaqt import QtInteractor
 
 from NeuXtalViz.views.utilities import Worker, ThreadPool
 
-themes = {'Default': pv.themes.Theme(),
-          'Document': pv.themes.DocumentTheme(),
-          'Dark': pv.themes.DarkTheme(),
-          'ParaView': pv.themes.ParaViewTheme()}
+# themes = {'Default': pv.themes.Theme(),
+#           'Document': pv.themes.DocumentTheme(),
+#           'Dark': pv.themes.DarkTheme(),
+#           'ParaView': pv.themes.ParaViewTheme()}
 
 class NeuXtalVizWidget(QWidget):
 
@@ -64,10 +64,12 @@ class NeuXtalVizWidget(QWidget):
         left_layout = QVBoxLayout()
         right_layout = QVBoxLayout()
 
+        # left_layout.addStretch(1)
         left_layout.addWidget(self.save_button)
         left_layout.addWidget(self.reset_button)
         left_layout.addWidget(self.camera_button)
 
+        # right_layout.addStretch(1)
         right_layout.addWidget(self.recip_box)
         right_layout.addWidget(self.axes_box)
         right_layout.addWidget(self.proj_box)
@@ -101,6 +103,8 @@ class NeuXtalVizWidget(QWidget):
         self.T = None
 
         self.threadpool = ThreadPool()
+
+        self.plotter.enable_parallel_projection()
 
     def __init_view_tab(self):
         
@@ -303,6 +307,10 @@ class NeuXtalVizWidget(QWidget):
         return info_tab
 
     def start_worker_pool(self, worker):
+        """
+        Create a worker pool.
+
+        """
 
         self.threadpool.start_worker_pool(worker)
 
@@ -745,3 +753,16 @@ class NeuXtalVizWidget(QWidget):
         """
 
         self.plotter.view_xz()
+
+    def set_position(self, pos):
+        """
+        Set the position.
+
+        Parameters
+        ----------
+        pos : 3-element 1d array-like
+            Coordinate position.
+
+        """
+
+        self.plotter.set_position(pos, reset=True)

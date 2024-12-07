@@ -1710,8 +1710,9 @@ class UBModel(NeuXtalVizModel):
                 row = peak.getRow()
                 col = peak.getCol()
                 ind = peak.getHKL().norm2() > 0
+                Q = list(peak.getQSampleFrame())
                 vals = hkl, d, lamda, intens, signal_noise, \
-                       sigma, int_hkl, int_mnp, run, bank, row, col, ind
+                       sigma, int_hkl, int_mnp, run, bank, row, col, ind, Q
                 peak_info.append(vals)
 
             self.peak_info = peak_info

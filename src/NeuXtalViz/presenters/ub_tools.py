@@ -532,6 +532,7 @@ class UB(NeuXtalVizPresenter):
             peak = self.model.get_peak(no)
             self.view.set_peak_info(peak)
             self.view.highlight_peak(no+1)
+            self.view.set_position(peak[-1])
 
     def lattice_transform(self):
 
