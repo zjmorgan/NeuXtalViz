@@ -155,6 +155,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
         bar_layout.addWidget(self.min_slider)
         bar_layout.addWidget(self.max_slider)
 
+        self.save_slice_button = QPushButton('Save Slice', self)
+        self.save_cut_button = QPushButton('Save Cut', self)
+
         slider_layout.addLayout(bar_layout)
 
         slice_params_layout.addWidget(self.slice_combo)
@@ -162,6 +165,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         slice_params_layout.addWidget(self.slice_line)
         slice_params_layout.addWidget(slice_thickness_label)
         slice_params_layout.addWidget(self.slice_thickness_line)
+        slice_params_layout.addWidget(self.save_slice_button)
         slice_params_layout.addWidget(self.slice_scale_combo)
 
         cut_params_layout.addWidget(self.cut_combo)
@@ -169,6 +173,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         cut_params_layout.addWidget(self.cut_line)
         cut_params_layout.addWidget(cut_thickness_label)
         cut_params_layout.addWidget(self.cut_thickness_line)
+        cut_params_layout.addWidget(self.save_cut_button)
         cut_params_layout.addWidget(self.cut_scale_combo)
 
         plots_layout.addLayout(draw_layout)

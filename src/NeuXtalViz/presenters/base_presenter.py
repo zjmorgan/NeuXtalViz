@@ -6,6 +6,7 @@ class NeuXtalVizPresenter:
         self.model = model
 
         self.view.connect_manual_axis(self.view_manual)
+        self.view.connect_manual_up_axis(self.view_up_manual)
 
         self.view.connect_reciprocal_axes(self.view_bc_star,
                                           self.view_ca_star,
@@ -127,6 +128,19 @@ class NeuXtalVizPresenter:
             vec = self.model.get_vector(*indices)
             if vec is not None:
                 self.view.view_vector(vec)
+
+    def view_up_manual(self):
+        """
+        Manual axis up view.
+
+        """
+
+        indices = self.view.get_manual_axis_up_indices()
+
+        if indices is not None:
+            vec = self.model.get_vector(*indices)
+            if vec is not None:
+                self.view.view_up_vector(vec)
 
     def view_ab_star(self):
         """
