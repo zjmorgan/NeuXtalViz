@@ -115,11 +115,13 @@ class CrystalStructureView(NeuXtalVizWidget):
         self.setting_combo.setEnabled(False)
 
         self.load_CIF_button = QPushButton('Load CIF', self)
+        self.save_INS_button = QPushButton('Save INS', self)
 
         crystal_layout.addWidget(self.crystal_system_combo)
         crystal_layout.addWidget(self.space_group_combo)
         crystal_layout.addWidget(self.setting_combo)
         crystal_layout.addWidget(self.load_CIF_button)
+        crystal_layout.addWidget(self.save_INS_button)
 
         structure_layout.addLayout(crystal_layout)
         structure_layout.addLayout(parameters_layout)
@@ -264,6 +266,10 @@ class CrystalStructureView(NeuXtalVizWidget):
 
         fact_tab.setLayout(factors_layout)
 
+    def connect_save_INS(self, save_INS):
+
+        self.save_INS_button.clicked.connect(save_INS)
+
     def connect_group_generator(self, generate_groups):
 
         self.crystal_system_combo.activated.connect(generate_groups)
@@ -334,6 +340,22 @@ class CrystalStructureView(NeuXtalVizWidget):
                                                   'Load CIF file',
                                                   '',
                                                   'CIF files (*.cif)',
+                                                  options=options)
+
+        return filename
+
+    def save_INS_file_dialog(self):
+
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getSaveFileName(self,
+                                                  'Save INS file',
+                                                  '',
+                                                  'INS files (*.ins)',
                                                   options=options)
 
         return filename

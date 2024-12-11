@@ -7,7 +7,11 @@ beamlines = {
         'Grouping': '4x4',
         'BankPixels': [256, 256],
         'Goniometers': ['BL3:Mot:omega,0,1,0,1'],
-        'Goniometer': {'BL3:Mot:omega': [0, 1, 0, 1, 0, 360]},
+        'Goniometer': {
+            'Goniometer': {
+                'BL3:Mot:omega': [0, 1, 0, 1, 0, 360]
+                }
+            },
         'Motor': {
             'det_lin1': 0,
             'det_lin2': 0,
@@ -29,9 +33,11 @@ beamlines = {
             'BL9:Mot:Sample:Axis3,0,1,0,1',
         ],
         'Goniometer': {
-            'BL9:Mot:Sample:Axis1': [0, 1, 0, 1, 0, 0],
-            'BL9:Mot:Sample:Axis2': [0, 1, 0, 1, 0, 0],
-            'BL9:Mot:Sample:Axis3': [0, 1, 0, 1, 0, 360]
+            'Goniometer': {
+                'BL9:Mot:Sample:Axis1': [0, 1, 0, 1, 0, 0],
+                'BL9:Mot:Sample:Axis2': [0, 1, 0, 1, 0, 0],
+                'BL9:Mot:Sample:Axis3': [0, 1, 0, 1, 0, 360]
+             }
         },
         'RawFile': 'nexus/CORELLI_{}.nxs.h5',
     },
@@ -48,10 +54,17 @@ beamlines = {
             'BL12:Mot:phi,0,1,0,1',
         ],
         'Goniometer': {
-            'BL12:Mot:goniokm:omega': [0, 1, 0, 1, 0, 360],
-            'BL12:Mot:goniokm:chi': [0, 0, 1, 1, 135, 135],
-            'BL12:Mot:goniokm:phi': [0, 1, 0, 1, 0, 360],
-        },
+            'Ambient': {
+                'BL12:Mot:goniokm:omega': [0, 1, 0, 1, 0, 360],
+                'BL12:Mot:goniokm:chi':  [0, 0, 1, 1, 135, 135],
+                'BL12:Mot:goniokm:phi':  [0, 1, 0, 1, 0, 360]
+                },
+            'Cryogenic': {
+                'BL12:Mot:Gonioc:Omega': [0, 1, 0, 1, -180, 180],
+                'BL12:Mot:Gonioc:Chi':  [0, 0, 1, 1, 0, 0],
+                'BL12:Mot:Gonioc:Phi':  [0, 1, 0, 1, 0, 0]
+                }
+             },
         'RawFile': 'nexus/TOPAZ_{}.nxs.h5',
     },
     'MANDI': {
@@ -67,9 +80,11 @@ beamlines = {
             'BL11B:Mot:phi,0,1,0,1',
         ],
         'Goniometer': {
-            'BL11B:Mot:omega': [0, 1, 0, 1, 0, 90],
-            'BL11B:Mot:chi': [0, 0, 1, 1, 130, 130],
-            'BL11B:Mot:phi': [0, 1, 0, 1, 0, 360],
+            'Goniometer': {
+                'BL11B:Mot:omega': [0, 1, 0, 1, 0, 90],
+                'BL11B:Mot:chi': [0, 0, 1, 1, 130, 130],
+                'BL11B:Mot:phi': [0, 1, 0, 1, 0, 360]
+            }
         },
         'RawFile': 'nexus/MANDI_{}.nxs.h5',
     },
@@ -82,9 +97,11 @@ beamlines = {
         'BankPixels': [480, 512],
         'Goniometers': ['s1,0,1,0,1'],
         'Goniometer': {
-            'HB2C:Mot:sgl': [1, 0, 0, -1, 0, 0],
-            'HB2C:Mot:sgu': [0, 0, 1, -1, 0, 0],
-            'HB2C:Mot:s1': [0, 1, 0, 1, -180, 180],
+            'Goniometer': {
+                'HB2C:Mot:sgl': [1, 0, 0, -1, 0, 0],
+                'HB2C:Mot:sgu': [0, 0, 1, -1, 0, 0],
+                'HB2C:Mot:s1': [0, 1, 0, 1, -180, 180]
+            }
         },
         'Motor': {
             'HB2C:Mot:s2.RBV': 30,
@@ -105,9 +122,11 @@ beamlines = {
             'phi,0,1,0,-1',
         ],
         'Goniometer': {
-            'omega': [0, 1, 0, -1],
-            'chi': [0, 0, 1, -1],
-            'phi': [0, 1, 0, -1],
+            'Goniometer': {
+                'omega': [0, 1, 0, -1, -13, 45],
+                'chi': [0, 0, 1, -1, -91, 91],
+                'phi': [0, 1, 0, -1, -180, 180]
+            }
         },
         'Motor': {
             '2theta': 30,

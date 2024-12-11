@@ -1,5 +1,6 @@
 from mantid.simpleapi import mtd
 
+import multiprocessing
 import numpy as np
 
 def SaveMDToAscii(workspace, filename, exclude_integrated=True, format='%.6e'):
@@ -48,3 +49,22 @@ def SaveMDToAscii(workspace, filename, exclude_integrated=True, format='%.6e'):
         to_save = np.c_[to_save, d.flatten()]
 
     np.savetxt(filename, to_save, fmt=format, header=header)
+
+class ParallelTasks:
+
+    def __init__(self, function, args):
+
+        self.function = function
+        self.args = args
+
+    def run_tasks(self, values, n_proc):
+
+        split = [split.tolist() for split in np.array_split(values, n_proc)]
+
+        join_args = [(s, *self.args, proc) for proc, s in enumerate(split)]
+
+        multiprocessing.set_start_method('spawn', force=True)    
+        with multiprocessing.get_context('spawn').Pool(n_proc) as pool:
+            pool.starmap(self.function, join_args)
+            pool.close()
+            pool.join()

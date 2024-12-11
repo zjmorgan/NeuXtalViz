@@ -58,30 +58,30 @@ class ExperimentView(NeuXtalVizWidget):
         self.instrument_combo.addItem('DEMAND')
 
         self.mode_combo = QComboBox(self)
-        self.mode_combo.addItem('Ambient')
-        self.mode_combo.addItem('Cryogenic')
 
-        self.laue_combo = QComboBox(self)
-        self.laue_combo.addItem('None')
-        self.laue_combo.addItem('-1')
-        self.laue_combo.addItem('2/m')
-        self.laue_combo.addItem('mmm')
-        self.laue_combo.addItem('4/m')
-        self.laue_combo.addItem('4/mmm')
-        self.laue_combo.addItem('-3')
-        self.laue_combo.addItem('-3m')
-        self.laue_combo.addItem('6/m')
-        self.laue_combo.addItem('6/mmm')
-        self.laue_combo.addItem('m-3')
-        self.laue_combo.addItem('m-3m')
+        self.crystal_combo = QComboBox(self)
+        self.point_group_combo = QComboBox(self)
+        self.lattice_centering_combo = QComboBox(self)
+
+        self.crystal_combo.addItem('Triclinic')
+        self.crystal_combo.addItem('Monoclinic')
+        self.crystal_combo.addItem('Orthorhombic')
+        self.crystal_combo.addItem('Tetragonal')
+        self.crystal_combo.addItem('Trigonal/Rhombohedral')
+        self.crystal_combo.addItem('Trigonal/Hexagonal')
+        self.crystal_combo.addItem('Hexagonal')
+        self.crystal_combo.addItem('Cubic')
 
         self.load_UB_button = QPushButton('Load UB', self)
         self.optimize_button = QPushButton('Optimize Coverage', self)
 
-        self.wl_min_line = QLineEdit('0.3')
+        self.wl_min_line = QLineEdit('0.4')
         self.wl_max_line = QLineEdit('3.5')
 
+        self.d_min_line = QLineEdit('0.7')
+
         wl_label = QLabel('λ:')
+        d_min_label = QLabel('d(min):')
 
         notation = QDoubleValidator.StandardNotation
 
@@ -89,6 +89,12 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.wl_min_line.setValidator(validator)
         self.wl_max_line.setValidator(validator)
+
+        validator = QDoubleValidator(0.4, 10, 5, notation=notation)
+
+        self.d_min_line.setValidator(validator)
+
+        angstrom_label = QLabel('Å')
 
         settings_label = QLabel('Settings')
         self.settings_line = QLineEdit('20')
@@ -126,25 +132,46 @@ class ExperimentView(NeuXtalVizWidget):
 
         optimize_layout.addWidget(self.load_UB_button)
         optimize_layout.addWidget(self.instrument_combo)
+        optimize_layout.addWidget(self.mode_combo)
         optimize_layout.addWidget(self.optimize_button)
 
         settings_layout = QHBoxLayout()
 
         settings_layout.addWidget(settings_label)
         settings_layout.addWidget(self.settings_line)
-        settings_layout.addWidget(self.laue_combo)
+        settings_layout.addWidget(self.crystal_combo)
+        settings_layout.addWidget(self.point_group_combo)
+        settings_layout.addWidget(self.lattice_centering_combo)
 
         params_layout = QHBoxLayout()
 
         params_layout.addWidget(wl_label)
         params_layout.addWidget(self.wl_min_line)
         params_layout.addWidget(self.wl_max_line)
-        params_layout.addWidget(self.mode_combo)
+        params_layout.addWidget(d_min_label)
+        params_layout.addWidget(self.d_min_line)
+        params_layout.addWidget(angstrom_label)
 
         result_layout = QVBoxLayout()
 
-        result_layout.addWidget(self.goniometer_table)
-        result_layout.addWidget(self.motor_table)
+        values_tab = QTabWidget()
+
+        goniometer_tab = QWidget()
+        motor_tab = QWidget()
+
+        goniometer_layout = QVBoxLayout()
+        motor_layout = QVBoxLayout()
+
+        goniometer_layout.addWidget(self.goniometer_table)
+        motor_layout.addWidget(self.motor_table)
+
+        goniometer_tab.setLayout(goniometer_layout)
+        motor_tab.setLayout(motor_layout)
+
+        values_tab.addTab(goniometer_tab, 'Goniometers')
+        values_tab.addTab(motor_tab, 'Motors')
+
+        result_layout.addWidget(values_tab)
 
         self.canvas = FigureCanvas(Figure(tight_layout=True))
 
@@ -167,9 +194,21 @@ class ExperimentView(NeuXtalVizWidget):
 
         cov_tab.setLayout(coverage_layout)
 
+    def connect_switch_crystal(self, switch_crystal):
+
+        self.crystal_combo.activated.connect(switch_crystal)
+
+    def connect_switch_point_group(self, switch_group):
+
+        self.point_group_combo.activated.connect(switch_group)
+
     def connect_switch_instrument(self, switch_instrument):
 
         self.instrument_combo.activated.connect(switch_instrument)
+
+    def connect_update_goniometer(self, update_goniometer):
+
+        self.mode_combo.activated.connect(update_goniometer)
 
     def connect_optimize(self, optimize):
 
@@ -198,6 +237,44 @@ class ExperimentView(NeuXtalVizWidget):
                                                   options=options)
 
         return filename
+
+    def get_crystal_system(self):
+
+        return self.crystal_combo.currentText()
+
+    def set_point_groups(self, groups):
+
+        self.point_group_combo.clear()
+        for group in groups:
+            self.point_group_combo.addItem(group)
+
+    def get_point_group(self):
+
+        return self.point_group_combo.currentText()
+
+    def set_lattice_centerings(self, centerings):
+
+        self.lattice_centering_combo.clear()
+        for centering in centerings:
+            self.lattice_centering_combo.addItem(centering)
+
+    def get_lattice_centering(self):
+
+        return self.lattice_centering_combo.currentText()
+
+    def get_mode(self):
+
+        return self.mode_combo.currentText()
+
+    def set_modes(self, modes):
+
+        self.mode_combo.clear()
+        for mode in modes:
+            self.mode_combo.addItem(mode)
+
+    def get_mode(self):
+
+        return self.mode_combo.currentText()
 
     def set_wavelength(self, wavelength):
 

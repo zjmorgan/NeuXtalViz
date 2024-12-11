@@ -15,6 +15,7 @@ class CrystalStructure(NeuXtalVizPresenter):
         self.view.connect_lattice_parameters(self.update_parameters)
         self.view.connect_atom_table(self.set_atom_table)
         self.view.connect_load_CIF(self.load_CIF)
+        self.view.connect_save_INS(self.save_INS)
         self.view.connect_select_isotope(self.select_isotope)
 
         self.generate_groups()
@@ -227,3 +228,13 @@ class CrystalStructure(NeuXtalVizPresenter):
         self.view.set_isotope(data)
         self.view.set_atom_table()
         self.update_atoms()
+
+    def save_INS(self):
+
+        if self.model.has_crystal_structure():
+
+            filename = self.view.save_INS_file_dialog()
+    
+            if filename:
+    
+                self.model.save_ins(filename)

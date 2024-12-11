@@ -9,6 +9,9 @@ from mantid.geometry import (CrystalStructure,
 
 from mantid.simpleapi import (CreateSampleWorkspace,
                               LoadCIF,
+                              SaveINS,
+                              SetSample,
+                              SetUB,
                               mtd)
 
 import numpy as np
@@ -24,6 +27,28 @@ class CrystalStructureModel(NeuXtalVizModel):
         super(CrystalStructureModel, self).__init__()
 
         CreateSampleWorkspace(OutputWorkspace='crystal')
+
+    def save_ins(self, filename):
+
+        self.set_material()
+
+        SaveINS(InputWorkspace='crystal',
+                Filename=filename,
+                UseNaturalIsotopicAbundances=True)
+
+    def has_crystal_structure(self):
+
+        return mtd['crystal'].sample().hasCrystalStructure()
+
+    def set_material(self):
+        
+        chemical_formula, z = self.get_chemical_formula_z_parameter()
+        n = z/self.get_unit_cell_volume()
+
+        chemical_formula = ' '.join(chemical_formula.split('-'))
+        SetSample(InputWorkspace='crystal', 
+                  Material={'ChemicalFormula': chemical_formula,
+                            'SampleNumberDensity': float(str(n))})
 
     def generate_space_groups_from_crystal_system(self, system):
 
@@ -93,7 +118,11 @@ class CrystalStructureModel(NeuXtalVizModel):
 
         U = np.linalg.inv(A).T @ np.linalg.inv(B)
 
-        self.set_UB(np.dot(U, B))
+        UB = np.dot(U, B)
+
+        SetUB(Workspace='crystal', UB=UB)
+
+        self.set_UB(UB)
 
     def generate_F2(self, d_min=0.7):
 
