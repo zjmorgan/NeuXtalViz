@@ -55,9 +55,9 @@ beamlines = {
         ],
         'Goniometer': {
             'Ambient': {
-                'BL12:Mot:goniokm:omega': [0, 1, 0, 1, 0, 360],
+                'BL12:Mot:goniokm:omega': [0, 1, 0, 1, -180, 180],
                 'BL12:Mot:goniokm:chi':  [0, 0, 1, 1, 135, 135],
-                'BL12:Mot:goniokm:phi':  [0, 1, 0, 1, 0, 360]
+                'BL12:Mot:goniokm:phi':  [0, 1, 0, 1, -180, 180]
                 },
             'Cryogenic': {
                 'BL12:Mot:Gonioc:Omega': [0, 1, 0, 1, -180, 180],
@@ -83,7 +83,7 @@ beamlines = {
             'Goniometer': {
                 'BL11B:Mot:omega': [0, 1, 0, 1, 0, 90],
                 'BL11B:Mot:chi': [0, 0, 1, 1, 130, 130],
-                'BL11B:Mot:phi': [0, 1, 0, 1, 0, 360]
+                'BL11B:Mot:phi': [0, 1, 0, 1, -180, 180]
             }
         },
         'RawFile': 'nexus/MANDI_{}.nxs.h5',

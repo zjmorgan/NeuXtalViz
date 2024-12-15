@@ -27,6 +27,7 @@ import pyvista as pv
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
+from matplotlib.ticker import FormatStrFormatter
 
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
 
@@ -39,6 +40,7 @@ class ExperimentView(NeuXtalVizWidget):
         self.tab_widget = QTabWidget(self)
 
         self.coverage_tab()
+        self.peak_tab()
 
         self.layout().addWidget(self.tab_widget, stretch=1)
 
@@ -74,6 +76,10 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.load_UB_button = QPushButton('Load UB', self)
         self.optimize_button = QPushButton('Optimize Coverage', self)
+
+        self.save_plan_button = QPushButton('Save CSV', self)
+        self.save_experiment_button = QPushButton('Save Experiment', self)
+        self.load_experiment_button = QPushButton('Load Experiment', self)
 
         self.wl_min_line = QLineEdit('0.4')
         self.wl_max_line = QLineEdit('3.5')
@@ -122,6 +128,8 @@ class ExperimentView(NeuXtalVizWidget):
         self.motor_table.setRowCount(0)
         self.motor_table.setColumnCount(2)
 
+        self.plan_table = QTableWidget()
+
         labels = ['Motor', 'Value']
 
         self.motor_table.horizontalHeader().setStretchLastSection(True)
@@ -132,13 +140,9 @@ class ExperimentView(NeuXtalVizWidget):
 
         optimize_layout.addWidget(self.load_UB_button)
         optimize_layout.addWidget(self.instrument_combo)
-        optimize_layout.addWidget(self.mode_combo)
-        optimize_layout.addWidget(self.optimize_button)
 
         settings_layout = QHBoxLayout()
 
-        settings_layout.addWidget(settings_label)
-        settings_layout.addWidget(self.settings_line)
         settings_layout.addWidget(self.crystal_combo)
         settings_layout.addWidget(self.point_group_combo)
         settings_layout.addWidget(self.lattice_centering_combo)
@@ -158,34 +162,59 @@ class ExperimentView(NeuXtalVizWidget):
 
         goniometer_tab = QWidget()
         motor_tab = QWidget()
+        plan_tab = QWidget()
 
         goniometer_layout = QVBoxLayout()
         motor_layout = QVBoxLayout()
+        plan_layout = QVBoxLayout()
 
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(self.mode_combo)
+        mode_layout.addStretch(1)
+
+        planning_layout = QHBoxLayout()
+        planning_layout.addWidget(settings_label)
+        planning_layout.addWidget(self.settings_line)
+        planning_layout.addStretch(1)
+        planning_layout.addWidget(self.optimize_button)
+
+        save_layout = QHBoxLayout()
+        save_layout.addWidget(self.save_plan_button)
+        save_layout.addStretch(1)
+        save_layout.addWidget(self.save_experiment_button)
+        save_layout.addWidget(self.load_experiment_button)
+
+        goniometer_layout.addLayout(mode_layout)
         goniometer_layout.addWidget(self.goniometer_table)
         motor_layout.addWidget(self.motor_table)
+        plan_layout.addLayout(planning_layout)
+        plan_layout.addWidget(self.plan_table)
+        plan_layout.addLayout(save_layout)
 
         goniometer_tab.setLayout(goniometer_layout)
         motor_tab.setLayout(motor_layout)
+        plan_tab.setLayout(plan_layout)
 
         values_tab.addTab(goniometer_tab, 'Goniometers')
         values_tab.addTab(motor_tab, 'Motors')
+        values_tab.addTab(plan_tab, 'Plan')
 
         result_layout.addWidget(values_tab)
 
-        self.canvas = FigureCanvas(Figure(tight_layout=True))
+        self.canvas_cov = FigureCanvas(Figure(constrained_layout=True,
+                                              figsize=(6.4,3.2)))
 
-        result_layout.addWidget(NavigationToolbar2QT(self.canvas, self))
-        result_layout.addWidget(self.canvas)
+        result_layout.addWidget(NavigationToolbar2QT(self.canvas_cov, self))
+        result_layout.addWidget(self.canvas_cov)
 
-        fig = self.canvas.figure
+        fig = self.canvas_cov.figure
 
-        self.ax = fig.subplots(1, 1)
-        self.ax.set_xlim(0,1)
-        self.ax.set_ylim(0,100)
-        self.ax.minorticks_on()
-        self.ax.set_xlabel('Iteration [#]')
-        self.ax.set_ylabel('Coverage [%]')
+        self.ax_cov = fig.subplots(1, 1)
+        self.ax_cov.set_xlim(0,1)
+        self.ax_cov.set_ylim(0,100)
+        self.ax_cov.minorticks_on()
+        self.ax_cov.set_xlabel('Iteration [#]')
+        self.ax_cov.set_ylabel('Coverage [%]')
 
         coverage_layout.addLayout(optimize_layout)
         coverage_layout.addLayout(settings_layout)
@@ -193,6 +222,114 @@ class ExperimentView(NeuXtalVizWidget):
         coverage_layout.addLayout(result_layout)
 
         cov_tab.setLayout(coverage_layout)
+
+    def peak_tab(self):
+
+        inst_tab = QWidget()
+        self.tab_widget.addTab(inst_tab, 'Peak')
+
+        peak_layout = QVBoxLayout()
+
+        calculator_layout = QGridLayout()
+
+        h_label = QLabel('h', self)
+        k_label = QLabel('k', self)
+        l_label = QLabel('l', self)
+
+        peak_1_label = QLabel('1:', self)
+        peak_2_label = QLabel('2:', self)
+
+        notation = QDoubleValidator.StandardNotation
+
+        validator = QDoubleValidator(-100, 100, 5, notation=notation)
+
+        self.h1_line = QLineEdit()
+        self.k1_line = QLineEdit()
+        self.l1_line = QLineEdit()
+
+        self.h2_line = QLineEdit()
+        self.k2_line = QLineEdit()
+        self.l2_line = QLineEdit()
+
+        self.h1_line.setValidator(validator)
+        self.k1_line.setValidator(validator)
+        self.l1_line.setValidator(validator)
+
+        self.h2_line.setValidator(validator)
+        self.k2_line.setValidator(validator)
+        self.l2_line.setValidator(validator)
+
+        self.calculate_single_button = QPushButton('Individual Peak', self)
+        self.calculate_double_button = QPushButton('Simultaneous Peaks', self)
+
+        calculator_layout.addWidget(h_label, 0, 1, Qt.AlignCenter)
+        calculator_layout.addWidget(k_label, 0, 2, Qt.AlignCenter)
+        calculator_layout.addWidget(l_label, 0, 3, Qt.AlignCenter)
+
+        calculator_layout.addWidget(peak_1_label, 1, 0)
+        calculator_layout.addWidget(self.h1_line, 1, 1)
+        calculator_layout.addWidget(self.k1_line, 1, 2)
+        calculator_layout.addWidget(self.l1_line, 1, 3)
+        calculator_layout.addWidget(self.calculate_single_button, 1, 4)
+
+        calculator_layout.addWidget(peak_2_label, 2, 0)
+        calculator_layout.addWidget(self.h2_line, 2, 1)
+        calculator_layout.addWidget(self.k2_line, 2, 2)
+        calculator_layout.addWidget(self.l2_line, 2, 3)
+        calculator_layout.addWidget(self.calculate_double_button, 2, 4)
+
+        peak_layout.addLayout(calculator_layout)
+
+        self.canvas_inst = FigureCanvas(Figure(constrained_layout=True))
+
+        peak_layout.addWidget(NavigationToolbar2QT(self.canvas_inst, self))
+        peak_layout.addWidget(self.canvas_inst)
+
+        self.fig_inst = self.canvas_inst.figure
+        self.ax_inst = self.fig_inst.subplots(1, 1)
+        self.ax_inst.clear()
+        self.cb_inst = None
+        self.cb_inst_alt = None
+
+        orientation_layout = QHBoxLayout()
+
+        self.add_button = QPushButton('Add Orientation', self)
+
+        self.angles_line = QLineEdit()
+
+        self.angles_combo = QComboBox(self)
+
+        orientation_layout.addWidget(self.angles_combo)
+        orientation_layout.addWidget(self.angles_line)
+        orientation_layout.addWidget(self.add_button)
+
+        peak_layout.addLayout(orientation_layout)
+
+        stretch = QHeaderView.Stretch
+
+        self.peaks_table = QTableWidget()
+        self.peaks_table.setRowCount(0)
+        self.peaks_table.setColumnCount(5)
+
+        header = ['h', 'k', 'l', 'd', 'λ']
+
+        self.peaks_table.horizontalHeader().setSectionResizeMode(stretch)
+        self.peaks_table.setHorizontalHeaderLabels(header)
+        self.peaks_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.peaks_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.peaks_table.setSortingEnabled(True)
+
+        peak_layout.addWidget(self.peaks_table)
+
+        inst_tab.setLayout(peak_layout)
+
+    def connect_calculate_single(self, calculate_single):
+
+        self.calculate_single_button.clicked.connect(calculate_single)
+
+    def connect_calculate_double(self, calculate_double):
+
+        self.calculate_double_button.clicked.connect(calculate_double)
 
     def connect_switch_crystal(self, switch_crystal):
 
@@ -272,10 +409,6 @@ class ExperimentView(NeuXtalVizWidget):
         for mode in modes:
             self.mode_combo.addItem(mode)
 
-    def get_mode(self):
-
-        return self.mode_combo.currentText()
-
     def set_wavelength(self, wavelength):
 
         if type(wavelength) is list:
@@ -307,12 +440,20 @@ class ExperimentView(NeuXtalVizWidget):
         self.goniometer_table.setRowCount(0)
         self.goniometer_table.setRowCount(len(goniometers))
 
+        free = []
         for row, gon in enumerate(goniometers):
             angle, amin, amax = gon
             amin, amax = str(amin), str(amax)
             self.goniometer_table.setItem(row, 0, QTableWidgetItem(angle))
             self.goniometer_table.setItem(row, 1, QTableWidgetItem(amin))
             self.goniometer_table.setItem(row, 2, QTableWidgetItem(amax))
+            item = self.goniometer_table.item(row, 0)
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            if float(amin) == float(amax):
+                for j in [1, 2]:
+                    item = self.goniometer_table.item(row, j)
+                    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                free.append(angle)
 
         self.motor_table.setRowCount(0)
         self.motor_table.setRowCount(len(motors))
@@ -322,14 +463,20 @@ class ExperimentView(NeuXtalVizWidget):
             val = str(val)
             self.motor_table.setItem(row, 0, QTableWidgetItem(setting))
             self.motor_table.setItem(row, 1, QTableWidgetItem(val))
-
-        for row in range(self.goniometer_table.rowCount()):
-            item = self.goniometer_table.item(row, 0)
-            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-
-        for row in range(self.motor_table.rowCount()):
             item = self.motor_table.item(row, 0)
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+
+        self.plan_table.setRowCount(0)
+        self.plan_table.setColumnCount(0)
+        self.plan_table.setColumnCount(len(free)+2)
+
+        labels = free+['Comment', 'Use']
+
+        resize = QHeaderView.Stretch
+
+        self.plan_table.horizontalHeader().setStretchLastSection(True)
+        self.plan_table.horizontalHeader().setSectionResizeMode(resize)
+        self.plan_table.setHorizontalHeaderLabels(labels)
 
     def get_instrument(self):
 
@@ -348,76 +495,189 @@ class ExperimentView(NeuXtalVizWidget):
 
         return logs
 
-    # def get_cluster_parameters(self):
+    def get_goniometer_limits(self):
 
-    #     params = [self.param_eps_line, self.param_min_line]
-    #     valid_params = all([param.hasAcceptableInput() for param in params])
+        limits = []
+        for row in range(self.goniometer_table.rowCount()):
+            amin = float(self.goniometer_table.item(row, 1).text())
+            amax = float(self.goniometer_table.item(row, 2).text())
+            limits.append([amin, amax])
+    
+        return limits
 
-    #     if valid_params:
-
-    #         return float(self.param_eps_line.text()), \
-    #                 int(self.param_min_line.text())
-
-    def add_coverage(self, coverage_dict):
+    def add_peaks(self, peak_dict):
 
         self.plotter.clear_actors()
 
-        signal = coverage_dict['signal']
-        spacing = coverage_dict['spacing']
-        scalars = coverage_dict['scalars']
-        limits = coverage_dict['limits']
+        coordinates = np.array(peak_dict['coordinates'])
+        colors = np.array(peak_dict['colors'])
 
-        grid = pv.ImageData(dimensions=signal.shape)
-        grid['scalars'] = signal.flatten(order='F')
+        points = pv.PolyData(coordinates)
+        points['color'] = colors
 
-        grid.spacing = spacing
-        grid.origin = limits[0::2]
+        self.plotter.add_mesh(points,
+                              color='colors', 
+                              smooth_shading=True,
+                              point_size=5,
+                              render_points_as_spheres=True)
 
-        actor = self.plotter.add_volume(grid,
-                                        scalars=scalars,
-                                        mapper='smart')
-        labels = ['Qx', 'Qy', 'Qz']
-
-        actor = self.plotter.show_grid(xtitle=labels[0],
-                                       ytitle=labels[1],
-                                       ztitle=labels[2],
-                                       font_size=8,
-                                       minor_ticks=True)
-
-        actor.SetXAxisRange(limits[0:2])
-        actor.SetYAxisRange(limits[2:4])
-        actor.SetZAxisRange(limits[4:6])
-
-        axis0_args = *limits[0:2], actor.n_xlabels, actor.x_label_format
-        axis1_args = *limits[2:4], actor.n_ylabels, actor.y_label_format
-        axis2_args = *limits[4:6], actor.n_zlabels, actor.z_label_format
-
-        axis0_label = pv.plotting.cube_axes_actor.make_axis_labels(*axis0_args)
-        axis1_label = pv.plotting.cube_axes_actor.make_axis_labels(*axis1_args)
-        axis2_label = pv.plotting.cube_axes_actor.make_axis_labels(*axis2_args)
-
-        actor.SetAxisLabels(0, axis0_label)
-        actor.SetAxisLabels(1, axis1_label)
-        actor.SetAxisLabels(2, axis2_label)
-
-        # points = coverage_dict['points']
-        # labels = coverage_dict['labels']
-
-        # for point in points:
-
-        #     mesh = pv.Line(pointa=(0,0,0),
-        #                    pointb=point,
-        #                    resolution=1)
-
-        #     self.plotter.add_mesh(mesh,
-        #                           color='k',
-        #                           style='wireframe',
-        #                           render_lines_as_tubes=True)
-
-        # self.plotter.add_point_labels(points,
-        #                               labels,
-        #                               always_visible=True,
-        #                               point_size=10,
-        #                               render_points_as_spheres=True)
+        self.plotter.enable_depth_peeling()
 
         self.reset_view()
+
+    def update_peaks_table(self, peaks):
+
+        self.peaks_table.clearSelection()
+        self.peaks_table.setRowCount(0)
+        self.peaks_table.setRowCount(len(peaks))
+
+        for row, peak in enumerate(peaks):
+            self.set_peak(row, peak)
+
+    def set_peak(self, row, peak):
+
+        hkl, d, lamda = peak
+        h, k, l = hkl
+        h = '{:.3f}'.format(h)
+        k = '{:.3f}'.format(k)
+        l = '{:.3f}'.format(l)
+        d = '{:.4f}'.format(d)
+        lamda = '{:.4f}'.format(lamda)
+        self.peaks_table.setItem(row, 0, QTableWidgetItem(h))
+        self.peaks_table.setItem(row, 1, QTableWidgetItem(k))
+        self.peaks_table.setItem(row, 2, QTableWidgetItem(l))
+        self.peaks_table.setItem(row, 3, QTableWidgetItem(d))
+        self.peaks_table.setItem(row, 4, QTableWidgetItem(lamda))
+
+    def get_input_hkls(self):
+
+        params_1 = self.h1_line, self.k1_line, self.l1_line
+        params_2 = self.h2_line, self.k2_line, self.l2_line
+
+        valid_params = all([param.hasAcceptableInput() for param in params_1])
+
+        if valid_params:
+            params_1 = [float(param.text()) for param in params_1]
+        else:
+            params_1 = None
+
+        valid_params = all([param.hasAcceptableInput() for param in params_2])
+
+        if valid_params:
+            params_2 = [float(param.text()) for param in params_2]
+        else:
+            params_2 = None
+
+        return params_1, params_2
+
+    def plot_instrument(self, gamma_inst, nu_inst, gamma, nu, lamda):
+
+        if self.cb_inst is not None:
+            self.cb_inst.remove()
+
+        if self.cb_inst_alt is not None:
+            self.cb_inst_alt.remove()
+
+        self.ax_inst.clear()
+
+        self.ax_inst.scatter(gamma_inst,
+                             nu_inst,
+                             color='lightgray',
+                             marker='o',
+                             rasterized=True)
+
+        self.im = self.ax_inst.scatter(gamma,
+                                       nu,
+                                       c=lamda,
+                                       marker='o',
+                                       rasterized=True)
+
+        self.ax_inst.set_aspect(1)
+        self.ax_inst.minorticks_on()
+
+        self.ax_inst.set_xlabel(r'$\gamma$')
+        self.ax_inst.set_ylabel(r'$\nu$')
+
+        fmt_str_form = FormatStrFormatter(r'$%d^\circ$')
+
+        self.ax_inst.xaxis.set_major_formatter(fmt_str_form)
+        self.ax_inst.yaxis.set_major_formatter(fmt_str_form)
+
+        if len(lamda) > 0:
+            self.cb_inst = self.fig_inst.colorbar(self.im,
+                                                  ax=self.ax_inst,
+                                                  orientation='horizontal')
+            self.cb_inst.minorticks_on()
+            self.cb_inst.ax.set_xlabel(r'$\lambda$ [Å]')
+
+        self.canvas_inst.draw_idle()
+        self.canvas_inst.flush_events()
+
+    def plot_instrument_alternate(self, gamma_inst,
+                                        nu_inst,
+                                        gamma_1,
+                                        nu_1,
+                                        lamda_1,
+                                        gamma_2,
+                                        nu_2,
+                                        lamda_2):
+
+        if self.cb_inst is not None:
+            self.cb_inst.remove()
+
+        if self.cb_inst_alt is not None:
+            self.cb_inst_alt.remove()
+
+        self.ax_inst.clear()
+
+        self.ax_inst.scatter(gamma_inst,
+                             nu_inst,
+                             color='lightgray',
+                             marker='o',
+                             rasterized=True)
+
+        self.im = self.ax_inst.scatter(gamma_1,
+                                       nu_1,
+                                       c=lamda_1,
+                                       marker='o',
+                                       cmap='GnBu',
+                                       rasterized=True)
+
+        self.im_alt = self.ax_inst.scatter(gamma_2,
+                                           nu_2,
+                                           c=lamda_2,
+                                           marker='o',
+                                           cmap='RdPu',
+                                           rasterized=True)
+
+
+        self.ax_inst.set_aspect(1)
+        self.ax_inst.minorticks_on()
+
+        self.ax_inst.set_xlabel(r'$\gamma$')
+        self.ax_inst.set_ylabel(r'$\nu$')
+
+        fmt_str_form = FormatStrFormatter(r'$%d^\circ$')
+
+        self.ax_inst.xaxis.set_major_formatter(fmt_str_form)
+        self.ax_inst.yaxis.set_major_formatter(fmt_str_form)
+
+        if len(lamda_2) > 0:
+            self.cb_inst_alt = self.fig_inst.colorbar(self.im_alt,
+                                                      ax=self.ax_inst,
+                                                      orientation='horizontal')
+            self.cb_inst_alt.minorticks_on()
+
+        if len(lamda_1) > 0:
+            self.cb_inst = self.fig_inst.colorbar(self.im,
+                                                  ax=self.ax_inst,
+                                                  orientation='horizontal')
+            self.cb_inst.minorticks_on()
+    
+        if len(lamda_2) > 0:
+            self.cb_inst_alt.ax.set_xlabel(r'$\lambda$ [Å]')
+        elif len(lamda_1) > 0:
+            self.cb_inst.ax.set_xlabel(r'$\lambda$ [Å]')
+
+        self.canvas_inst.draw_idle()
+        self.canvas_inst.flush_events()

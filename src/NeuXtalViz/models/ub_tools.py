@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 
 from mantid.simpleapi import (SelectCellWithForm,
                               ShowPossibleCells,
@@ -132,7 +133,7 @@ class UBModel(NeuXtalVizModel):
     def has_UB(self):
 
         if self.has_peaks():
-            if HasUB(self.table):
+            if HasUB(Workspace=self.table):
                 return True
             else:
                 return False
@@ -268,20 +269,20 @@ class UBModel(NeuXtalVizModel):
                 cols, rows = inst['BankPixels']
                 c, r = [int(val) for val in grouping.split('x')]
                 shape = (-1, cols, rows)
-                det_id = np.array(mtd['detectors'].column(4)).reshape(*shape)
+                #det_id = np.array(mtd['detectors'].column(4)).reshape(*shape)
                 det_map = np.array(mtd['detectors'].column(5)).reshape(*shape)
-                grouped_ids = {}
-                for i in range(det_id.shape[0]):
-                    for j in range(det_id.shape[1]):
-                        for k in range(det_id.shape[2]):
-                            key = (i, j // c, k // r)
-                            detector_id = str(det_map[i,j,k])
-                            if key in grouped_ids:
-                                grouped_ids[key].append(detector_id)
-                            else:
-                                grouped_ids[key] = [detector_id]
-                detector_list = ','.join(['+'.join(grouped_ids[key]) for key \
-                                          in grouped_ids.keys()])
+                shape = det_map.shape
+                i, j, k = np.meshgrid(np.arange(shape[0]),
+                                      np.arange(shape[1]),
+                                      np.arange(shape[2]), indexing='ij')
+                keys = np.stack((i, j // c, k // r), axis=-1)
+                keys_flat = keys.reshape(-1, keys.shape[-1])
+                det_map_flat = det_map.ravel().astype(str)
+                grouped_ids = defaultdict(list)
+                for key, detector_id in zip(map(tuple, keys_flat), det_map_flat):
+                    grouped_ids[key].append(detector_id)
+                detector_list = ','.join('+'.join(group)\
+                                         for group in grouped_ids.values())
                 GroupDetectors(InputWorkspace='data',
                                OutputWorkspace='data',
                                GroupingPattern=detector_list)

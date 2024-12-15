@@ -8,6 +8,7 @@ from mantid.simpleapi import (CreatePeaksWorkspace,
                               FilterPeaks,
                               StatisticsOfPeaksWorkspace,
                               CombinePeaksWorkspaces,
+                              AddPeakHKL,
                               SetUB,
                               SetGoniometer,
                               LoadNexus,
@@ -17,16 +18,21 @@ from mantid.simpleapi import (CreatePeaksWorkspace,
                               LoadInstrument,
                               ExtractMonitors,
                               PreprocessDetectorsToMD,
+                              GroupDetectors,
                               AddSampleLog,
                               CreateEmptyTableWorkspace,
                               CloneWorkspace,
                               DeleteWorkspace,
                               RenameWorkspaces,
+                              HasUB,
                               mtd)
 
-# from mantid.geometry import PointGroupFactory
+from mantid.kernel import V3D
+
+from collections import defaultdict
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 from NeuXtalViz.models.base_model import NeuXtalVizModel
 from NeuXtalViz.models.utilities import ParallelTasks
@@ -162,6 +168,94 @@ class ExperimentModel(NeuXtalVizModel):
 
         super(ExperimentModel, self).__init__()
 
+        CreateEmptyTableWorkspace(OutputWorkspace='plan')
+
+        CreatePeaksWorkspace(NumberOfPeaks=0,
+                             OutputType='LeanElasticPeak',
+                             OutputWorkspace='coverage')
+
+    def initialize_instrument(self, instrument, logs):
+
+        inst = self.get_instrument_name(instrument)
+
+        if not mtd.doesExist('instrument'):
+
+            LoadEmptyInstrument(InstrumentName=inst,
+                                OutputWorkspace='instrument')
+
+            for key in logs.keys():
+
+                AddSampleLog(Workspace='instrument',
+                             LogName=key,
+                             LogText=str(logs[key]),
+                             LogType='Number Series',
+                             NumberType='Double')
+
+            LoadInstrument(Workspace='instrument',
+                           RewriteSpectraMap=False,
+                           InstrumentName=inst)
+
+            ExtractMonitors(InputWorkspace='instrument',
+                            MonitorWorkspace='monitors',
+                            DetectorWorkspace='instrument')
+
+            PreprocessDetectorsToMD(InputWorkspace='instrument',
+                                    OutputWorkspace='detectors')
+
+            cols, rows = beamlines[instrument]['BankPixels']
+            grouping = beamlines[instrument]['Grouping']
+
+            c, r = [int(val) for val in grouping.split('x')]
+            shape = (-1, cols, rows)
+
+            det_map = np.array(mtd['detectors'].column(5)).reshape(*shape)
+
+            shape = det_map.shape
+            i, j, k = np.meshgrid(np.arange(shape[0]),
+                                  np.arange(shape[1]),
+                                  np.arange(shape[2]), indexing='ij')
+            keys = np.stack((i, j // c, k // r), axis=-1)
+            keys_flat = keys.reshape(-1, keys.shape[-1])
+            det_map_flat = det_map.ravel().astype(str)
+            grouped_ids = defaultdict(list)
+
+            for key, detector_id in zip(map(tuple, keys_flat), det_map_flat):
+                grouped_ids[key].append(detector_id)
+
+            detector_list = ','.join('+'.join(group)\
+                                     for group in grouped_ids.values())
+
+            GroupDetectors(InputWorkspace='instrument',
+                           OutputWorkspace='instrument',
+                           GroupingPattern=detector_list)
+
+            CreatePeaksWorkspace(InstrumentWorkspace='instrument',
+                                 NumberOfPeaks=0,
+                                 OutputType='LeanElasticPeak',
+                                 OutputWorkspace='peak')
+
+            CreatePeaksWorkspace(InstrumentWorkspace='instrument',
+                                 NumberOfPeaks=0,
+                                 OutputType='Peak',
+                                 OutputWorkspace='peaks')
+
+            L2 = np.array(mtd['detectors'].column(1))
+            tt = np.array(mtd['detectors'].column(2))
+            az = np.array(mtd['detectors'].column(3))
+
+            x = L2*np.sin(tt)*np.cos(az)
+            y = L2*np.sin(tt)*np.sin(az)
+            z = L2*np.cos(tt)
+
+            self.nu = np.rad2deg(np.arcsin(y/L2))
+            self.gamma = np.rad2deg(np.arctan2(x,z))
+
+    def remove_instrument(self):
+
+        if mtd.doesExist('instrument'):
+
+            DeleteWorkspace(Workspace='instrument')
+
     def get_crystal_system_point_groups(self, crystal_system):
 
         return crystal_system_point_groups[crystal_system]
@@ -176,21 +270,21 @@ class ExperimentModel(NeuXtalVizModel):
 
     def create_plan(self, instrument, mode, angles):
 
-        CreateEmptyTableWorkspace(OutputWorkspace='plan')
+        mtd['plan'].setRowCount(0)
+        for col in mtd['plan'].getColumnNames():
+            mtd['plan'].removeColumn(col)
 
         mtd['plan'].setTitle('{} {}'.format(instrument, mode))
         mtd['plan'].setComment('{} {}'.format(instrument, mode))
         mtd['plan'].addColumn('str', 'Title')
+
         for angle in angles:
             mtd['plan'].addColumn('float', angle)
+
         mtd['plan'].addColumn('str', 'comment')
         mtd['plan'].addColumn('bool', 'use')
 
     def load_UB(self, filename):
-
-        CreatePeaksWorkspace(OutputType='LeanElasticPeak',
-                             NumberOfPeaks=0,
-                             OutputWorkspace='coverage')        
 
         LoadIsawUB(InputWorkspace='coverage', Filename=filename)
 
@@ -198,11 +292,18 @@ class ExperimentModel(NeuXtalVizModel):
 
     def copy_UB(self):
 
-        if self.has_UB('coverage'):
+        if self.has_UB():
 
             UB = mtd['coverage'].sample().getOrientedLattice().getUB().copy()
 
             self.set_UB(UB)
+
+    def has_UB(self):
+
+        if HasUB(Workspace='coverage'):
+            return True
+        else:
+            return False
 
     def get_instrument_name(self, instrument):
 
@@ -211,6 +312,16 @@ class ExperimentModel(NeuXtalVizModel):
     def get_modes(self, instrument):
 
         return list(beamlines[instrument]['Goniometer'].keys())
+
+    def get_axes_polarities(self, instrument, mode):
+
+        goniometers = beamlines[instrument]['Goniometer'][mode]
+
+        axes = [goniometers[name][:-3] for name in goniometers.keys()]
+
+        polarities = [goniometers[name][3] for name in goniometers.keys()]
+
+        return axes, polarities
 
     def get_goniometers(self, instrument, mode):
 
@@ -232,6 +343,7 @@ class ExperimentModel(NeuXtalVizModel):
         return beamlines[instrument]['Wavelength']
 
     def hsl_to_rgb(self, hue, saturation, lightness):
+
         h = np.array(hue)
         s = np.array(saturation)
         l = np.array(lightness)
@@ -242,6 +354,7 @@ class ExperimentModel(NeuXtalVizModel):
             return l-a*np.maximum(-1, np.minimum(np.minimum(k-3, 9-k), 1))
 
         rgb = np.stack((f(h, s, l, 0), f(h, s, l, 8), f(h, s, l, 4)), axis=-1)
+
         return rgb
 
     def get_coverage_info(self):
@@ -313,6 +426,209 @@ class ExperimentModel(NeuXtalVizModel):
             writer.writeheader()
             for row in zip(*plan_dict.values()):
                 writer.writerow(dict(zip(plan_dict.keys(), row)))
+
+    def _calculate_matrices(self, axes, polarities, limits, step):
+
+        angular_coverage = []
+        for limit in limits:
+            angular_coverage.append(np.arange(limit[0], limit[1]+step, step))
+
+        # for ang_cov in itertools.product(*angular_coverage):
+            # for i, ac in enumerate(ang_cov):
+            #     ax[i] = axes[i].format(ac)
+
+            # SetGoniometer(Workspace='peak',
+            #               Axis0=ax[0],
+            #               Axis1=ax[1],
+            #               Axis2=ax[2],
+            #               Axis3=ax[3],
+            #               Axis4=ax[4],
+            #               Axis5=ax[5])
+
+            # R = mtd['peak'].run().getGoniometer().getR()
+            # Rs.append(R)
+
+        axes = np.array(axes)
+        polarities = np.array(polarities)
+
+        angle_settings = np.meshgrid(*angular_coverage, indexing='ij')
+        angle_settings = np.reshape(angle_settings, (len(polarities), -1)).T
+
+        angle_settings = angle_settings*polarities
+        angle_settings = np.deg2rad(angle_settings)
+
+        rotation_vectors = angle_settings[...,None]*axes
+        rotation_vectors = rotation_vectors.reshape(-1, 3)
+
+        all_rotations = Rotation.from_rotvec(rotation_vectors).as_matrix()
+        all_rotations = all_rotations.reshape(*angle_settings.shape, 3, 3)
+
+        Rs = []
+        for i in range(all_rotations.shape[0]):
+            R = np.eye(3)
+            for j in range(all_rotations.shape[1]):
+                R = R @ all_rotations[i, j, :, :]
+            Rs.append(R)
+
+        return Rs
+
+    def individual_peak(self, hkl,
+                              wavelength,
+                              axes,
+                              polarities,
+                              limits,
+                              step=1):
+
+        if np.isclose(wavelength[0], wavelength[1]):
+            wavelength = [0.975*wavelength[0], 1.025*wavelength[1]]
+
+        FilterPeaks(InputWorkspace='peak',
+                    OutputWorkspace='peak',
+                    FilterVariable='RunNumber',
+                    FilterValue=-1,
+                    Operator='=')
+
+        UB = mtd['coverage'].sample().getOrientedLattice().getUB().copy()
+
+        SetUB(Workspace='peak', UB=UB)
+
+        AddPeakHKL(Workspace='peak', HKL=hkl)
+
+        Q_sample = mtd['peak'].getPeak(0).getQSampleFrame()
+
+        Q = np.sqrt(np.dot(Q_sample, Q_sample))
+
+        Rs = self._calculate_matrices(axes, polarities, limits, step)
+
+        mtd['peak'].run().getGoniometer().setR(np.eye(3))
+        mtd['peaks'].run().getGoniometer().setR(np.eye(3))
+
+        Q_lab = np.einsum('kij,j->ki', Rs, Q_sample)
+
+        lamda = -4*np.pi*Q_lab[:,2]/Q**2
+        mask = (lamda > wavelength[0]) & (lamda < wavelength[1])
+
+        k = 2*np.pi/lamda
+
+        ki = k[:,np.newaxis]*np.array([0,0,1])
+        kf = Q_lab+ki
+
+        gamma = np.rad2deg(np.arctan2(kf[:,0],kf[:,2]))[mask]
+        nu = np.rad2deg(np.arcsin(kf[:,1]/k))[mask]
+        lamda = lamda[mask]
+
+        if len(lamda) > 0:
+
+            k = 2*np.pi/lamda
+            Qx = k*np.cos(np.deg2rad(nu))*np.sin(np.deg2rad(gamma))
+            Qy = k*np.sin(np.deg2rad(nu))
+            Qz = k*(np.cos(np.deg2rad(nu))*np.cos(np.deg2rad(gamma))-1)
+
+            mask = []
+            for i in range(len(k)):
+                peak = mtd['peaks'].createPeak(V3D(Qx[i],Qy[i],Qz[i]))
+                mask.append(peak.getDetectorID() > 0)
+
+            mask = np.array(mask)
+
+            gamma = gamma[mask]
+            nu = nu[mask]
+            lamda = lamda[mask]
+
+        return gamma, nu, lamda
+
+    def simultaneous_peaks(self, hkl_1,
+                                 hkl_2,
+                                 wavelength,
+                                 axes,
+                                 polarities,
+                                 limits,
+                                 step=1):
+
+        if np.isclose(wavelength[0], wavelength[1]):
+            wavelength = [0.975*wavelength[0], 1.025*wavelength[1]]
+
+        FilterPeaks(InputWorkspace='peak',
+                    OutputWorkspace='peak',
+                    FilterVariable='RunNumber',
+                    FilterValue=-1,
+                    Operator='=')
+
+        UB = mtd['coverage'].sample().getOrientedLattice().getUB().copy()
+
+        SetUB(Workspace='peak', UB=UB)
+
+        AddPeakHKL(Workspace='peak', HKL=hkl_1)
+        AddPeakHKL(Workspace='peak', HKL=hkl_2)
+
+        Q0_sample = mtd['peak'].getPeak(0).getQSampleFrame()
+        Q1_sample = mtd['peak'].getPeak(1).getQSampleFrame()
+
+        Q0 = np.sqrt(np.dot(Q0_sample, Q0_sample))
+        Q1 = np.sqrt(np.dot(Q1_sample, Q1_sample))
+
+        Rs = self._calculate_matrices(axes, polarities, limits, step)
+
+        Q0_lab = np.einsum('kij,j->ki', Rs, Q0_sample)
+        Q1_lab = np.einsum('kij,j->ki', Rs, Q1_sample)
+
+        lamda0 = -4*np.pi*Q0_lab[:,2]/Q0**2
+        lamda1 = -4*np.pi*Q1_lab[:,2]/Q1**2
+
+        mask = (lamda0 > wavelength[0]) & (lamda0 < wavelength[1])\
+             & (lamda1 > wavelength[0]) & (lamda1 < wavelength[1])
+
+        k0 = 2*np.pi/lamda0
+        k1 = 2*np.pi/lamda1
+
+        k0i = k0[:,np.newaxis]*np.array([0,0,1])
+        k1i = k1[:,np.newaxis]*np.array([0,0,1])
+
+        k0f = Q0_lab+k0i
+        k1f = Q1_lab+k1i
+
+        gamma0 = np.rad2deg(np.arctan2(k0f[:,0],k0f[:,2]))[mask]
+        gamma1 = np.rad2deg(np.arctan2(k1f[:,0],k1f[:,2]))[mask]
+
+        nu0 = np.rad2deg(np.arcsin(k0f[:,1]/k0))[mask]
+        nu1 = np.rad2deg(np.arcsin(k1f[:,1]/k1))[mask]
+
+        lamda0 = lamda0[mask]
+        lamda1 = lamda1[mask]
+
+        if len(lamda0) > 0:
+
+            k0 = 2*np.pi/lamda0
+            k1 = 2*np.pi/lamda1
+
+            Q0x = k0*np.cos(np.deg2rad(nu0))*np.sin(np.deg2rad(gamma0))
+            Q1x = k1*np.cos(np.deg2rad(nu1))*np.sin(np.deg2rad(gamma1))
+
+            Q0y = k0*np.sin(np.deg2rad(nu0))
+            Q1y = k1*np.sin(np.deg2rad(nu1))
+
+            Q0z = k0*(np.cos(np.deg2rad(nu0))*np.cos(np.deg2rad(gamma0))-1)
+            Q1z = k1*(np.cos(np.deg2rad(nu1))*np.cos(np.deg2rad(gamma1))-1)
+
+            mask = []
+            for i in range(len(k1)):
+                peak0 = mtd['peaks'].createPeak(V3D(Q0x[i],Q0y[i],Q0z[i]))
+                peak1 = mtd['peaks'].createPeak(V3D(Q1x[i],Q1y[i],Q1z[i]))
+                mask.append((peak0.getDetectorID() > 0) &\
+                            (peak1.getDetectorID() > 0))
+
+            mask = np.array(mask)
+
+            gamma0 = gamma0[mask]
+            gamma1 = gamma1[mask]
+
+            nu0 = nu0[mask]
+            nu1 = nu1[mask]
+
+            lamda0 = lamda0[mask]
+            lamda1 = lamda1[mask]
+
+        return (gamma0, nu0, lamda0), (gamma1, nu1, lamda1)
 
 class CoverageOptimizer(ParallelTasks):
 
