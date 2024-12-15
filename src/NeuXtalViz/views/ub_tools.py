@@ -19,8 +19,7 @@ from qtpy.QtWidgets import (QWidget,
                             QFileDialog)
 
 from qtpy.QtGui import QDoubleValidator, QIntValidator
-from qtpy.QtCore import Qt
-from PyQt5.QtCore import pyqtSignal
+from qtpy.QtCore import Qt, Signal
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
@@ -42,8 +41,8 @@ cmaps = {'Sequential': 'viridis',
 
 class UBView(NeuXtalVizWidget):
 
-    roi_ready = pyqtSignal()
-    index_ready = pyqtSignal()
+    roi_ready = Signal()
+    index_ready = Signal()
 
     def __init__(self, parent=None):
 

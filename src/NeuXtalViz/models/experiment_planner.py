@@ -8,6 +8,7 @@ from mantid.simpleapi import (CreatePeaksWorkspace,
                               FilterPeaks,
                               StatisticsOfPeaksWorkspace,
                               CombinePeaksWorkspaces,
+                              SortPeaksWorkspace,
                               AddPeakHKL,
                               SetUB,
                               SetGoniometer,
@@ -21,6 +22,7 @@ from mantid.simpleapi import (CreatePeaksWorkspace,
                               GroupDetectors,
                               AddSampleLog,
                               CreateEmptyTableWorkspace,
+                              DeleteTableRows,
                               CloneWorkspace,
                               DeleteWorkspace,
                               RenameWorkspaces,
@@ -28,6 +30,7 @@ from mantid.simpleapi import (CreatePeaksWorkspace,
                               mtd)
 
 from mantid.kernel import V3D
+from mantid.geometry import PointGroupFactory
 
 from collections import defaultdict
 
@@ -239,6 +242,11 @@ class ExperimentModel(NeuXtalVizModel):
                                  OutputType='Peak',
                                  OutputWorkspace='peaks')
 
+            CreatePeaksWorkspace(InstrumentWorkspace='instrument',
+                                 NumberOfPeaks=0,
+                                 OutputType='Peak',
+                                 OutputWorkspace='combined')
+
             L2 = np.array(mtd['detectors'].column(1))
             tt = np.array(mtd['detectors'].column(2))
             az = np.array(mtd['detectors'].column(3))
@@ -255,6 +263,14 @@ class ExperimentModel(NeuXtalVizModel):
         if mtd.doesExist('instrument'):
 
             DeleteWorkspace(Workspace='instrument')
+
+        if mtd.doesExist('cobmined'):
+
+            DeleteWorkspace(Workspace='cobmined')
+
+        if mtd.doesExist('filtered'):
+
+            DeleteWorkspace(Workspace='filtered')
 
     def get_crystal_system_point_groups(self, crystal_system):
 
@@ -342,75 +358,6 @@ class ExperimentModel(NeuXtalVizModel):
 
         return beamlines[instrument]['Wavelength']
 
-    def hsl_to_rgb(self, hue, saturation, lightness):
-
-        h = np.array(hue)
-        s = np.array(saturation)
-        l = np.array(lightness)
-
-        def f(h, s, l, n):
-            k = (n+h/30) % 12
-            a = s*np.minimum(l, 1-l)
-            return l-a*np.maximum(-1, np.minimum(np.minimum(k-3, 9-k), 1))
-
-        rgb = np.stack((f(h, s, l, 0), f(h, s, l, 8), f(h, s, l, 4)), axis=-1)
-
-        return rgb
-
-    def get_coverage_info(self):
-
-        coverage_dict = {}
-
-        coverage_dict['signal'] = self.hist
-        coverage_dict['spacing'] = (self.Q_bins[1]-self.Q_bins[0],)*3
-
-        UB = mtd['coverage'].sample().getOrientedLattice().getUB().copy()
-        UB_inv = np.linalg.inv(UB)
-
-        Q_centers = 0.5*(self.Q_bins[1:]+self.Q_bins[:-1])
-
-        x, y, z = np.meshgrid(Q_centers, Q_centers, Q_centers)
-
-        h, k, l = np.einsum('ij,jk->ik', UB_inv, [x.ravel(),
-                                                  y.ravel(),
-                                                  z.ravel()])
-
-        r = np.sqrt(h**2+k**2+l**2)
-        theta = np.arccos(l/r)
-        phi = np.arctan2(k, h)
-
-        hue = phi*180/np.pi+180
-        saturation = np.ones_like(hue)
-        lightness = theta/np.pi
-
-        rgb = self.hsl_to_rgb(hue, saturation, lightness)
-
-        Q = np.sqrt(x**2+y**2+z**2)
-
-        a = (Q-self.Q_min)/(self.Q_max-self.Q_min)*255
-        a[self.hist == 0] = 0
-
-        limits = [-self.Q_max, self.Q_max]*3
-
-        rgb = np.array(rgb)*255
-        rgba = np.column_stack([rgb, a.ravel()]).astype(np.uint8)
-
-        coverage_dict['scalars'] = rgba
-
-        points = list(itertools.product([-1, 0, 1], repeat=3))
-        points = [point for point in points if point != (0, 0, 0)]
-
-        labels = ['{}{}{}'.format(*point) for point in points]
-
-        points = [np.dot(UB, point) for point in points]
-        points = [self.Q_max*point/np.linalg.norm(point) for point in points]
-
-        coverage_dict['labels'] = labels
-        coverage_dict['points'] = points
-        coverage_dict['limits'] = limits
-
-        return coverage_dict
-
     def save_plan(self, filename):
 
         plan_dict = mtd['plan'].toDict().copy()
@@ -429,30 +376,23 @@ class ExperimentModel(NeuXtalVizModel):
 
     def _calculate_matrices(self, axes, polarities, limits, step):
 
+        self.axes = [None]*6
+
+        for i, (axis, polarity) in enumerate(zip(axes, polarities)):
+            self.axes[i] = '{},'
+            self.axes[i] +=','.join(np.array([*axis,polarity]).astype(str))
+
         angular_coverage = []
         for limit in limits:
             angular_coverage.append(np.arange(limit[0], limit[1]+step, step))
-
-        # for ang_cov in itertools.product(*angular_coverage):
-            # for i, ac in enumerate(ang_cov):
-            #     ax[i] = axes[i].format(ac)
-
-            # SetGoniometer(Workspace='peak',
-            #               Axis0=ax[0],
-            #               Axis1=ax[1],
-            #               Axis2=ax[2],
-            #               Axis3=ax[3],
-            #               Axis4=ax[4],
-            #               Axis5=ax[5])
-
-            # R = mtd['peak'].run().getGoniometer().getR()
-            # Rs.append(R)
 
         axes = np.array(axes)
         polarities = np.array(polarities)
 
         angle_settings = np.meshgrid(*angular_coverage, indexing='ij')
         angle_settings = np.reshape(angle_settings, (len(polarities), -1)).T
+
+        self.angles = angle_settings.copy()
 
         angle_settings = angle_settings*polarities
         angle_settings = np.deg2rad(angle_settings)
@@ -467,7 +407,7 @@ class ExperimentModel(NeuXtalVizModel):
         for i in range(all_rotations.shape[0]):
             R = np.eye(3)
             for j in range(all_rotations.shape[1]):
-                R = R @ all_rotations[i, j, :, :]
+                R = R @ all_rotations[i,j,:,:]
             Rs.append(R)
 
         return Rs
@@ -478,6 +418,8 @@ class ExperimentModel(NeuXtalVizModel):
                               polarities,
                               limits,
                               step=1):
+
+        self.comment = '('+' '.join(np.array(hkl).astype(str))+')'
 
         if np.isclose(wavelength[0], wavelength[1]):
             wavelength = [0.975*wavelength[0], 1.025*wavelength[1]]
@@ -517,6 +459,10 @@ class ExperimentModel(NeuXtalVizModel):
         nu = np.rad2deg(np.arcsin(kf[:,1]/k))[mask]
         lamda = lamda[mask]
 
+        self.angles = self.angles[mask]
+        self.angles_gamma = gamma.copy()
+        self.angles_nu = nu.copy()
+
         if len(lamda) > 0:
 
             k = 2*np.pi/lamda
@@ -535,6 +481,10 @@ class ExperimentModel(NeuXtalVizModel):
             nu = nu[mask]
             lamda = lamda[mask]
 
+            self.angles = self.angles[mask]
+            self.angles_gamma = gamma.copy()
+            self.angles_nu = nu.copy()
+
         return gamma, nu, lamda
 
     def simultaneous_peaks(self, hkl_1,
@@ -544,6 +494,8 @@ class ExperimentModel(NeuXtalVizModel):
                                  polarities,
                                  limits,
                                  step=1):
+
+        self.comment = '('+' '.join(np.array(hkl_1).astype(str))+')'
 
         if np.isclose(wavelength[0], wavelength[1]):
             wavelength = [0.975*wavelength[0], 1.025*wavelength[1]]
@@ -596,6 +548,10 @@ class ExperimentModel(NeuXtalVizModel):
         lamda0 = lamda0[mask]
         lamda1 = lamda1[mask]
 
+        self.angles = self.angles[mask]
+        self.angles_gamma = gamma0.copy()
+        self.angles_nu = nu0.copy()
+
         if len(lamda0) > 0:
 
             k0 = 2*np.pi/lamda0
@@ -628,7 +584,197 @@ class ExperimentModel(NeuXtalVizModel):
             lamda0 = lamda0[mask]
             lamda1 = lamda1[mask]
 
+            self.angles = self.angles[mask]
+            self.angles_gamma = gamma0.copy()
+            self.angles_nu = nu0.copy()
+
         return (gamma0, nu0, lamda0), (gamma1, nu1, lamda1)
+
+    def get_angles(self, gamma, nu):
+
+        d2 = (self.angles_gamma-gamma)**2+(self.angles_nu-nu)**2
+
+        i = np.argmin(d2)
+
+        angles = self.angles[i]
+
+        return angles
+
+    def add_orientation(self, angles, wavelength, d_min, centering, rows):
+
+        if np.isclose(wavelength[0], wavelength[1]):
+            wavelength = [0.975*wavelength[0], 1.025*wavelength[1]]
+
+        axes = self.axes.copy()
+
+        for i, angle in enumerate(angles):
+            axes[i] = axes[i].format(angle)
+
+        ol = mtd['coverage'].sample().getOrientedLattice()
+        UB = ol.getUB().copy()
+        SetUB(Workspace='peaks', UB=UB)
+
+        SetGoniometer(Workspace='peaks',
+                      Axis0=axes[0],
+                      Axis1=axes[1],
+                      Axis2=axes[2],
+                      Axis3=axes[3],
+                      Axis4=axes[4],
+                      Axis5=axes[5])
+
+        d_max = 1.1*np.max([ol.d(1,0,0),ol.d(0,1,0),ol.d(0,0,1)])
+
+        ws = 'peaks_orientation_{}'.format(rows)
+
+        PredictPeaks(InputWorkspace='peaks',
+                     MinDSpacing=d_min,
+                     MaxDSpacing=d_max,
+                     WavelengthMin=wavelength[0],
+                     WavelengthMax=wavelength[1],
+                     ReflectionCondition=lattice_centering_dict[centering],
+                     OutputWorkspace=ws)
+
+        SortPeaksWorkspace(InputWorkspace=ws,
+                           ColumnNameToSortBy='DSpacing',
+                           SortAscending=False,
+                           OutputWorkspace=ws)
+
+        columns = ['l', 'k', 'h']
+
+        for col in columns:
+
+            SortPeaksWorkspace(InputWorkspace=ws,
+                               ColumnNameToSortBy=col,
+                               SortAscending=False,
+                               OutputWorkspace=ws)
+
+        for no in range(mtd[ws].getNumberPeaks()-1,0,-1):
+
+            if (mtd[ws].getPeak(no).getHKL()-\
+                mtd[ws].getPeak(no-1).getHKL()).norm2() == 0:
+
+                DeleteTableRows(TableWorkspace=ws, Rows=no)
+
+        SortPeaksWorkspace(InputWorkspace=ws,
+                           ColumnNameToSortBy='DSpacing',
+                           SortAscending=False,
+                           OutputWorkspace=ws)
+
+        for peak in mtd[ws]:
+            peak.setRunNumber(rows)
+            peak.setIntensity(10)
+            peak.setSigmaIntensity(np.sqrt(peak.getIntensity()))
+
+        mtd['peak'].run().getGoniometer().setR(np.eye(3))
+        mtd['peaks'].run().getGoniometer().setR(np.eye(3))
+
+        SetUB(Workspace='combined', UB=UB)
+        CombinePeaksWorkspaces(LHSWorkspace='combined',
+                               RHSWorkspace=ws,
+                               OutputWorkspace='combined')
+
+    def calculate_statistics(self, point_group, lattice_centering, use):
+
+        if mtd.doesExist('combined'):
+
+            CloneWorkspace(InputWorkspace='combined',
+                           OutputWorkspace='filtered')
+
+            rows = np.arange(len(use)).tolist()
+
+            for row in rows:
+                if not use[row]:
+                    FilterPeaks(InputWorkspace='filtered',
+                                FilterVariable='RunNumber',
+                                FilterValue=str(row),
+                                Operator='!=',
+                                OutputWorkspace='filtered')
+
+            if mtd['filtered'].getNumberPeaks() > 0:
+
+                pg = point_group_dict[point_group]
+                lc = lattice_centering_dict[lattice_centering]
+
+                StatisticsOfPeaksWorkspace(InputWorkspace='filtered',
+                                           OutputWorkspace='filtered',
+                                           StatisticsTable='statistics',
+                                           EquivalentsWorkspace='equivalents',
+                                           PointGroup=pg,
+                                           LatticeCentering=lc)
+
+                stats_dict = mtd['statistics'].toDict()
+
+                # d_min = stats_dict['Resolution Min']
+                # d_max = stats_dict['Resolution Max']
+
+                shel = stats_dict['Resolution Shell']
+                mult = stats_dict['Multiplicity']
+                refl = stats_dict['No. of Unique Reflections']
+                comp = stats_dict['Data Completeness']
+
+                return shel, comp, mult, refl
+
+    def hsl_to_rgb(self, hue, saturation, lightness):
+
+        h = np.array(hue)
+        s = np.array(saturation)
+        l = np.array(lightness)
+
+        def f(h, s, l, n):
+            k = (n+h/30) % 12
+            a = s*np.minimum(l, 1-l)
+            return l-a*np.maximum(-1, np.minimum(np.minimum(k-3, 9-k), 1))
+
+        rgb = np.stack((f(h, s, l, 0), f(h, s, l, 8), f(h, s, l, 4)), axis=-1)
+
+        return rgb
+
+    def get_coverage_info(self, point_group):
+
+        pg = PointGroupFactory.createPointGroup(point_group)
+
+        coverage_dict = {}
+
+        UB = mtd['coverage'].sample().getOrientedLattice().getUB().copy()
+        # UB_inv = np.linalg.inv(UB)
+
+        h = mtd['filtered'].column('h')
+        k = mtd['filtered'].column('k')
+        l = mtd['filtered'].column('l')
+
+        hkls = np.array([h,k,l]).T.astype(int).tolist()
+
+        hkl_dict = {}
+        for hkl in hkls:
+            equiv_hkls = pg.getEquivalents(hkl)
+            for equiv_hkl in equiv_hkls:
+                key = tuple(equiv_hkl)
+                no = hkl_dict.get(key)
+                if no is None:
+                    no = 1
+                else:
+                    no += 1
+                hkl_dict[key] = no
+
+        nos = np.array([value for value in hkl_dict.values()])
+        hkls = np.array([key for key in hkl_dict.keys()])
+
+        r = np.sqrt(hkls[:,0]**2+hkls[:,1]**2+hkls[:,2]**2)
+        theta = np.arccos(hkls[:,2]/r)
+        phi = np.arctan2(hkls[:,1], hkls[:,0])
+
+        hue = phi*180/np.pi+180
+        saturation = np.ones_like(hue)
+        lightness = theta/np.pi
+
+        rgb = self.hsl_to_rgb(hue, saturation, lightness)
+        coords = np.einsum('ij,nj->ni', 2*np.pi*UB, hkls)
+
+        coverage_dict['colors'] = (rgb*255).astype(np.uint8)
+        coverage_dict['sizes'] = nos/nos.max()
+        coverage_dict['coords'] = coords
+
+        return coverage_dict
 
 class CoverageOptimizer(ParallelTasks):
 

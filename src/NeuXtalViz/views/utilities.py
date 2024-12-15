@@ -1,14 +1,14 @@
 import sys
 import traceback
 
-from PyQt5.QtCore import QRunnable, QThreadPool, pyqtSignal, QObject, pyqtSlot
+from qtpy.QtCore import QRunnable, QThreadPool, Signal, QObject, Slot
 
 class WorkerSignals(QObject):
 
-    finished = pyqtSignal()
-    error = pyqtSignal(tuple)
-    progress = pyqtSignal(str, int)
-    result = pyqtSignal(object)
+    finished = Signal()
+    error = Signal(tuple)
+    progress = Signal(str, int)
+    result = Signal(object)
 
 class Worker(QRunnable):
 
@@ -23,7 +23,7 @@ class Worker(QRunnable):
         
         self.kwargs['progress'] = self.emit_progress
 
-    @pyqtSlot()
+    @Slot()
     def run(self):
         try:
             result = self.task(*self.args, **self.kwargs)
