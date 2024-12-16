@@ -49,8 +49,8 @@ lattice_centering_dict = {
     'I': 'Body centred',
     'F': 'All-face centred',
     'R': 'Primitive',
-    'R(obv)': 'Rhombohedrally centred, obverse',
-    'R(rev)': 'Rhombohedrally centred, reverse',
+    'Robv': 'Rhombohedrally centred, obverse',
+    'Rrev': 'Rhombohedrally centred, reverse',
 }
 
 point_group_dict = {
@@ -128,16 +128,16 @@ point_group_centering = {
     '32 r': ['R'],
     '3m r': ['R'],
     '-3m r': ['R'],
-    '3': ['R(obv)', 'R(rev)'],
-    '-3': ['R(obv)', 'R(rev)'],
-    '312': ['R(obv)', 'R(rev)'],
-    '31m': ['R(obv)', 'R(rev)'],
-    '32': ['R(obv)', 'R(rev)'],
-    '321': ['R(obv)', 'R(rev)'],
-    '3m': ['R(obv)', 'R(rev)'],
-    '-31m': ['R(obv)', 'R(rev)'],
-    '-3m': ['R(obv)', 'R(rev)'],
-    '-3m1': ['R(obv)', 'R(rev)'],
+    '3': ['Robv', 'Rrev'],
+    '-3': ['Robv', 'Rrev'],
+    '312': ['Robv', 'Rrev'],
+    '31m': ['Robv', 'Rrev'],
+    '32': ['Robv', 'Rrev'],
+    '321': ['Robv', 'Rrev'],
+    '3m': ['Robv', 'Rrev'],
+    '-31m': ['Robv', 'Rrev'],
+    '-3m': ['Robv', 'Rrev'],
+    '-3m1': ['Robv', 'Rrev'],
     '6': ['P'],
     '-6': ['P'],
     '6/m': ['P'],
@@ -282,7 +282,10 @@ class ExperimentModel(NeuXtalVizModel):
 
     def get_symmetry(self, point_group, centering):
 
-        return point_group_dict[point_group], lattice_centering_dict[centering]
+        pg = point_group_dict[point_group]
+        lc = lattice_centering_dict[centering]        
+
+        return str(pg), str(lc)
 
     def create_plan(self, instrument, mode, angles):
 
@@ -692,8 +695,7 @@ class ExperimentModel(NeuXtalVizModel):
 
             if mtd['filtered'].getNumberPeaks() > 0:
 
-                pg = point_group_dict[point_group]
-                lc = lattice_centering_dict[lattice_centering]
+                pg, lc = self.get_symmetry(point_group, lattice_centering)
 
                 # mantid bug
                 # if lattice_centering == 'F':
@@ -718,6 +720,9 @@ class ExperimentModel(NeuXtalVizModel):
                 mult = stats_dict['Multiplicity']
                 refl = stats_dict['No. of Unique Reflections']
                 comp = stats_dict['Data Completeness']
+
+                DeleteWorkspace(Workspace='statistics')
+                DeleteWorkspace(Workspace='equivalents')
 
                 return shel, comp, mult, refl
 
