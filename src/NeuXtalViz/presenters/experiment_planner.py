@@ -11,6 +11,7 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_update_goniometer(self.update_goniometer)
         self.view.connect_switch_crystal(self.switch_crystal)
         self.view.connect_switch_point_group(self.switch_group)
+        self.view.connect_switch_lattice_centering(self.switch_centering)
         self.view.connect_wavelength(self.update_wavelength)
         # self.view.connect_optimize(self.optimize_coverage)
         self.view.connect_calculate_single(self.calculate_single)
@@ -18,6 +19,7 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_add_orientation(self.add_orientation)
 
         self.view.connect_roi_ready(self.lookup_angle)
+        self.view.connect_viz_ready(self.visualize)
 
         self.switch_instrument()
         self.switch_crystal()
@@ -66,6 +68,10 @@ class Experiment(NeuXtalVizPresenter):
         centerings = self.model.get_point_group_centering(pg)
 
         self.view.set_lattice_centerings(centerings)
+
+        self.visualize()
+
+    def switch_centering(self):
 
         self.visualize()
 
@@ -236,7 +242,7 @@ class Experiment(NeuXtalVizPresenter):
 
         wavelength = self.view.get_wavelength()
         d_min = self.view.get_d_min()
-        centering = self.view.get_lattice_centering()
+        # centering = self.view.get_lattice_centering()
         rows = self.view.get_number_of_orientations()
 
         if len(angles) > 0:
@@ -246,7 +252,6 @@ class Experiment(NeuXtalVizPresenter):
             self.model.add_orientation(angles,
                                        wavelength,
                                        d_min,
-                                       centering,
                                        rows)
 
             progress('Reflections calculated!', 0)

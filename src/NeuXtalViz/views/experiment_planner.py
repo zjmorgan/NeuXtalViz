@@ -34,6 +34,7 @@ from NeuXtalViz.views.base_view import NeuXtalVizWidget
 class ExperimentView(NeuXtalVizWidget):
 
     roi_ready = Signal()
+    viz_ready = Signal()
 
     def __init__(self, parent=None):
 
@@ -351,6 +352,10 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.point_group_combo.activated.connect(switch_group)
 
+    def connect_switch_lattice_centering(self, switch_centering):
+
+        self.lattice_centering_combo.activated.connect(switch_centering)
+    
     def connect_switch_instrument(self, switch_instrument):
 
         self.instrument_combo.activated.connect(switch_instrument)
@@ -497,6 +502,8 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.horizontalHeader().setSectionResizeMode(resize)
         self.plan_table.setHorizontalHeaderLabels(labels)
 
+        self.plan_table.itemChanged.connect(self.handle_item_changed)
+
     def get_all_angles(self):
 
         rows = self.goniometer_table.rowCount()
@@ -551,6 +558,19 @@ class ExperimentView(NeuXtalVizWidget):
         checkbox.setFlags(flags)
         checkbox.setCheckState(Qt.Checked)
         self.plan_table.setItem(row, col, checkbox)
+
+    def handle_item_changed(self, item):
+
+        col = item.column()
+        # row = item.row()
+
+        if col == self.plan_table.columnCount()-1:
+            #state = item.checkState() == Qt.Checked
+            self.viz_ready.emit()
+
+    def connect_viz_ready(self, visualize):
+
+        self.viz_ready.connect(visualize)
 
     def get_instrument(self):
 

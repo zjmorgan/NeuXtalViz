@@ -600,7 +600,7 @@ class ExperimentModel(NeuXtalVizModel):
 
         return angles
 
-    def add_orientation(self, angles, wavelength, d_min, centering, rows):
+    def add_orientation(self, angles, wavelength, d_min, rows):
 
         if np.isclose(wavelength[0], wavelength[1]):
             wavelength = [0.975*wavelength[0], 1.025*wavelength[1]]
@@ -612,9 +612,10 @@ class ExperimentModel(NeuXtalVizModel):
 
         ol = mtd['coverage'].sample().getOrientedLattice()
         UB = ol.getUB().copy()
-        SetUB(Workspace='peaks', UB=UB)
+        
+        SetUB(Workspace='instrument', UB=UB)
 
-        SetGoniometer(Workspace='peaks',
+        SetGoniometer(Workspace='instrument',
                       Axis0=axes[0],
                       Axis1=axes[1],
                       Axis2=axes[2],
@@ -626,12 +627,12 @@ class ExperimentModel(NeuXtalVizModel):
 
         ws = 'peaks_orientation_{}'.format(rows)
 
-        PredictPeaks(InputWorkspace='peaks',
+        PredictPeaks(InputWorkspace='instrument',
                      MinDSpacing=d_min,
                      MaxDSpacing=d_max,
                      WavelengthMin=wavelength[0],
                      WavelengthMax=wavelength[1],
-                     ReflectionCondition=lattice_centering_dict[centering],
+                     ReflectionCondition='Primitive',
                      OutputWorkspace=ws)
 
         SortPeaksWorkspace(InputWorkspace=ws,
@@ -665,8 +666,7 @@ class ExperimentModel(NeuXtalVizModel):
             peak.setIntensity(10)
             peak.setSigmaIntensity(np.sqrt(peak.getIntensity()))
 
-        mtd['peak'].run().getGoniometer().setR(np.eye(3))
-        mtd['peaks'].run().getGoniometer().setR(np.eye(3))
+        mtd['instrument'].run().getGoniometer().setR(np.eye(3))
 
         SetUB(Workspace='combined', UB=UB)
         CombinePeaksWorkspaces(LHSWorkspace='combined',
@@ -695,12 +695,19 @@ class ExperimentModel(NeuXtalVizModel):
                 pg = point_group_dict[point_group]
                 lc = lattice_centering_dict[lattice_centering]
 
+                # mantid bug
+                # if lattice_centering == 'F':
+                #     lc = 'F' 
+
                 StatisticsOfPeaksWorkspace(InputWorkspace='filtered',
                                            OutputWorkspace='filtered',
                                            StatisticsTable='statistics',
                                            EquivalentsWorkspace='equivalents',
                                            PointGroup=pg,
                                            LatticeCentering=lc)
+
+                # CloneWorkspace(InputWorkspace='tmp',
+                #                OutputWorkspace='filtered')
 
                 stats_dict = mtd['statistics'].toDict()
 
