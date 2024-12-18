@@ -4,6 +4,8 @@ Neutron Scattering Single Crystal Visualization
 
 *new-crystal-vis*
 
+```git pull```
+
 NeuXtalViz is an application for three-dimensional (3d) visualization of neutron scattering data.
 It brings together two main libraries; PyVista is the main tool for displaying the 3d data while Mantid serves as the main library for working with reduced single crystal neutron diffraction data.
 
