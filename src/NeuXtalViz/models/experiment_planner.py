@@ -1,15 +1,14 @@
 import os
 
-import itertools
 import csv
 
 from mantid.simpleapi import (CreatePeaksWorkspace,
                               PredictPeaks,
                               FilterPeaks,
-                              StatisticsOfPeaksWorkspace,
                               CombinePeaksWorkspaces,
                               SortPeaksWorkspace,
                               AddPeakHKL,
+                              CountReflections,
                               SetUB,
                               SetGoniometer,
                               LoadNexus,
@@ -38,70 +37,69 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from NeuXtalViz.models.base_model import NeuXtalVizModel
-from NeuXtalViz.models.utilities import ParallelTasks
 from NeuXtalViz.config.instruments import beamlines
 
-lattice_centering_dict = {
-    'P': 'Primitive',
-    'C': 'C-face centred',
-    'A': 'A-face centred',
-    'B': 'B-face centred',
-    'I': 'Body centred',
-    'F': 'All-face centred',
-    'R': 'Primitive',
-    'Robv': 'Rhombohedrally centred, obverse',
-    'Rrev': 'Rhombohedrally centred, reverse',
-}
+# lattice_centering_dict = {
+#     'P': 'Primitive',
+#     'C': 'C-face centred',
+#     'A': 'A-face centred',
+#     'B': 'B-face centred',
+#     'I': 'Body centred',
+#     'F': 'All-face centred',
+#     'R': 'Primitive',
+#     'Robv': 'Rhombohedrally centred, obverse',
+#     'Rrev': 'Rhombohedrally centred, reverse',
+# }
 
-point_group_dict = {
-    '1': '1 (Triclinic)',
-    '-1': '-1 (Triclinic)',
-    '2': '2 (Monoclinic, unique axis b)',
-    'm': 'm (Monoclinic, unique axis b)',
-    '2/m': '2/m (Monoclinic, unique axis b)',
-    '112': '112 (Monoclinic, unique axis c)',
-    '11m': '11m (Monoclinic, unique axis c)',
-    '112/m': '112/m (Monoclinic, unique axis c)',
-    '222': '222 (Orthorhombic)',
-    'mm2': 'mm2 (Orthorhombic)',
-    'mmm': 'mmm (Orthorhombic)',
-    '4': '4 (Tetragonal)',
-    '-4': '-4 (Tetragonal)',
-    '4/m': '4/m (Tetragonal)',
-    '422': '422 (Tetragonal)',
-    '4mm': '4mm (Tetragonal)',
-    '-42m': '-42m (Tetragonal)',
-    '-4m2': '-4m2 (Tetragonal)',
-    '4/mmm': '4/mmm (Tetragonal)',
-    '3 r': '3 r (Trigonal - Rhombohedral)',
-    '-3 r': '-3 r (Trigonal - Rhombohedral)',
-    '32 r': '32 r (Trigonal - Rhombohedral)',
-    '3m r': '3m r (Trigonal - Rhombohedral)',
-    '-3m r': '-3m r (Trigonal - Rhombohedral)',
-    '3': '3 (Trigonal - Hexagonal)',
-    '-3': '-3 (Trigonal - Hexagonal)',
-    '312': '312 (Trigonal - Hexagonal)',
-    '31m': '31m (Trigonal - Hexagonal)',
-    '32': '32 (Trigonal - Hexagonal)',
-    '321': '321 (Trigonal - Hexagonal)',
-    '3m': '3m (Trigonal - Hexagonal)',
-    '-31m': '-31m (Trigonal - Hexagonal)',
-    '-3m': '-3m (Trigonal - Hexagonal)',
-    '-3m1': '-3m1 (Trigonal - Hexagonal)',
-    '6': '6 (Hexagonal)',
-    '-6': '-6 (Hexagonal)',
-    '6/m': '6/m (Hexagonal)',
-    '622': '622 (Hexagonal)',
-    '6mm': '6mm (Hexagonal)',
-    '-62m': '-62m (Hexagonal)',
-    '-6m2': '-6m2 (Hexagonal)',
-    '6/mmm': '6/mmm (Hexagonal)',
-    '23': '23 (Cubic)',
-    'm-3': 'm-3 (Cubic)',
-    '432': '432 (Cubic)',
-    '-43m': '-43m (Cubic)',
-    'm-3m': 'm-3m (Cubic)'
-}
+# point_group_dict = {
+#     '1': '1 (Triclinic)',
+#     '-1': '-1 (Triclinic)',
+#     '2': '2 (Monoclinic, unique axis b)',
+#     'm': 'm (Monoclinic, unique axis b)',
+#     '2/m': '2/m (Monoclinic, unique axis b)',
+#     '112': '112 (Monoclinic, unique axis c)',
+#     '11m': '11m (Monoclinic, unique axis c)',
+#     '112/m': '112/m (Monoclinic, unique axis c)',
+#     '222': '222 (Orthorhombic)',
+#     'mm2': 'mm2 (Orthorhombic)',
+#     'mmm': 'mmm (Orthorhombic)',
+#     '4': '4 (Tetragonal)',
+#     '-4': '-4 (Tetragonal)',
+#     '4/m': '4/m (Tetragonal)',
+#     '422': '422 (Tetragonal)',
+#     '4mm': '4mm (Tetragonal)',
+#     '-42m': '-42m (Tetragonal)',
+#     '-4m2': '-4m2 (Tetragonal)',
+#     '4/mmm': '4/mmm (Tetragonal)',
+#     '3 r': '3 r (Trigonal - Rhombohedral)',
+#     '-3 r': '-3 r (Trigonal - Rhombohedral)',
+#     '32 r': '32 r (Trigonal - Rhombohedral)',
+#     '3m r': '3m r (Trigonal - Rhombohedral)',
+#     '-3m r': '-3m r (Trigonal - Rhombohedral)',
+#     '3': '3 (Trigonal - Hexagonal)',
+#     '-3': '-3 (Trigonal - Hexagonal)',
+#     '312': '312 (Trigonal - Hexagonal)',
+#     '31m': '31m (Trigonal - Hexagonal)',
+#     '32': '32 (Trigonal - Hexagonal)',
+#     '321': '321 (Trigonal - Hexagonal)',
+#     '3m': '3m (Trigonal - Hexagonal)',
+#     '-31m': '-31m (Trigonal - Hexagonal)',
+#     '-3m': '-3m (Trigonal - Hexagonal)',
+#     '-3m1': '-3m1 (Trigonal - Hexagonal)',
+#     '6': '6 (Hexagonal)',
+#     '-6': '-6 (Hexagonal)',
+#     '6/m': '6/m (Hexagonal)',
+#     '622': '622 (Hexagonal)',
+#     '6mm': '6mm (Hexagonal)',
+#     '-62m': '-62m (Hexagonal)',
+#     '-6m2': '-6m2 (Hexagonal)',
+#     '6/mmm': '6/mmm (Hexagonal)',
+#     '23': '23 (Cubic)',
+#     'm-3': 'm-3 (Cubic)',
+#     '432': '432 (Cubic)',
+#     '-43m': '-43m (Cubic)',
+#     'm-3m': 'm-3m (Cubic)',
+# }
 
 point_group_centering = {
     '1': ['P'],
@@ -282,10 +280,7 @@ class ExperimentModel(NeuXtalVizModel):
 
     def get_symmetry(self, point_group, centering):
 
-        pg = point_group_dict[point_group]
-        lc = lattice_centering_dict[centering]        
-
-        return str(pg), str(lc)
+        return str(point_group), str(centering)
 
     def create_plan(self, instrument, mode, angles):
 
@@ -341,6 +336,15 @@ class ExperimentModel(NeuXtalVizModel):
         polarities = [goniometers[name][3] for name in goniometers.keys()]
 
         return axes, polarities
+
+    def get_goniometer_axes(self, instrument, mode):
+
+        goniometers = beamlines[instrument]['Goniometer'][mode]
+
+        axes = ['{},'+','.join(np.array(goniometers[name][:-2]).astype(str))\
+                for name in goniometers.keys()]
+
+        return axes 
 
     def get_goniometers(self, instrument, mode):
 
@@ -615,7 +619,7 @@ class ExperimentModel(NeuXtalVizModel):
 
         ol = mtd['coverage'].sample().getOrientedLattice()
         UB = ol.getUB().copy()
-        
+
         SetUB(Workspace='instrument', UB=UB)
 
         SetGoniometer(Workspace='instrument',
@@ -626,7 +630,7 @@ class ExperimentModel(NeuXtalVizModel):
                       Axis4=axes[4],
                       Axis5=axes[5])
 
-        d_max = 1.1*np.max([ol.d(1,0,0),ol.d(0,1,0),ol.d(0,0,1)])
+        d_max = 1.1*np.max([ol.d(1,0,0), ol.d(0,1,0), ol.d(0,0,1)])
 
         ws = 'peaks_orientation_{}'.format(rows)
 
@@ -666,8 +670,8 @@ class ExperimentModel(NeuXtalVizModel):
 
         for peak in mtd[ws]:
             peak.setRunNumber(rows)
-            peak.setIntensity(10)
-            peak.setSigmaIntensity(np.sqrt(peak.getIntensity()))
+            # peak.setIntensity(100)
+            # peak.setSigmaIntensity(np.sqrt(peak.getIntensity()))
 
         mtd['instrument'].run().getGoniometer().setR(np.eye(3))
 
@@ -676,7 +680,7 @@ class ExperimentModel(NeuXtalVizModel):
                                RHSWorkspace=ws,
                                OutputWorkspace='combined')
 
-    def calculate_statistics(self, point_group, lattice_centering, use):
+    def calculate_statistics(self, point_group, lattice_centering, use, d_min):
 
         if mtd.doesExist('combined'):
 
@@ -695,34 +699,42 @@ class ExperimentModel(NeuXtalVizModel):
 
             if mtd['filtered'].getNumberPeaks() > 0:
 
+                ol = mtd['combined'].sample().getOrientedLattice()
+                d_max = np.max([ol.d(1,0,0), ol.d(0,1,0), ol.d(0,0,1)])
+
+                d = 1/np.sqrt(np.linspace(1/d_max**2, 1/d_min**2, 5))
+
                 pg, lc = self.get_symmetry(point_group, lattice_centering)
 
-                # mantid bug
-                # if lattice_centering == 'F':
-                #     lc = 'F' 
+                output = CountReflections(InputWorkspace='filtered', 
+                                          PointGroup=pg,
+                                          LatticeCentering=lc,
+                                          MinDSpacing=d_min,
+                                          MaxDSpacing=d_max,
+                                          MissingReflectionsWorkspace='')
 
-                StatisticsOfPeaksWorkspace(InputWorkspace='filtered',
-                                           OutputWorkspace='filtered',
-                                           StatisticsTable='statistics',
-                                           EquivalentsWorkspace='equivalents',
-                                           PointGroup=pg,
-                                           LatticeCentering=lc)
+                unique, completeness, redundancy, multiple = output
 
-                # CloneWorkspace(InputWorkspace='tmp',
-                #                OutputWorkspace='filtered')
+                shel = ['Overall']
+                comp = [completeness*100]
+                mult = [redundancy]
+                refl = [unique]
 
-                stats_dict = mtd['statistics'].toDict()
+                for i in range(len(d)-1):
 
-                # d_min = stats_dict['Resolution Min']
-                # d_max = stats_dict['Resolution Max']
+                    output = CountReflections(InputWorkspace='filtered', 
+                                              PointGroup=pg,
+                                              LatticeCentering=lc,
+                                              MinDSpacing=d[i+1],
+                                              MaxDSpacing=d[i],
+                                              MissingReflectionsWorkspace='')
 
-                shel = stats_dict['Resolution Shell']
-                mult = stats_dict['Multiplicity']
-                refl = stats_dict['No. of Unique Reflections']
-                comp = stats_dict['Data Completeness']
+                    unique, completeness, redundancy, multiple = output
 
-                DeleteWorkspace(Workspace='statistics')
-                DeleteWorkspace(Workspace='equivalents')
+                    shel.append('{:.2f}-{:.2f}'.format(d[i], d[i+1]))
+                    comp.append(completeness*100)
+                    mult.append(redundancy)
+                    refl.append(unique)
 
                 return shel, comp, mult, refl
 
@@ -788,157 +800,80 @@ class ExperimentModel(NeuXtalVizModel):
 
         return coverage_dict
 
-class CoverageOptimizer(ParallelTasks):
+    def crystal_plan(self, *args):
+        
+        return CrystalPlan(*args)
 
-    def __init__(self):
+class CrystalPlan:
 
-        super().__init__(None, None)
+    def __init__(self, use,
+                       opt,
+                       axes,
+                       limits,
+                       wavelength,
+                       d_min,
+                       point_group,
+                       lattice_centering):
 
-    def initialize_parameters(self, inst_name, axes, limits, UB,
-                                    wl_limits, point_group, refl_cond, d_min):
+        CloneWorkspace(InputWorkspace='combined',
+                       OutputWorkspace='crystal_plan')
 
-        self.inst_name = inst_name
-        self.axes = axes
-        self.limits = limits
-        self.UB = UB
-        self.wl_limits = wl_limits
-        self.point_group = point_group
-        self.refl_cond = refl_cond
+        self.instrument = 'instrument'
+
+        rows = np.arange(len(use)).tolist()
+
+        for row in rows:
+
+            if not use[row] or opt[row]:
+
+                FilterPeaks(InputWorkspace='crystal_plan',
+                            FilterVariable='RunNumber',
+                            FilterValue=str(row),
+                            Operator='!=',
+                            OutputWorkspace='crystal_plan')
+
+        if np.isclose(wavelength[0], wavelength[1]):
+            wavelength = [0.975*wavelength[0], 1.025*wavelength[1]]
+
+        self.wavelength = wavelength
+
+        self.axes = axes.copy()
+        self.limits = limits.copy()
+
+        ol = mtd['coverage'].sample().getOrientedLattice()
+        UB = ol.getUB().copy()
+
+        SetUB(Workspace='instrument', UB=UB)
+        SetUB(Workspace='crystal_plan', UB=UB)
+
+        self.UB = UB.copy()
         self.d_min = d_min
-        self.d_max = np.sqrt(np.diag(np.linalg.inv(UB.T @ UB))).min()*1.2
+        self.d_max = 1.1*np.max([ol.d(1,0,0),ol.d(0,1,0),ol.d(0,0,1)])
+        self.offset = len(use)+1
 
-        self.best = []
-        self.worst = []
+        self.point_group = point_group
+        self.lattice_centering = lattice_centering
+        self.genes = {}
 
-        self.settings = None
+    def generation(self, i, j):
 
-    def get_coverage(self):
+        axes = self.axes.copy()
+        limits = self.limits.copy()
 
-        return self.best, self.worst
+        ax = [None]*6
+        angles = []
+        for ind, (axis, limit) in enumerate(zip(axes, limits)):
+            delta = limit[1]-limit[0]
+            angle = limit[0]+delta*np.random.random()
+            ax[ind] = axis.format(angle)
+            if not np.isclose(delta, 0):
+                angles.append(angle)
 
-    def get_settings(self):
+        outname = 'peaks_{}_{}'.format(i,j)
 
-        return self.settings
+        self.genes[outname] = angles
 
-    def initialize_settings(self, n_orient, n_indiv, outname,
-                                  outdir='/tmp/', n_proc=2):
-
-        self.n_orient = n_orient
-        self.n_indiv = n_indiv
-
-        fname = os.path.join(outdir, outname+'_ind{}.nxs')
-        fnames = [fname.format(i_indiv) for i_indiv in range(n_indiv)]
-
-        plan = outname+'_ind{}'
-        plans = [plan.format(i_indiv) for i_indiv in range(n_indiv)]
-
-        self.function = self._generation
-        self.args = (n_orient, self.inst_name, self.axes, self.limits,
-                     self.UB, self.wl_limits, self.refl_cond,
-                     self.d_min, self.d_max)
-
-        self.run_tasks(fnames, n_proc)
-
-        fitness = []
-        for fname, plan in zip(fnames, plans):
-            LoadNexus(Filename=fname, OutputWorkspace=plan)
-            fitness.append(self._coverage(plan))
-
-        self.fitness = np.array(fitness)
-        self.fnames = np.array(fnames)
-        self.plans = np.array(plans)
-        self.plan = outname+'_ind{}'
-
-        ranking = np.argsort(self.fitness)
-
-        cov_min = self.fitness[ranking[0]]
-        cov_max = self.fitness[ranking[-1]]
-
-        self.best.append(cov_max)
-        self.worst.append(cov_min)
-
-    def _coverage(self, peaks_ws):
-
-        StatisticsOfPeaksWorkspace(InputWorkspace=peaks_ws,
-                                   OutputWorkspace=peaks_ws+'_sorted',
-                                   StatisticsTable=peaks_ws+'_stats',
-                                   EquivalentsWorkspace=peaks_ws+'_equiv',
-                                   PointGroup=self.point_group,
-                                   LatticeCentering=self.refl_cond)
-
-        stats = mtd[peaks_ws+'_stats'].row(0)
-
-        return stats['Data Completeness']
-
-    def _load_instrument(self, inst_name):
-
-        if not mtd.doesExist(inst_name):
-
-            LoadEmptyInstrument(InstrumentName=inst_name,
-                                OutputWorkspace=inst_name)
-
-    def _set_UB(self, ws, UB):
-
-        SetUB(Workspace=ws, UB=UB)
-
-    def _generation(self, fnames, n_orient, inst_name, axes, limits, UB,
-                          wl_limits, refl_cond, d_min, d_max, proc=1):
-
-        if not mtd.doesExist(inst_name):
-
-            self._load_instrument(inst_name)
-            self._set_UB(inst_name, UB)
-
-        for fname in fnames:
-
-            CreatePeaksWorkspace(InstrumentWorkspace=inst_name,
-                                 NumberOfPeaks=0,
-                                 OutputWorkspace='gen_peaks')
-
-            self._set_UB('gen_peaks', UB)
-
-            for i_orient in range(n_orient):
-
-                self._generate_setting(inst_name, i_orient, axes, limits, UB,
-                                       wl_limits, refl_cond, d_min, d_max)
-
-                CombinePeaksWorkspaces(LHSWorkspace='gen_peaks',
-                                       RHSWorkspace='gen_peaks_ws',
-                                       OutputWorkspace='gen_peaks')
-
-                run = mtd['gen_peaks_ws'].run()
-
-                for key in run.keys():
-
-                    angle = run[key].value[0]
-
-                    AddSampleLog(Workspace='gen_peaks',
-                                 LogName='{}_{}'.format(key,i_orient),
-                                 LogText='{}'.format(angle))
-
-                DeleteWorkspace(Workspace='gen_peaks_ws')
-
-            SaveNexus(InputWorkspace='gen_peaks', Filename=fname)
-
-    def _generate_setting(self, inst_name, run, axes, limits, UB,
-                                wl_limits, refl_cond, d_min, d_max):
-
-        if not mtd.doesExist(inst_name):
-
-            self._load_instrument(inst_name)
-            self._set_UB(inst_name, UB)
-
-        ax = []
-        for axis, limit in zip(axes, limits):
-            if limit is not None:
-                angle = limit[0]+(limit[1]-limit[0])*np.random.random()
-                ax.append(axis.format(round(angle,1)))
-            else:
-                ax.append(axis)
-        for _ in range(6-len(axes)):
-            ax.append(None)
-
-        SetGoniometer(Workspace=inst_name,
+        SetGoniometer(Workspace=self.instrument,
                       Axis0=ax[0],
                       Axis1=ax[1],
                       Axis2=ax[2],
@@ -946,137 +881,157 @@ class CoverageOptimizer(ParallelTasks):
                       Axis4=ax[4],
                       Axis5=ax[5])
 
-        PredictPeaks(InputWorkspace=inst_name,
-                     MinDSpacing=d_min,
-                     MaxDSpacing=d_max,
-                     WavelengthMin=wl_limits[0],
-                     WavelengthMax=wl_limits[1],
-                     ReflectionCondition=refl_cond,
-                     OutputWorkspace='gen_peaks_ws')
+        PredictPeaks(InputWorkspace=self.instrument,
+                     CalculateStructureFactors=False,
+                     MinDSpacing=self.d_min,
+                     MaxDSpacing=self.d_max,
+                     WavelengthMin=self.wavelength[0],
+                     WavelengthMax=self.wavelength[1],
+                     ReflectionCondition='Primitive',
+                     OutputWorkspace=outname)
 
-        for peak in mtd['gen_peaks_ws']:
-            peak.setRunNumber(run)
-            peak.setIntensity(1)
-            peak.setSigmaIntensity(peak.getIntensity())
+        for pk in mtd[outname]:
+            pk.setRunNumber(i+self.offset)
+            pk.setIntensity(100)
+            pk.setSigmaIntensity(10)
 
-    def optimize_settings(self, n_gener, elite_rate=20, mutation_rate=20):
+    def initialization(self, n_orient, n_indiv):
 
-        n_elites = int(round(elite_rate/100*self.n_indiv))
+        fit = []
+        for j in range(n_indiv):
+            for i in range(n_orient):
+                self.generation(i, j)
+            self.recombination(n_orient, j)
+            fit.append(self.fitness('peaks_{}'.format(j)))
 
-        ranking = np.argsort(self.fitness)
+        return np.array(fit)
+
+    def recombination(self, n_orient, j):
+
+        individuals = 'peaks_{}'.format(j)
+        for i in range(n_orient):
+            genes = 'peaks_{}_{}'.format(i,j)
+            if i == 0:
+                CombinePeaksWorkspaces(LHSWorkspace='crystal_plan',
+                                       RHSWorkspace=genes,
+                                       OutputWorkspace=individuals)
+            else:
+                CombinePeaksWorkspaces(LHSWorkspace=individuals,
+                                       RHSWorkspace=genes,
+                                       OutputWorkspace=individuals)
+
+    def fitness(self, peaks):
+
+        output = CountReflections(InputWorkspace=peaks, 
+                                  PointGroup=self.point_group,
+                                  LatticeCentering=self.lattice_centering,
+                                  MinDSpacing=self.d_min,
+                                  MaxDSpacing=self.d_max,
+                                  MissingReflectionsWorkspace='')
+
+        unique, completeness, redundancy, multiple = output
+
+        return completeness*100
+
+    def crossover(self, n_orient, n_elite, best, selection):
+
+        j = 0
+
+        genes = 'peaks_{}_{}'
+        genome = 's_{}_{}'
+
+        workspaces = []
+
+        for elite in best:
+
+            for i in range(n_orient):
+
+                CloneWorkspace(InputWorkspace=genes.format(i,elite),
+                               OutputWorkspace=genome.format(i,j))
+
+                workspaces.append(genome.format(i,j))
+
+            j += 1
+
+        for parents in selection:
+
+            k = np.random.randint(1, n_orient)
+
+            for i in range(k):
+
+                CloneWorkspace(InputWorkspace=genes.format(i,parents[0]),
+                               OutputWorkspace=genome.format(i,j+0))
+
+                CloneWorkspace(InputWorkspace=genes.format(i,parents[1]),
+                               OutputWorkspace=genome.format(i,j+1))
+
+                workspaces.append(genome.format(i,j+0))
+                workspaces.append(genome.format(i,j+1))
+
+            for i in range(k,n_orient):
+
+                CloneWorkspace(InputWorkspace=genes.format(i,parents[1]),
+                               OutputWorkspace=genome.format(i,j+0))
+
+                CloneWorkspace(InputWorkspace=genes.format(i,parents[0]),
+                               OutputWorkspace=genome.format(i,j+1))
+
+                workspaces.append(genome.format(i,j+0))
+                workspaces.append(genome.format(i,j+1))
+
+            j += 2
+
+        RenameWorkspaces(InputWorkspaces=workspaces, Prefix='peak')
+
+    def mutation(self, n_orient, n_indiv, mutation_rate):
+
+        fit = []
+        for j in range(n_indiv):
+            for i in range(n_orient):
+                if np.random.random() < mutation_rate:
+                    self.generation(i, j)
+            self.recombination(n_orient, j)
+            fit.append(self.fitness('peaks_{}'.format(j)))
+
+        return np.array(fit)
+
+    def optimize(self, n_orient, n_indiv, n_gener, n_elite, mutation_rate):
+
+        fit = self.initialization(n_orient, n_indiv)
+
+        ranking = np.argsort(fit)
 
         for _ in range(n_gener):
 
-            elites = self.plans[ranking[-n_elites:]]
+            ranking = np.argsort(fit)
 
-            fraction = self.fitness/np.sum(self.fitness)
+            best = ranking[-n_elite:]
 
-            selections = []
-            while len(selections) < (self.n_indiv-n_elites+1) // 2:
-                choices = np.random.choice(self.plans, size=2,
-                                           p=fraction, replace=False)
-                selections.append(choices)
+            fraction = fit/np.sum(fit)
 
-            self._crossover(elites, selections)
+            selection = []
 
-            self._mutation(mutation_rate)
+            while len(selection) < (n_indiv-n_elite) // 2:
 
-            self.fitness = []
-            for plan in self.plans:
-                self.fitness.append(self._coverage(plan))
+                selection.append(np.random.choice(np.arange(n_indiv),
+                                                  size=2,
+                                                  p=fraction,
+                                                  replace=False))
 
-            ranking = np.argsort(self.fitness)
+            self.crossover(n_orient, n_elite, best, selection)
 
-            cov_min = self.fitness[ranking[0]]
-            cov_max = self.fitness[ranking[-1]]
+            fit = self.mutation(n_orient, n_indiv, mutation_rate)
 
-            self.best.append(cov_max)
-            self.worst.append(cov_min)
+        ranking = np.argsort(fit)
 
-    def _mutation(self, mutation_rate):
+        j = ranking[-1]
 
-        for i_indiv, plan in enumerate(self.plans):
-            for i_orient in range(self.n_orient):
-                if 100*np.random.random() < mutation_rate:
+        values = []
+        for i in range(n_orient):
+            genes = 'peaks_{}_{}'.format(i,j)
+            values.append(self.genes[genes])
 
-                    FilterPeaks(InputWorkspace=plan,
-                                FilterVariable='RunNumber',
-                                FilterValue=i_orient,
-                                Operator='!=',
-                                OutputWorkspace=plan)
+        CloneWorkspace(InputWorkspace='peaks_{}'.format(j),
+                       OutputWorkspace='combined')
 
-                    self._generate_setting(self.inst_name, i_orient,
-                                           self.axes, self.limits, self.UB,
-                                           self.wl_limits, self.refl_cond,
-                                           self.d_min, self.d_max)
-
-                    CombinePeaksWorkspaces(LHSWorkspace=plan,
-                                           RHSWorkspace='gen_peaks_ws',
-                                           OutputWorkspace=plan)
-
-
-                    run = mtd['gen_peaks_ws'].run()
-
-                    for key in run.keys():
-
-                        angle = run[key].value[0]
-
-                        AddSampleLog(Workspace=plan,
-                                     LogName='{}_{}'.format(key,i_orient),
-                                     LogText='{}'.format(angle))
-
-                    DeleteWorkspace(Workspace='gen_peaks_ws')
-
-    def _crossover(self, elites, selections):
-
-        i_indiv = 0
-
-        next_plan = 'next_'+self.plan
-        next_plans = []
-
-        for best in elites:
-
-            plan = next_plan.format(i_indiv)
-
-            CloneWorkspace(InputWorkspace=best,
-                           OutputWorkspace=plan)
-
-            next_plans.append(plan)
-
-            i_indiv += 1
-
-        for recombinations in selections:
-
-            k = np.random.randint(self.n_orient)
-
-            for parents in [recombinations, recombinations[::-1]]:
-
-                if i_indiv < self.n_indiv:
-
-                    plan = next_plan.format(i_indiv)
-
-                    FilterPeaks(InputWorkspace=parents[0],
-                                FilterVariable='RunNumber',
-                                FilterValue=k,
-                                Operator='<',
-                                OutputWorkspace='cross_peaks_ws0')
-
-                    FilterPeaks(InputWorkspace=parents[1],
-                                FilterVariable='RunNumber',
-                                FilterValue=k,
-                                Operator='>=',
-                                OutputWorkspace='cross_peaks_ws1')
-
-                    CombinePeaksWorkspaces(LHSWorkspace='cross_peaks_ws0',
-                                           RHSWorkspace='cross_peaks_ws1',
-                                           OutputWorkspace=plan)
-
-                    DeleteWorkspace(Workspace='cross_peaks_ws0')
-                    DeleteWorkspace(Workspace='cross_peaks_ws1')
-
-                    next_plans.append(plan)
-
-                    i_indiv += 1
-
-        RenameWorkspaces(InputWorkspaces=next_plans,
-                         WorkspaceNames=self.plans)
+        return values

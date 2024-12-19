@@ -537,6 +537,23 @@ class ExperimentView(NeuXtalVizWidget):
 
         return use
 
+    def get_settings(self):
+
+        if self.settings_line.hasAcceptableInput():
+
+            return int(self.settings_line.text())
+
+    def get_optimized_settings(self):
+
+        col = self.plan_table.columnCount()-2
+
+        opt = []
+        for row in range(self.get_number_of_orientations()):
+            item = self.plan_table.item(row, col)
+            opt.append(item.text() == 'CrystalPlan')
+
+        return opt
+
     def add_orientation(self, comment, angles):
 
         row = self.get_number_of_orientations()
@@ -681,7 +698,7 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.ax_cov[2].set_xlabel('Resolution [Å]')
         self.ax_cov[0].set_ylabel('Completeness [%]')
-        self.ax_cov[1].set_ylabel('Multiplicity')
+        self.ax_cov[1].set_ylabel('Redundancy')
         self.ax_cov[2].set_ylabel('Reflections')
 
         self.canvas_cov.draw_idle()
@@ -843,12 +860,21 @@ class ExperimentView(NeuXtalVizWidget):
         if event.inaxes == self.ax_inst and \
             self.fig_inst.canvas.toolbar.mode == '':
 
+            for line in self.ax_inst.lines:
+                line.remove()
+
             horz, vert = event.xdata, event.ydata
+
+            self.ax_inst.axvline(x=horz, color='k', linestyle='--')
+            self.ax_inst.axhline(y=vert, color='k', linestyle='--')
 
             self.set_horizontal(horz)
             self.set_vertical(vert)
 
             self.roi_ready.emit()
+
+            self.canvas_inst.draw_idle()
+            self.canvas_inst.flush_events()
 
     def connect_roi_ready(self, lookup):
 

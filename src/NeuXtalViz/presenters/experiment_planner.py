@@ -13,7 +13,7 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_switch_point_group(self.switch_group)
         self.view.connect_switch_lattice_centering(self.switch_centering)
         self.view.connect_wavelength(self.update_wavelength)
-        # self.view.connect_optimize(self.optimize_coverage)
+        self.view.connect_optimize(self.optimize_coverage)
         self.view.connect_calculate_single(self.calculate_single)
         self.view.connect_calculate_double(self.calculate_double)
         self.view.connect_add_orientation(self.add_orientation)
@@ -267,10 +267,12 @@ class Experiment(NeuXtalVizPresenter):
         point_group = self.view.get_point_group()
         lattice_centering = self.view.get_lattice_centering()
         use = self.view.get_orientations_to_use()
+        d_min = self.view.get_d_min()
 
         stats = self.model.calculate_statistics(point_group,
                                                 lattice_centering,
-                                                use)
+                                                use,
+                                                d_min)
 
         if stats is not None:
 
@@ -280,22 +282,73 @@ class Experiment(NeuXtalVizPresenter):
 
             self.view.add_peaks(peak_dict)
 
-    # def optimize_coverage(self):
+    def optimize_coverage(self):
 
-    #     instrument = self.view.get_instrument()
-    #     wavelength = self.view.get_wavelength()
-    #     logs = self.view.get_motors()
-    #     instrument_name = self.model.get_instrument_name(instrument)
+        worker = self.view.worker(self.optimize_coverage_process)
+        worker.connect_result(self.optimize_coverage_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
 
-    #     self.model.generate_instrument_coverage(instrument_name,
-    #                                             logs,
-    #                                             wavelength)
+        self.view.start_worker_pool(worker)
 
-    #     laue = self.view.get_laue_symmetry()
+    def optimize_coverage_complete(self, result):
+        
+        if result is not None:
 
-    #     self.model.apply_symmetry(laue)
+            for angles in result:
+    
+                self.view.add_orientation('CrystalPlan', angles)
 
-    #     self.view.set_transform(self.model.get_transform())
+    def optimize_coverage_process(self, progress):
 
-    #     coverage_dict = self.model.get_coverage_info()
-    #     self.view.add_coverage(coverage_dict)
+        point_group = self.view.get_point_group()
+        lattice_centering = self.view.get_lattice_centering()
+        use = self.view.get_orientations_to_use()
+        opt = self.view.get_optimized_settings()
+        d_min = self.view.get_d_min()
+        wavelength = self.view.get_wavelength()
+        n_orient = self.view.get_settings()
+
+        n_elite = 2
+        n_gener = 10
+        n_indiv = 10
+        mutation_rate = 0.15
+
+        instrument = self.view.get_instrument()
+        mode = self.view.get_mode()
+        axes = self.model.get_goniometer_axes(instrument, mode)
+        limits = self.view.get_goniometer_limits()
+
+        if self.model.has_UB():
+
+            progress('Initializing instrument', 5)
+
+            self.create_instrument()
+
+            progress('Instrument initialized! ', 10)
+
+            cp = self.model.crystal_plan(use,
+                                         opt,
+                                         axes,
+                                         limits,
+                                         wavelength,
+                                         d_min,
+                                         point_group,
+                                         lattice_centering)
+
+            progress('Optimizing peaks coverage', 15)
+
+            values = cp.optimize(n_orient, 
+                                 n_indiv,
+                                 n_gener,
+                                 n_elite,
+                                 mutation_rate)
+
+
+            progress('Peaks coverage optimized!', 0)
+
+            return values
+
+        else:
+
+            progress('Invalid parameters.', 0)
