@@ -689,8 +689,6 @@ class ExperimentModel(NeuXtalVizModel):
 
         for peak in mtd[ws]:
             peak.setRunNumber(rows)
-            # peak.setIntensity(100)
-            # peak.setSigmaIntensity(np.sqrt(peak.getIntensity()))
 
         mtd["instrument"].run().getGoniometer().setR(np.eye(3))
 

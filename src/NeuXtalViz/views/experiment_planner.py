@@ -524,6 +524,7 @@ class ExperimentView(NeuXtalVizWidget):
 
     def add_orientation(self, comment, angles):
         row = self.get_number_of_orientations()
+        self.plan_table.blockSignals(True)
         self.plan_table.setRowCount(row + 1)
 
         col = 0
@@ -543,6 +544,7 @@ class ExperimentView(NeuXtalVizWidget):
         checkbox.setFlags(flags)
         checkbox.setCheckState(Qt.Checked)
         self.plan_table.setItem(row, col, checkbox)
+        self.plan_table.blockSignals(False)
 
     def handle_item_changed(self, item):
         col = item.column()
