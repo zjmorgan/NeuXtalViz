@@ -1,17 +1,19 @@
-from qtpy.QtWidgets import (QWidget,
-                            QFrame,
-                            QGridLayout,
-                            QHBoxLayout,
-                            QVBoxLayout,
-                            QPushButton,
-                            QLabel,
-                            QCheckBox,
-                            QComboBox,
-                            QLineEdit,
-                            QProgressBar,
-                            QStatusBar,
-                            QTabWidget,
-                            QFileDialog)
+from qtpy.QtWidgets import (
+    QWidget,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QVBoxLayout,
+    QPushButton,
+    QLabel,
+    QCheckBox,
+    QComboBox,
+    QLineEdit,
+    QProgressBar,
+    QStatusBar,
+    QTabWidget,
+    QFileDialog,
+)
 
 from qtpy.QtGui import QDoubleValidator
 from PyQt5.QtCore import Qt
@@ -28,30 +30,29 @@ from NeuXtalViz.views.utilities import Worker, ThreadPool
 #           'Dark': pv.themes.DarkTheme(),
 #           'ParaView': pv.themes.ParaViewTheme()}
 
+
 class NeuXtalVizWidget(QWidget):
-
     def __init__(self, parent=None):
-
         super().__init__(parent)
 
-        self.proj_box = QCheckBox('Parallel Projection', self)
+        self.proj_box = QCheckBox("Parallel Projection", self)
         self.proj_box.setChecked(True)
         self.proj_box.clicked.connect(self.change_projection)
 
-        self.reset_button = QPushButton('Reset View', self)
+        self.reset_button = QPushButton("Reset View", self)
         self.reset_button.clicked.connect(self.reset_view)
 
-        self.camera_button = QPushButton('Reset Camera', self)
+        self.camera_button = QPushButton("Reset Camera", self)
         self.camera_button.clicked.connect(self.reset_camera)
 
-        self.recip_box = QCheckBox('Reciprocal Lattice', self)
+        self.recip_box = QCheckBox("Reciprocal Lattice", self)
         self.recip_box.setChecked(True)
 
-        self.axes_box = QCheckBox('Show Axes', self)
+        self.axes_box = QCheckBox("Show Axes", self)
         self.axes_box.setChecked(True)
         self.axes_box.clicked.connect(self.show_axes)
 
-        self.save_button = QPushButton('Save Screenshot', self)
+        self.save_button = QPushButton("Save Screenshot", self)
 
         self.frame = QFrame()
 
@@ -89,7 +90,7 @@ class NeuXtalVizWidget(QWidget):
         vis_layout.addWidget(info_tab)
 
         self.status_bar = QStatusBar()
-        self.status_bar.showMessage('Ready!')
+        self.status_bar.showMessage("Ready!")
         self.progress_bar = QProgressBar()
         self.status_bar.addPermanentWidget(self.progress_bar)
 
@@ -107,17 +108,16 @@ class NeuXtalVizWidget(QWidget):
         self.plotter.enable_parallel_projection()
 
     def __init_view_tab(self):
-        
         view_tab = QTabWidget()
 
         self.view_combo = QComboBox(self)
-        self.view_combo.addItem('[hkl]')
-        self.view_combo.addItem('[uvw]')
+        self.view_combo.addItem("[hkl]")
+        self.view_combo.addItem("[uvw]")
         self.view_combo.currentIndexChanged.connect(self.update_labels)
 
         self.viewup_combo = QComboBox(self)
-        self.viewup_combo.addItem('[hkl]')
-        self.viewup_combo.addItem('[uvw]')
+        self.viewup_combo.addItem("[hkl]")
+        self.viewup_combo.addItem("[uvw]")
         self.viewup_combo.currentIndexChanged.connect(self.update_labels)
 
         notation = QDoubleValidator.StandardNotation
@@ -132,9 +132,9 @@ class NeuXtalVizWidget(QWidget):
         self.axis2_line.setValidator(validator)
         self.axis3_line.setValidator(validator)
 
-        self.axis1_label = QLabel('h', self)
-        self.axis2_label = QLabel('k', self)
-        self.axis3_label = QLabel('l', self)
+        self.axis1_label = QLabel("h", self)
+        self.axis2_label = QLabel("k", self)
+        self.axis3_label = QLabel("l", self)
 
         self.axisup1_line = QLineEdit()
         self.axisup2_line = QLineEdit()
@@ -144,20 +144,20 @@ class NeuXtalVizWidget(QWidget):
         self.axisup2_line.setValidator(validator)
         self.axisup3_line.setValidator(validator)
 
-        self.axisup1_label = QLabel('h', self)
-        self.axisup2_label = QLabel('k', self)
-        self.axisup3_label = QLabel('l', self)
+        self.axisup1_label = QLabel("h", self)
+        self.axisup2_label = QLabel("k", self)
+        self.axisup3_label = QLabel("l", self)
 
-        self.manual_button = QPushButton('View Axis', self)
-        self.manualup_button = QPushButton('View Up Axis', self)
+        self.manual_button = QPushButton("View Axis", self)
+        self.manualup_button = QPushButton("View Up Axis", self)
 
-        self.px_button = QPushButton('+Qx', self)
-        self.py_button = QPushButton('+Qy', self)
-        self.pz_button = QPushButton('+Qz', self)
+        self.px_button = QPushButton("+Qx", self)
+        self.py_button = QPushButton("+Qy", self)
+        self.pz_button = QPushButton("+Qz", self)
 
-        self.mx_button = QPushButton('-Qx', self)
-        self.my_button = QPushButton('-Qy', self)
-        self.mz_button = QPushButton('-Qz', self)
+        self.mx_button = QPushButton("-Qx", self)
+        self.my_button = QPushButton("-Qy", self)
+        self.mz_button = QPushButton("-Qz", self)
 
         self.px_button.clicked.connect(self.view_yz)
         self.py_button.clicked.connect(self.view_zx)
@@ -167,13 +167,13 @@ class NeuXtalVizWidget(QWidget):
         self.my_button.clicked.connect(self.view_xz)
         self.mz_button.clicked.connect(self.view_yx)
 
-        self.a_star_button = QPushButton('a*', self)
-        self.b_star_button = QPushButton('b*', self)
-        self.c_star_button = QPushButton('c*', self)
+        self.a_star_button = QPushButton("a*", self)
+        self.b_star_button = QPushButton("b*", self)
+        self.c_star_button = QPushButton("c*", self)
 
-        self.a_button = QPushButton('a', self)
-        self.b_button = QPushButton('b', self)
-        self.c_button = QPushButton('c', self)
+        self.a_button = QPushButton("a", self)
+        self.b_button = QPushButton("b", self)
+        self.c_button = QPushButton("c", self)
 
         directions_layout = QGridLayout()
         manual_layout = QGridLayout()
@@ -220,26 +220,25 @@ class NeuXtalVizWidget(QWidget):
         directions_tab.setLayout(directions_layout)
         manual_tab.setLayout(manual_layout)
 
-        view_tab.addTab(directions_tab, 'Direction View')
-        view_tab.addTab(manual_tab, 'Manual View')
+        view_tab.addTab(directions_tab, "Direction View")
+        view_tab.addTab(manual_tab, "Manual View")
 
         return view_tab
 
     def __init_info_tab(self):
-
         info_tab = QTabWidget()
 
-        ub_a_label = QLabel('a:', self)
-        ub_b_label = QLabel('b:', self)
-        ub_c_label = QLabel('c:', self)
-        ub_alpha_label = QLabel('α:', self)
-        ub_beta_label = QLabel('β:', self)
-        ub_gamma_label = QLabel('γ:', self)
-        ub_u_label = QLabel('u:', self)
-        ub_v_label = QLabel('v:', self)
+        ub_a_label = QLabel("a:", self)
+        ub_b_label = QLabel("b:", self)
+        ub_c_label = QLabel("c:", self)
+        ub_alpha_label = QLabel("α:", self)
+        ub_beta_label = QLabel("β:", self)
+        ub_gamma_label = QLabel("γ:", self)
+        ub_u_label = QLabel("u:", self)
+        ub_v_label = QLabel("v:", self)
 
-        ub_angstrom_label = QLabel('Å')
-        ub_degree_label = QLabel('°')
+        ub_angstrom_label = QLabel("Å")
+        ub_degree_label = QLabel("°")
 
         self.ub_a_line = QLineEdit()
         self.ub_b_line = QLineEdit()
@@ -301,8 +300,8 @@ class NeuXtalVizWidget(QWidget):
         lattice_tab.setLayout(lattice_layout)
         orientation_tab.setLayout(orientation_layout)
 
-        info_tab.addTab(lattice_tab, 'Lattice Parameters')
-        info_tab.addTab(orientation_tab, 'Sample Orientation')
+        info_tab.addTab(lattice_tab, "Lattice Parameters")
+        info_tab.addTab(orientation_tab, "Sample Orientation")
 
         return info_tab
 
@@ -348,9 +347,9 @@ class NeuXtalVizWidget(QWidget):
 
         self.progress_bar.setValue(progress)
 
-    def set_oriented_lattice_parameters(self, a, b, c,
-                                              alpha, beta, gamma,
-                                              u, v):
+    def set_oriented_lattice_parameters(
+        self, a, b, c, alpha, beta, gamma, u, v
+    ):
         """
         Update the oriented lattice paramters.
 
@@ -363,18 +362,18 @@ class NeuXtalVizWidget(QWidget):
 
         """
 
-        self.ub_a_line.setText('{:.5f}'.format(a))
-        self.ub_b_line.setText('{:.5f}'.format(b))
-        self.ub_c_line.setText('{:.5f}'.format(c))
-        self.ub_alpha_line.setText('{:.3f}'.format(alpha))
-        self.ub_beta_line.setText('{:.3f}'.format(beta))
-        self.ub_gamma_line.setText('{:.3f}'.format(gamma))
-        self.ub_u1_line.setText('{:.4f}'.format(u[0]))
-        self.ub_u2_line.setText('{:.4f}'.format(u[1]))
-        self.ub_u3_line.setText('{:.4f}'.format(u[2]))
-        self.ub_v1_line.setText('{:.4f}'.format(v[0]))
-        self.ub_v2_line.setText('{:.4f}'.format(v[1]))
-        self.ub_v3_line.setText('{:.4f}'.format(v[2]))
+        self.ub_a_line.setText("{:.5f}".format(a))
+        self.ub_b_line.setText("{:.5f}".format(b))
+        self.ub_c_line.setText("{:.5f}".format(c))
+        self.ub_alpha_line.setText("{:.3f}".format(alpha))
+        self.ub_beta_line.setText("{:.3f}".format(beta))
+        self.ub_gamma_line.setText("{:.3f}".format(gamma))
+        self.ub_u1_line.setText("{:.4f}".format(u[0]))
+        self.ub_u2_line.setText("{:.4f}".format(u[1]))
+        self.ub_u3_line.setText("{:.4f}".format(u[2]))
+        self.ub_v1_line.setText("{:.4f}".format(v[0]))
+        self.ub_v2_line.setText("{:.4f}".format(v[1]))
+        self.ub_v3_line.setText("{:.4f}".format(v[2]))
 
     def connect_manual_axis(self, view_manual):
         """
@@ -496,7 +495,6 @@ class NeuXtalVizWidget(QWidget):
         self.plotter.reset_camera()
 
     def clear_scene(self):
-
         self.plotter.clear_plane_widgets()
         self.plotter.clear_actors()
 
@@ -504,7 +502,6 @@ class NeuXtalVizWidget(QWidget):
             self.camera_position = self.plotter.camera_position
 
     def reset_scene(self):
-
         if self.camera_position is not None:
             self.plotter.camera_position = self.camera_position
         else:
@@ -524,18 +521,15 @@ class NeuXtalVizWidget(QWidget):
         self.plotter.screenshot(filename)
 
     def save_screenshot_file_dialog(self):
-
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.AnyFile)
 
-        filename, _ = file_dialog.getSaveFileName(self,
-                                                  'Save PNG file',
-                                                  '',
-                                                  'PNG files (*.png)',
-                                                  options=options)
+        filename, _ = file_dialog.getSaveFileName(
+            self, "Save PNG file", "", "PNG files (*.png)", options=options
+        )
 
         return filename
 
@@ -552,7 +546,7 @@ class NeuXtalVizWidget(QWidget):
 
         if self.axes_show():
             if T is not None:
-                self.T = T     
+                self.T = T
                 self.show_axes()
 
     def reciprocal_lattice(self):
@@ -564,23 +558,22 @@ class NeuXtalVizWidget(QWidget):
         return self.recip_box.isChecked()
 
     def show_axes(self):
-        
         if not self.axes_show():
             self.plotter.hide_axes()
         elif self.T is not None:
             t = pv._vtk.vtkMatrix4x4()
             for i in range(3):
                 for j in range(3):
-                    t.SetElement(i, j, self.T[i,j])
+                    t.SetElement(i, j, self.T[i, j])
             if self.reciprocal_lattice():
-                actor = self.plotter.add_axes(xlabel='a*',
-                                              ylabel='b*',
-                                              zlabel='c*')
+                actor = self.plotter.add_axes(
+                    xlabel="a*", ylabel="b*", zlabel="c*"
+                )
 
             else:
-                actor = self.plotter.add_axes(xlabel='a',
-                                              ylabel='b',
-                                              zlabel='c')
+                actor = self.plotter.add_axes(
+                    xlabel="a", ylabel="b", zlabel="c"
+                )
             actor.SetUserMatrix(t)
 
     def axes_show(self):
@@ -621,7 +614,6 @@ class NeuXtalVizWidget(QWidget):
 
         self.plotter.set_viewup(vec)
 
-
     def update_labels(self):
         """
         Change the axes labels between Miller and fractional notation.
@@ -630,25 +622,25 @@ class NeuXtalVizWidget(QWidget):
 
         axes_type = self.view_combo.currentText()
 
-        if axes_type == '[hkl]':
-            self.axis1_label.setText('h')
-            self.axis2_label.setText('k')
-            self.axis3_label.setText('l')
+        if axes_type == "[hkl]":
+            self.axis1_label.setText("h")
+            self.axis2_label.setText("k")
+            self.axis3_label.setText("l")
         else:
-            self.axis1_label.setText('u')
-            self.axis2_label.setText('v')
-            self.axis3_label.setText('w')
+            self.axis1_label.setText("u")
+            self.axis2_label.setText("v")
+            self.axis3_label.setText("w")
 
         axesup_type = self.viewup_combo.currentText()
 
-        if axesup_type == '[hkl]':
-            self.axisup1_label.setText('h')
-            self.axisup2_label.setText('k')
-            self.axisup3_label.setText('l')
+        if axesup_type == "[hkl]":
+            self.axisup1_label.setText("h")
+            self.axisup2_label.setText("k")
+            self.axisup3_label.setText("l")
         else:
-            self.axisup1_label.setText('u')
-            self.axisup2_label.setText('v')
-            self.axisup3_label.setText('w')
+            self.axisup1_label.setText("u")
+            self.axisup2_label.setText("v")
+            self.axisup3_label.setText("w")
 
     def get_manual_axis_indices(self):
         """
@@ -669,12 +661,11 @@ class NeuXtalVizWidget(QWidget):
         valid_axes = all([axis.hasAcceptableInput() for axis in axes])
 
         if valid_axes:
-
             axis1 = float(self.axis1_line.text())
             axis2 = float(self.axis2_line.text())
             axis3 = float(self.axis3_line.text())
 
-            ind = np.array([axis1,axis2,axis3])
+            ind = np.array([axis1, axis2, axis3])
 
             return axes_type, ind
 
@@ -697,12 +688,11 @@ class NeuXtalVizWidget(QWidget):
         valid_axes = all([axis.hasAcceptableInput() for axis in axes])
 
         if valid_axes:
-
             axis1 = float(self.axisup1_line.text())
             axis2 = float(self.axisup2_line.text())
             axis3 = float(self.axisup3_line.text())
 
-            ind = np.array([axis1,axis2,axis3])
+            ind = np.array([axis1, axis2, axis3])
 
             return axes_type, ind
 

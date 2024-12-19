@@ -1,7 +1,16 @@
 import sys
 import os
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QFileDialog, QTextEdit, QPushButton, QVBoxLayout, QWidget, QListWidget, QLabel, QHBoxLayout
+    QApplication,
+    QMainWindow,
+    QFileDialog,
+    QTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+    QListWidget,
+    QLabel,
+    QHBoxLayout,
 )
 from PyQt5.QtCore import Qt
 from subprocess import Popen, PIPE
@@ -10,7 +19,7 @@ from subprocess import Popen, PIPE
 class FileEditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('File Editor')
+        self.setWindowTitle("File Editor")
         self.setGeometry(100, 100, 800, 600)
 
         self.directory_path = None
@@ -58,14 +67,16 @@ class FileEditorApp(QMainWindow):
         open_dir_action.triggered.connect(self.open_directory)
 
     def open_directory(self):
-        self.directory_path = QFileDialog.getExistingDirectory(self, "Select Directory")
+        self.directory_path = QFileDialog.getExistingDirectory(
+            self, "Select Directory"
+        )
         if self.directory_path:
             self.load_files_in_directory()
 
     def load_files_in_directory(self):
         self.file_list.clear()
         for file_name in os.listdir(self.directory_path):
-            #if file_name.endswith(".txt"):  # Filter for text files
+            # if file_name.endswith(".txt"):  # Filter for text files
             self.file_list.addItem(file_name)
 
     def load_file(self, item):
@@ -78,7 +89,10 @@ class FileEditorApp(QMainWindow):
         if self.current_file_path:
             with open(self.current_file_path, "w") as file:
                 file.write(self.text_editor.toPlainText())
-            self.statusBar().showMessage(f"File {os.path.basename(self.current_file_path)} saved successfully!", 3000)
+            self.statusBar().showMessage(
+                f"File {os.path.basename(self.current_file_path)} saved successfully!",
+                3000,
+            )
 
     def run_command(self):
         if self.current_file_path:
@@ -89,7 +103,9 @@ class FileEditorApp(QMainWindow):
             # Display command output
             if process.returncode == 0:
                 self.text_editor.setText(stdout.decode())
-                self.statusBar().showMessage("Command executed successfully!", 3000)
+                self.statusBar().showMessage(
+                    "Command executed successfully!", 3000
+                )
             else:
                 self.text_editor.setText(stderr.decode())
                 self.statusBar().showMessage("Command execution failed.", 3000)

@@ -1,17 +1,19 @@
 import sys
 
-from qtpy.QtWidgets import (QWidget,
-                            QLineEdit,
-                            QLabel,
-                            QPushButton,
-                            QComboBox,
-                            QTableWidget,
-                            QTableWidgetItem,
-                            QHeaderView,
-                            QFrame,
-                            QHBoxLayout,
-                            QVBoxLayout,
-                            QGridLayout)
+from qtpy.QtWidgets import (
+    QWidget,
+    QLineEdit,
+    QLabel,
+    QPushButton,
+    QComboBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QFrame,
+    QHBoxLayout,
+    QVBoxLayout,
+    QGridLayout,
+)
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
@@ -22,22 +24,21 @@ from PyQt5.QtCore import Qt
 
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
+
 class ReductionPlanView(QWidget):
-
     def __init__(self, parent=None):
-
         super().__init__(parent)
 
         experiment_layout = QHBoxLayout()
         dataset_layout = QGridLayout()
 
         self.instrument_combo = QComboBox(self)
-        self.instrument_combo.addItem('TOPAZ')
-        self.instrument_combo.addItem('MANDI')
-        self.instrument_combo.addItem('CORELLI')
-        self.instrument_combo.addItem('SNAP')
-        self.instrument_combo.addItem('DEMAND')
-        self.instrument_combo.addItem('WAND²')
+        self.instrument_combo.addItem("TOPAZ")
+        self.instrument_combo.addItem("MANDI")
+        self.instrument_combo.addItem("CORELLI")
+        self.instrument_combo.addItem("SNAP")
+        self.instrument_combo.addItem("DEMAND")
+        self.instrument_combo.addItem("WAND²")
 
         self.ipts_combo = QComboBox(self)
         self.experiment_combo = QComboBox(self)
@@ -46,7 +47,7 @@ class ReductionPlanView(QWidget):
         experiment_layout.addWidget(self.ipts_combo)
         experiment_layout.addWidget(self.experiment_combo)
 
-        self.runs_label = QLabel('Run Numbers', self)
+        self.runs_label = QLabel("Run Numbers", self)
         self.runs_line = QLineEdit(self)
 
         dataset_layout.addWidget(self.runs_label, 0, 0)
@@ -54,7 +55,7 @@ class ReductionPlanView(QWidget):
 
         self.table = QTableWidget()
 
-        header = ['Axis','Direction','Sense','Min','Max']
+        header = ["Axis", "Direction", "Sense", "Min", "Max"]
 
         self.table.setRowCount(5)
         self.table.setColumnCount(len(header))
@@ -75,15 +76,15 @@ class ReductionPlanView(QWidget):
         vanadium_layout = QGridLayout()
         grouping_layout = QGridLayout()
 
-        self.calibration_label = QLabel('Calibration', self)
-        self.detector_label = QLabel('Detector', self)
-        self.tube_label = QLabel('Tube', self)
-        self.vanadium_label = QLabel('Vanadium', self)
-        self.counts_label = QLabel('Counts', self)
-        self.spectrum_label = QLabel('Spectrum', self)
-        self.grouping_label = QLabel('Grouping', self)
-        self.mask_label = QLabel('Mask', self)
-        self.background_label = QLabel('Background', self)
+        self.calibration_label = QLabel("Calibration", self)
+        self.detector_label = QLabel("Detector", self)
+        self.tube_label = QLabel("Tube", self)
+        self.vanadium_label = QLabel("Vanadium", self)
+        self.counts_label = QLabel("Counts", self)
+        self.spectrum_label = QLabel("Spectrum", self)
+        self.grouping_label = QLabel("Grouping", self)
+        self.mask_label = QLabel("Mask", self)
+        self.background_label = QLabel("Background", self)
 
         self.calibration_combo = QComboBox(self)
         self.detector_line = QLineEdit(self)
@@ -95,12 +96,12 @@ class ReductionPlanView(QWidget):
         self.mask_line = QLineEdit(self)
         self.background_line = QLineEdit(self)
 
-        self.detector_button = QPushButton('Browse', self)
-        self.tube_button = QPushButton('Browse', self)
-        self.counts_button = QPushButton('Browse', self)
-        self.spectrum_button = QPushButton('Browse', self)
-        self.mask_button = QPushButton('Browse', self)
-        self.background_button = QPushButton('Browse', self)
+        self.detector_button = QPushButton("Browse", self)
+        self.tube_button = QPushButton("Browse", self)
+        self.counts_button = QPushButton("Browse", self)
+        self.spectrum_button = QPushButton("Browse", self)
+        self.mask_button = QPushButton("Browse", self)
+        self.background_button = QPushButton("Browse", self)
 
         calibration_layout.addWidget(self.calibration_label, 0, 0)
         calibration_layout.addWidget(self.calibration_combo, 0, 1)
@@ -144,17 +145,18 @@ class ReductionPlanView(QWidget):
 
         self.setLayout(layout)
 
-class MainWindow(QMainWindow):
 
+class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.setWindowTitle('Reduction Plan')
+        self.setWindowTitle("Reduction Plan")
 
         widget = ReductionPlanView()
         self.setCentralWidget(widget)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

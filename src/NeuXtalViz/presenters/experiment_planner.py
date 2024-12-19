@@ -1,9 +1,8 @@
 from NeuXtalViz.presenters.base_presenter import NeuXtalVizPresenter
 
+
 class Experiment(NeuXtalVizPresenter):
-
     def __init__(self, view, model):
-
         super(Experiment, self).__init__(view, model)
 
         self.view.connect_load_UB(self.load_UB)
@@ -25,11 +24,9 @@ class Experiment(NeuXtalVizPresenter):
         self.switch_crystal()
 
     def load_UB(self):
-
         filename = self.view.load_UB_file_dialog()
 
         if filename:
-
             self.model.load_UB(filename)
 
             self.update_oriented_lattice()
@@ -37,7 +34,6 @@ class Experiment(NeuXtalVizPresenter):
             self.view.set_transform(self.model.get_transform())
 
     def switch_instrument(self):
-
         instrument = self.view.get_instrument()
 
         wavelength = self.model.get_wavelength(instrument)
@@ -52,7 +48,6 @@ class Experiment(NeuXtalVizPresenter):
         self.model.remove_instrument()
 
     def switch_crystal(self):
-
         cs = self.view.get_crystal_system()
 
         point_groups = self.model.get_crystal_system_point_groups(cs)
@@ -62,7 +57,6 @@ class Experiment(NeuXtalVizPresenter):
         self.switch_group()
 
     def switch_group(self):
-
         pg = self.view.get_point_group()
 
         centerings = self.model.get_point_group_centering(pg)
@@ -72,11 +66,9 @@ class Experiment(NeuXtalVizPresenter):
         self.visualize()
 
     def switch_centering(self):
-
         self.visualize()
 
     def update_goniometer(self):
-
         instrument = self.view.get_instrument()
         mode = self.view.get_mode()
 
@@ -86,19 +78,16 @@ class Experiment(NeuXtalVizPresenter):
         self.view.update_tables(goniometers, motors)
 
     def update_wavelength(self):
-
         wl_min, wl_max = self.view.get_wavelength()
         self.view.update_wavelength(wl_min)
 
     def create_instrument(self):
-
         instrument = self.view.get_instrument()
         motors = self.view.get_motors()
 
         self.model.initialize_instrument(instrument, motors)
 
     def calculate_single(self):
-
         worker = self.view.worker(self.calculate_single_process)
         worker.connect_result(self.calculate_single_complete)
         worker.connect_finished(self.visualize)
@@ -107,15 +96,10 @@ class Experiment(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def calculate_single_complete(self, result):
-
         if result is not None:
-
-            self.view.plot_instrument(self.model.gamma,
-                                      self.model.nu,
-                                      *result)
+            self.view.plot_instrument(self.model.gamma, self.model.nu, *result)
 
     def calculate_single_process(self, progress):
-
         hkl_1, hkl_2 = self.view.get_input_hkls()
         wavelength = self.view.get_wavelength()
 
@@ -126,31 +110,26 @@ class Experiment(NeuXtalVizPresenter):
         limits = self.view.get_goniometer_limits()
 
         if hkl_1 is not None and self.model.has_UB():
-
-            progress('Initializing instrument', 5)
+            progress("Initializing instrument", 5)
 
             self.create_instrument()
 
-            progress('Instrument initialized! ', 10)
+            progress("Instrument initialized! ", 10)
 
-            progress('Calculating peak coverage', 15)
+            progress("Calculating peak coverage", 15)
 
-            gamma, nu, lamda = self.model.individual_peak(hkl_1,
-                                                          wavelength,
-                                                          axes,
-                                                          polarities,
-                                                          limits)
+            gamma, nu, lamda = self.model.individual_peak(
+                hkl_1, wavelength, axes, polarities, limits
+            )
 
-            progress('Peak calculated!', 0)
+            progress("Peak calculated!", 0)
 
             return gamma, nu, lamda
 
         else:
-
-            progress('Invalid parameters.', 0)
+            progress("Invalid parameters.", 0)
 
     def calculate_double(self):
-
         worker = self.view.worker(self.calculate_double_process)
         worker.connect_result(self.calculate_double_complete)
         worker.connect_finished(self.visualize)
@@ -159,15 +138,12 @@ class Experiment(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def calculate_double_complete(self, result):
-
         if result is not None:
-
-            self.view.plot_instrument_alternate(self.model.gamma,
-                                                self.model.nu,
-                                                *result)
+            self.view.plot_instrument_alternate(
+                self.model.gamma, self.model.nu, *result
+            )
 
     def calculate_double_process(self, progress):
-
         hkl_1, hkl_2 = self.view.get_input_hkls()
         wavelength = self.view.get_wavelength()
 
@@ -178,35 +154,29 @@ class Experiment(NeuXtalVizPresenter):
         limits = self.view.get_goniometer_limits()
 
         if hkl_1 is not None and hkl_2 is not None and self.model.has_UB():
-
-            progress('Initializing instrument', 5)
+            progress("Initializing instrument", 5)
 
             self.create_instrument()
 
-            progress('Instrument initialized! ', 10)
+            progress("Instrument initialized! ", 10)
 
-            progress('Calculating peaks coverage', 15)
+            progress("Calculating peaks coverage", 15)
 
-            peak_1, peak_2 = self.model.simultaneous_peaks(hkl_1,
-                                                           hkl_2,
-                                                           wavelength,
-                                                           axes,
-                                                           polarities,
-                                                           limits)
+            peak_1, peak_2 = self.model.simultaneous_peaks(
+                hkl_1, hkl_2, wavelength, axes, polarities, limits
+            )
 
             gamma_1, nu_1, lamda_1 = peak_1
             gamma_2, nu_2, lamda_2 = peak_2
 
-            progress('Peaks calculated!', 0)
+            progress("Peaks calculated!", 0)
 
-            return gamma_1, nu_1, lamda_1, gamma_2, nu_2, lamda_2 
+            return gamma_1, nu_1, lamda_1, gamma_2, nu_2, lamda_2
 
         else:
-
-            progress('Invalid parameters.', 0)
+            progress("Invalid parameters.", 0)
 
     def lookup_angle(self):
-
         gamma = self.view.get_horizontal()
         nu = self.view.get_vertical()
 
@@ -214,7 +184,6 @@ class Experiment(NeuXtalVizPresenter):
         self.view.set_angles(angles)
 
     def add_orientation(self):
-
         worker = self.view.worker(self.add_orientation_process)
         worker.connect_result(self.add_orientation_complete)
         worker.connect_finished(self.visualize)
@@ -223,8 +192,7 @@ class Experiment(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def add_orientation_complete(self, result):
-
-        angles, all_angles, free_angles = result        
+        angles, all_angles, free_angles = result
 
         comment = self.model.comment
         update_angles = []
@@ -235,7 +203,6 @@ class Experiment(NeuXtalVizPresenter):
         self.view.add_orientation(comment, update_angles)
 
     def add_orientation_process(self, progress):
-
         angles = self.view.get_angles()
         free_angles = self.view.get_free_angles()
         all_angles = self.view.get_all_angles()
@@ -246,36 +213,28 @@ class Experiment(NeuXtalVizPresenter):
         rows = self.view.get_number_of_orientations()
 
         if len(angles) > 0:
+            progress("Calculation reflections", 5)
 
-            progress('Calculation reflections', 5)
+            self.model.add_orientation(angles, wavelength, d_min, rows)
 
-            self.model.add_orientation(angles,
-                                       wavelength,
-                                       d_min,
-                                       rows)
-
-            progress('Reflections calculated!', 0)
+            progress("Reflections calculated!", 0)
 
             return angles, all_angles, free_angles
 
         else:
-
-            progress('Invalid parameters.', 0)
+            progress("Invalid parameters.", 0)
 
     def visualize(self):
-
         point_group = self.view.get_point_group()
         lattice_centering = self.view.get_lattice_centering()
         use = self.view.get_orientations_to_use()
         d_min = self.view.get_d_min()
 
-        stats = self.model.calculate_statistics(point_group,
-                                                lattice_centering,
-                                                use,
-                                                d_min)
+        stats = self.model.calculate_statistics(
+            point_group, lattice_centering, use, d_min
+        )
 
         if stats is not None:
-
             self.view.plot_statistics(*stats)
 
             peak_dict = self.model.get_coverage_info(point_group)
@@ -283,7 +242,6 @@ class Experiment(NeuXtalVizPresenter):
             self.view.add_peaks(peak_dict)
 
     def optimize_coverage(self):
-
         worker = self.view.worker(self.optimize_coverage_process)
         worker.connect_result(self.optimize_coverage_complete)
         worker.connect_finished(self.visualize)
@@ -292,15 +250,11 @@ class Experiment(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def optimize_coverage_complete(self, result):
-        
         if result is not None:
-
             for angles in result:
-    
-                self.view.add_orientation('CrystalPlan', angles)
+                self.view.add_orientation("CrystalPlan", angles)
 
     def optimize_coverage_process(self, progress):
-
         point_group = self.view.get_point_group()
         lattice_centering = self.view.get_lattice_centering()
         use = self.view.get_orientations_to_use()
@@ -320,35 +274,32 @@ class Experiment(NeuXtalVizPresenter):
         limits = self.view.get_goniometer_limits()
 
         if self.model.has_UB():
-
-            progress('Initializing instrument', 5)
+            progress("Initializing instrument", 5)
 
             self.create_instrument()
 
-            progress('Instrument initialized! ', 10)
+            progress("Instrument initialized! ", 10)
 
-            cp = self.model.crystal_plan(use,
-                                         opt,
-                                         axes,
-                                         limits,
-                                         wavelength,
-                                         d_min,
-                                         point_group,
-                                         lattice_centering)
+            cp = self.model.crystal_plan(
+                use,
+                opt,
+                axes,
+                limits,
+                wavelength,
+                d_min,
+                point_group,
+                lattice_centering,
+            )
 
-            progress('Optimizing peaks coverage', 15)
+            progress("Optimizing peaks coverage", 15)
 
-            values = cp.optimize(n_orient, 
-                                 n_indiv,
-                                 n_gener,
-                                 n_elite,
-                                 mutation_rate)
+            values = cp.optimize(
+                n_orient, n_indiv, n_gener, n_elite, mutation_rate
+            )
 
-
-            progress('Peaks coverage optimized!', 0)
+            progress("Peaks coverage optimized!", 0)
 
             return values
 
         else:
-
-            progress('Invalid parameters.', 0)
+            progress("Invalid parameters.", 0)

@@ -4,10 +4,9 @@ from mantid.geometry import OrientedLattice
 
 import numpy as np
 
-class NeuXtalVizModel():
 
+class NeuXtalVizModel:
     def __init__(self):
-
         self.UB = None
 
     def has_UB(self, ws):
@@ -57,16 +56,15 @@ class NeuXtalVizModel():
         """
 
         if self.UB is not None:
-
             ol = OrientedLattice()
             ol.setUB(self.UB)
 
             params = ol.a(), ol.b(), ol.c(), ol.alpha(), ol.beta(), ol.gamma()
 
             u, v = ol.getuVector(), ol.getvVector()
-            
-            u = np.array(u)/np.abs(u).max()
-            v = np.array(v)/np.abs(v).max()
+
+            u = np.array(u) / np.abs(u).max()
+            v = np.array(v) / np.abs(v).max()
 
             return *params, u, v
 
@@ -88,15 +86,18 @@ class NeuXtalVizModel():
         """
 
         if self.UB is not None:
-
             if reciprocal:
                 T = self.UB.copy()
             else:
-                T = np.column_stack([np.cross(self.UB[:,1], self.UB[:,2]),
-                                     np.cross(self.UB[:,2], self.UB[:,0]),
-                                     np.cross(self.UB[:,0], self.UB[:,1])])
+                T = np.column_stack(
+                    [
+                        np.cross(self.UB[:, 1], self.UB[:, 2]),
+                        np.cross(self.UB[:, 2], self.UB[:, 0]),
+                        np.cross(self.UB[:, 0], self.UB[:, 1]),
+                    ]
+                )
 
-            return T/np.linalg.norm(T, axis=0)
+            return T / np.linalg.norm(T, axis=0)
 
     def ab_star_axes(self):
         """
@@ -112,8 +113,7 @@ class NeuXtalVizModel():
         """
 
         if self.UB is not None:
-
-            return np.dot(self.UB, [0,0,1]), np.dot(self.UB, [1,0,0])
+            return np.dot(self.UB, [0, 0, 1]), np.dot(self.UB, [1, 0, 0])
 
     def bc_star_axes(self):
         """
@@ -129,8 +129,7 @@ class NeuXtalVizModel():
         """
 
         if self.UB is not None:
-
-            return np.dot(self.UB, [1,0,0]), np.dot(self.UB, [0,1,0])
+            return np.dot(self.UB, [1, 0, 0]), np.dot(self.UB, [0, 1, 0])
 
     def ca_star_axes(self):
         """
@@ -146,8 +145,7 @@ class NeuXtalVizModel():
         """
 
         if self.UB is not None:
-
-            return np.dot(self.UB, [0,1,0]), np.dot(self.UB, [0,0,1])
+            return np.dot(self.UB, [0, 1, 0]), np.dot(self.UB, [0, 0, 1])
 
     def ab_axes(self):
         """
@@ -163,9 +161,9 @@ class NeuXtalVizModel():
         """
 
         if self.UB is not None:
-
-            return np.cross(*self.bc_star_axes()), \
-                   np.cross(*self.ca_star_axes())
+            return np.cross(*self.bc_star_axes()), np.cross(
+                *self.ca_star_axes()
+            )
 
     def bc_axes(self):
         """
@@ -181,9 +179,9 @@ class NeuXtalVizModel():
         """
 
         if self.UB is not None:
-
-            return np.cross(*self.ca_star_axes()), \
-                   np.cross(*self.ab_star_axes())
+            return np.cross(*self.ca_star_axes()), np.cross(
+                *self.ab_star_axes()
+            )
 
     def ca_axes(self):
         """
@@ -199,9 +197,9 @@ class NeuXtalVizModel():
         """
 
         if self.UB is not None:
-
-            return np.cross(*self.ab_star_axes()), \
-                   np.cross(*self.bc_star_axes())
+            return np.cross(*self.ab_star_axes()), np.cross(
+                *self.bc_star_axes()
+            )
 
     def get_vector(self, axes_type, ind):
         """
@@ -222,12 +220,13 @@ class NeuXtalVizModel():
         """
 
         if self.UB is not None:
-
-            if axes_type == '[hkl]':
+            if axes_type == "[hkl]":
                 matrix = self.UB
             else:
-                matrix = np.cross(np.dot(self.UB, np.roll(np.eye(3),2,1)).T,
-                                  np.dot(self.UB, np.roll(np.eye(3),1,1)).T).T
+                matrix = np.cross(
+                    np.dot(self.UB, np.roll(np.eye(3), 2, 1)).T,
+                    np.dot(self.UB, np.roll(np.eye(3), 1, 1)).T,
+                ).T
 
             vec = np.dot(matrix, ind)
 

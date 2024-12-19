@@ -19,5 +19,6 @@ dependencies:
   - dill
   - psutil
   - multiprocess
+  - black
   - pip:
     - pyqtdarktheme

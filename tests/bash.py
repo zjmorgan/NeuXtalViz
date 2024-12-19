@@ -1,6 +1,12 @@
-
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QTextEdit,
+    QLineEdit,
+    QPushButton,
+)
 from PyQt5.QtCore import QProcess
 
 
@@ -37,8 +43,12 @@ class BashShellWidget(QWidget):
     def run_command(self):
         command = self.command_input.text().strip()
         if command:
-            self.output_display.append(f"$ {command}")  # Display the command in the output window
-            self.process.start("bash", ["-c", command])  # Execute the command in Bash
+            self.output_display.append(
+                f"$ {command}"
+            )  # Display the command in the output window
+            self.process.start(
+                "bash", ["-c", command]
+            )  # Execute the command in Bash
             self.command_input.clear()
 
     def on_ready_read_output(self):

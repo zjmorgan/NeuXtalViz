@@ -3,20 +3,22 @@ import re
 import numpy as np
 import pyvista as pv
 
-from qtpy.QtWidgets import (QWidget,
-                            QTableWidget,
-                            QTableWidgetItem,
-                            QHeaderView,
-                            QLineEdit,
-                            QLabel,
-                            QComboBox,
-                            QPushButton,
-                            QCheckBox,
-                            QHBoxLayout,
-                            QVBoxLayout,
-                            QGridLayout,
-                            QTabWidget,
-                            QFileDialog)
+from qtpy.QtWidgets import (
+    QWidget,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QLineEdit,
+    QLabel,
+    QComboBox,
+    QPushButton,
+    QCheckBox,
+    QHBoxLayout,
+    QVBoxLayout,
+    QGridLayout,
+    QTabWidget,
+    QFileDialog,
+)
 
 from qtpy.QtGui import QDoubleValidator, QIntValidator
 from qtpy.QtCore import Qt, Signal
@@ -29,23 +31,23 @@ from matplotlib.ticker import FormatStrFormatter
 
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.axisartist import Axes, GridHelperCurveLinear
-from mpl_toolkits.axisartist.grid_finder import (ExtremeFinderSimple,
-                                                 MaxNLocator)
+from mpl_toolkits.axisartist.grid_finder import ExtremeFinderSimple, MaxNLocator
 
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
 
-cmaps = {'Sequential': 'viridis',
-         'Binary': 'binary',
-         'Diverging': 'bwr',
-         'Rainbow': 'turbo'}
+cmaps = {
+    "Sequential": "viridis",
+    "Binary": "binary",
+    "Diverging": "bwr",
+    "Rainbow": "turbo",
+}
+
 
 class UBView(NeuXtalVizWidget):
-
     roi_ready = Signal()
     index_ready = Signal()
 
     def __init__(self, parent=None):
-
         super().__init__(parent)
 
         self.tab_widget = QTabWidget(self)
@@ -62,20 +64,19 @@ class UBView(NeuXtalVizWidget):
         self.y_min, self.y_max = None, None
 
     def parameters_tab(self):
-
         ub_peaks_tab = QWidget()
-        self.tab_widget.addTab(ub_peaks_tab, 'Parameters')
+        self.tab_widget.addTab(ub_peaks_tab, "Parameters")
 
         ub_layout = QVBoxLayout()
 
-        self.save_q_button = QPushButton('Save Q', self)
-        self.load_q_button = QPushButton('Load Q', self)
+        self.save_q_button = QPushButton("Save Q", self)
+        self.load_q_button = QPushButton("Load Q", self)
 
-        self.save_peaks_button = QPushButton('Save Peaks', self)
-        self.load_peaks_button = QPushButton('Load Peaks', self)
+        self.save_peaks_button = QPushButton("Save Peaks", self)
+        self.load_peaks_button = QPushButton("Load Peaks", self)
 
-        self.save_ub_button = QPushButton('Save UB', self)
-        self.load_ub_button = QPushButton('Load UB', self)
+        self.save_ub_button = QPushButton("Save UB", self)
+        self.load_ub_button = QPushButton("Load UB", self)
 
         convert_io_layout = QHBoxLayout()
 
@@ -114,7 +115,6 @@ class UBView(NeuXtalVizWidget):
         ub_peaks_tab.setLayout(ub_layout)
 
     def __init_values_tab(self):
-
         values_tab = QTabWidget()
 
         parameters_tab = QWidget()
@@ -145,16 +145,16 @@ class UBView(NeuXtalVizWidget):
         self.beta_line.setValidator(validator)
         self.gamma_line.setValidator(validator)
 
-        a_label = QLabel('a:')
-        b_label = QLabel('b:')
-        c_label = QLabel('c:')
+        a_label = QLabel("a:")
+        b_label = QLabel("b:")
+        c_label = QLabel("c:")
 
-        alpha_label = QLabel('α:')
-        beta_label = QLabel('β:')
-        gamma_label = QLabel('γ:')
+        alpha_label = QLabel("α:")
+        beta_label = QLabel("β:")
+        gamma_label = QLabel("γ:")
 
-        angstrom_label = QLabel('Å')
-        degree_label = QLabel('°')
+        angstrom_label = QLabel("Å")
+        degree_label = QLabel("°")
 
         parameters_layout = QGridLayout()
 
@@ -177,17 +177,17 @@ class UBView(NeuXtalVizWidget):
 
         validator = QDoubleValidator(-5, 5, 4, notation=notation)
 
-        self.dh1_line = QLineEdit('0.0')
-        self.dk1_line = QLineEdit('0.0')
-        self.dl1_line = QLineEdit('0.0')
+        self.dh1_line = QLineEdit("0.0")
+        self.dk1_line = QLineEdit("0.0")
+        self.dl1_line = QLineEdit("0.0")
 
-        self.dh2_line = QLineEdit('0.0')
-        self.dk2_line = QLineEdit('0.0')
-        self.dl2_line = QLineEdit('0.0')
+        self.dh2_line = QLineEdit("0.0")
+        self.dk2_line = QLineEdit("0.0")
+        self.dl2_line = QLineEdit("0.0")
 
-        self.dh3_line = QLineEdit('0.0')
-        self.dk3_line = QLineEdit('0.0')
-        self.dl3_line = QLineEdit('0.0')
+        self.dh3_line = QLineEdit("0.0")
+        self.dk3_line = QLineEdit("0.0")
+        self.dl3_line = QLineEdit("0.0")
 
         self.dh1_line.setValidator(validator)
         self.dk1_line.setValidator(validator)
@@ -201,19 +201,19 @@ class UBView(NeuXtalVizWidget):
         self.dk3_line.setValidator(validator)
         self.dl3_line.setValidator(validator)
 
-        self.max_order_line = QLineEdit('0')
+        self.max_order_line = QLineEdit("0")
 
-        mod_vec1_label = QLabel('1:')
-        mod_vec2_label = QLabel('2:')
-        mod_vec3_label = QLabel('3:')
+        mod_vec1_label = QLabel("1:")
+        mod_vec2_label = QLabel("2:")
+        mod_vec3_label = QLabel("3:")
 
-        dh_label = QLabel('Δh')
-        dk_label = QLabel('Δk')
-        dl_label = QLabel('Δl')
+        dh_label = QLabel("Δh")
+        dk_label = QLabel("Δk")
+        dl_label = QLabel("Δl")
 
-        max_order_label = QLabel('Max Order')
+        max_order_label = QLabel("Max Order")
 
-        self.cross_box = QCheckBox('Cross Terms', self)
+        self.cross_box = QCheckBox("Cross Terms", self)
         self.cross_box.setChecked(False)
 
         satellite_layout = QGridLayout()
@@ -237,13 +237,13 @@ class UBView(NeuXtalVizWidget):
         satellite_layout.addWidget(self.dk3_line, 3, 2)
         satellite_layout.addWidget(self.dl3_line, 3, 3)
 
-        x_label = QLabel('x:')
-        y_label = QLabel('y:')
-        z_label = QLabel('z:')
+        x_label = QLabel("x:")
+        y_label = QLabel("y:")
+        z_label = QLabel("z:")
 
-        a_star_label = QLabel('a*')
-        b_star_label = QLabel('b*')
-        c_star_label = QLabel('c*')
+        a_star_label = QLabel("a*")
+        b_star_label = QLabel("b*")
+        c_star_label = QLabel("c*")
 
         self.uh_line = QLineEdit()
         self.uk_line = QLineEdit()
@@ -296,14 +296,13 @@ class UBView(NeuXtalVizWidget):
         orientation_tab.setLayout(orientation_layout)
         satellite_tab.setLayout(satellite_layout)
 
-        values_tab.addTab(parameters_tab, 'Lattice Parameters')
-        values_tab.addTab(orientation_tab, 'Sample Orientation')
-        values_tab.addTab(satellite_tab, 'Modulation Parameters')
+        values_tab.addTab(parameters_tab, "Lattice Parameters")
+        values_tab.addTab(orientation_tab, "Sample Orientation")
+        values_tab.addTab(satellite_tab, "Modulation Parameters")
 
         return values_tab
 
     def __init_convert_tab(self):
-
         convert_tab = QTabWidget()
 
         convert_to_q_tab = QWidget()
@@ -315,36 +314,36 @@ class UBView(NeuXtalVizWidget):
         instrument_params_layout = QGridLayout()
 
         self.instrument_combo = QComboBox(self)
-        self.instrument_combo.addItem('TOPAZ')
-        self.instrument_combo.addItem('MANDI')
-        self.instrument_combo.addItem('CORELLI')
-        self.instrument_combo.addItem('SNAP')
-        self.instrument_combo.addItem('WAND²')
-        self.instrument_combo.addItem('DEMAND')
+        self.instrument_combo.addItem("TOPAZ")
+        self.instrument_combo.addItem("MANDI")
+        self.instrument_combo.addItem("CORELLI")
+        self.instrument_combo.addItem("SNAP")
+        self.instrument_combo.addItem("WAND²")
+        self.instrument_combo.addItem("DEMAND")
 
-        ipts_label = QLabel('IPTS:')
-        exp_label = QLabel('Experiment:')
-        run_label = QLabel('Runs:')
-        filter_time_label = QLabel('Time Stop [s]:')
-        angstrom_label = QLabel('Å')
+        ipts_label = QLabel("IPTS:")
+        exp_label = QLabel("Experiment:")
+        run_label = QLabel("Runs:")
+        filter_time_label = QLabel("Time Stop [s]:")
+        angstrom_label = QLabel("Å")
 
         validator = QIntValidator(1, 1000000000, self)
 
-        self.runs_line = QLineEdit('')
+        self.runs_line = QLineEdit("")
 
-        self.ipts_line = QLineEdit('')
+        self.ipts_line = QLineEdit("")
         self.ipts_line.setValidator(validator)
 
-        self.exp_line = QLineEdit('')
+        self.exp_line = QLineEdit("")
         self.exp_line.setValidator(validator)
 
-        self.cal_line = QLineEdit('')
-        self.tube_line = QLineEdit('')
+        self.cal_line = QLineEdit("")
+        self.tube_line = QLineEdit("")
 
-        self.wl_min_line = QLineEdit('0.3')
-        self.wl_max_line = QLineEdit('3.5')
+        self.wl_min_line = QLineEdit("0.3")
+        self.wl_max_line = QLineEdit("3.5")
 
-        wl_label = QLabel('λ:')
+        wl_label = QLabel("λ:")
 
         notation = QDoubleValidator.StandardNotation
 
@@ -355,11 +354,11 @@ class UBView(NeuXtalVizWidget):
 
         validator = QIntValidator(1, 1000, self)
 
-        self.filter_time_line = QLineEdit('300')
+        self.filter_time_line = QLineEdit("300")
         self.filter_time_line.setValidator(validator)
 
-        self.cal_browse_button = QPushButton('Detector', self)
-        self.tube_browse_button = QPushButton('Tube', self)
+        self.cal_browse_button = QPushButton("Detector", self)
+        self.tube_browse_button = QPushButton("Tube", self)
 
         experiment_params_layout.addWidget(self.instrument_combo)
         experiment_params_layout.addWidget(ipts_label)
@@ -380,9 +379,9 @@ class UBView(NeuXtalVizWidget):
         instrument_params_layout.addWidget(self.tube_line, 2, 0)
         instrument_params_layout.addWidget(self.tube_browse_button, 2, 1)
 
-        self.convert_to_q_button = QPushButton('Convert', self)
+        self.convert_to_q_button = QPushButton("Convert", self)
 
-        self.lorentz_box = QCheckBox('Lorentz Correction', self)
+        self.lorentz_box = QCheckBox("Lorentz Correction", self)
         self.lorentz_box.setChecked(True)
 
         convert_to_q_action_layout = QHBoxLayout()
@@ -402,43 +401,42 @@ class UBView(NeuXtalVizWidget):
 
         convert_to_q_tab.setLayout(convert_to_q_tab_layout)
 
-        convert_tab.addTab(convert_to_q_tab, 'Convert To Q')
+        convert_tab.addTab(convert_to_q_tab, "Convert To Q")
 
         return convert_tab
 
     def __init_peaks_tab(self):
-
         peaks_tab = QTabWidget()
 
         find_tab = QWidget()
         find_tab_layout = QVBoxLayout()
 
-        max_peaks_label = QLabel('Max Peaks:')
-        min_distance_label = QLabel('Min Distance:')
-        density_threshold_label = QLabel('Min Density:')
-        find_edge_label = QLabel('Edge Pixels:')
-        distance_unit_label = QLabel('Å⁻¹')
+        max_peaks_label = QLabel("Max Peaks:")
+        min_distance_label = QLabel("Min Distance:")
+        density_threshold_label = QLabel("Min Density:")
+        find_edge_label = QLabel("Edge Pixels:")
+        distance_unit_label = QLabel("Å⁻¹")
 
         validator = QIntValidator(10, 1000, self)
 
-        self.max_peaks_line = QLineEdit('100')
+        self.max_peaks_line = QLineEdit("100")
         self.max_peaks_line.setValidator(validator)
 
         validator = QIntValidator(1, 100000, self)
 
-        self.density_threshold_line = QLineEdit('100')
+        self.density_threshold_line = QLineEdit("100")
         self.density_threshold_line.setValidator(validator)
 
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(0.01, 10, 4, notation=notation)
 
-        self.min_distance_line = QLineEdit('0.2')
+        self.min_distance_line = QLineEdit("0.2")
         self.min_distance_line.setValidator(validator)
 
         validator = QIntValidator(0, 64, self)
 
-        self.find_edge_line = QLineEdit('0')
+        self.find_edge_line = QLineEdit("0")
         self.find_edge_line.setValidator(validator)
 
         find_params_layout = QGridLayout()
@@ -453,7 +451,7 @@ class UBView(NeuXtalVizWidget):
         find_params_layout.addWidget(find_edge_label, 2, 0)
         find_params_layout.addWidget(self.find_edge_line, 2, 1)
 
-        self.find_button = QPushButton('Find', self)
+        self.find_button = QPushButton("Find", self)
 
         find_action_layout = QHBoxLayout()
         find_action_layout.addWidget(self.find_button)
@@ -468,19 +466,19 @@ class UBView(NeuXtalVizWidget):
         index_tab = QWidget()
         index_tab_layout = QVBoxLayout()
 
-        index_tolerance_label = QLabel('Tolerance:')
+        index_tolerance_label = QLabel("Tolerance:")
 
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(0.01, 1, 5, notation=notation)
 
-        self.index_sat_box = QCheckBox('Satellite', self)
+        self.index_sat_box = QCheckBox("Satellite", self)
         self.index_sat_box.setChecked(False)
 
-        self.index_tolerance_line = QLineEdit('0.1')
+        self.index_tolerance_line = QLineEdit("0.1")
         self.index_tolerance_line.setValidator(validator)
 
-        self.index_sat_tolerance_line = QLineEdit('0.1')
+        self.index_sat_tolerance_line = QLineEdit("0.1")
         self.index_sat_tolerance_line.setValidator(validator)
 
         index_params_layout = QGridLayout()
@@ -490,10 +488,10 @@ class UBView(NeuXtalVizWidget):
         index_params_layout.addWidget(self.index_sat_tolerance_line, 0, 2)
         index_params_layout.addWidget(self.index_sat_box, 1, 2)
 
-        self.round_box = QCheckBox('Round hkl', self)
+        self.round_box = QCheckBox("Round hkl", self)
         self.round_box.setChecked(True)
 
-        self.index_button = QPushButton('Index', self)
+        self.index_button = QPushButton("Index", self)
 
         index_action_layout = QHBoxLayout()
         index_action_layout.addWidget(self.index_button)
@@ -506,40 +504,40 @@ class UBView(NeuXtalVizWidget):
 
         index_tab.setLayout(index_tab_layout)
 
-        centering_label = QLabel('Centering:')
+        centering_label = QLabel("Centering:")
 
         self.centering_combo = QComboBox(self)
-        self.centering_combo.addItem('P')
-        self.centering_combo.addItem('I')
-        self.centering_combo.addItem('F')
-        self.centering_combo.addItem('Robv')
-        self.centering_combo.addItem('Rrev')
-        self.centering_combo.addItem('A')
-        self.centering_combo.addItem('B')
-        self.centering_combo.addItem('C')
-        self.centering_combo.addItem('H')
+        self.centering_combo.addItem("P")
+        self.centering_combo.addItem("I")
+        self.centering_combo.addItem("F")
+        self.centering_combo.addItem("Robv")
+        self.centering_combo.addItem("Rrev")
+        self.centering_combo.addItem("A")
+        self.centering_combo.addItem("B")
+        self.centering_combo.addItem("C")
+        self.centering_combo.addItem("H")
 
-        min_d_unit_label = QLabel('Å')
+        min_d_unit_label = QLabel("Å")
 
-        min_d_label = QLabel('Min d-spacing:')
-        predict_edge_label = QLabel('Edge Pixels:')
+        min_d_label = QLabel("Min d-spacing:")
+        predict_edge_label = QLabel("Edge Pixels:")
 
-        self.predict_sat_box = QCheckBox('Satellite', self)
+        self.predict_sat_box = QCheckBox("Satellite", self)
         self.predict_sat_box.setChecked(False)
 
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(0.4, 100, 3, notation=notation)
 
-        self.min_d_line = QLineEdit('0.7')
+        self.min_d_line = QLineEdit("0.7")
         self.min_d_line.setValidator(validator)
 
-        self.min_sat_d_line = QLineEdit('1.0')
+        self.min_sat_d_line = QLineEdit("1.0")
         self.min_sat_d_line.setValidator(validator)
 
         validator = QIntValidator(0, 64, self)
 
-        self.predict_edge_line = QLineEdit('0')
+        self.predict_edge_line = QLineEdit("0")
         self.predict_edge_line.setValidator(validator)
 
         predict_tab = QWidget()
@@ -557,7 +555,7 @@ class UBView(NeuXtalVizWidget):
         predict_params_layout.addWidget(self.predict_edge_line, 2, 1)
         predict_params_layout.addWidget(self.predict_sat_box, 2, 2)
 
-        self.predict_button = QPushButton('Predict', self)
+        self.predict_button = QPushButton("Predict", self)
 
         predict_action_layout = QHBoxLayout()
         predict_action_layout.addWidget(self.predict_button)
@@ -569,32 +567,32 @@ class UBView(NeuXtalVizWidget):
 
         predict_tab.setLayout(predict_tab_layout)
 
-        self.centroid_box = QCheckBox('Centroid', self)
+        self.centroid_box = QCheckBox("Centroid", self)
         self.centroid_box.setChecked(True)
 
-        self.adaptive_box = QCheckBox('Adaptive Envelope', self)
+        self.adaptive_box = QCheckBox("Adaptive Envelope", self)
         self.adaptive_box.setChecked(True)
 
-        radius_label = QLabel('Radius:')
-        inner_label = QLabel('Inner Factor:')
-        outer_label = QLabel('Outer Factor:')
-        radius_unit_label = QLabel('Å⁻¹')
+        radius_label = QLabel("Radius:")
+        inner_label = QLabel("Inner Factor:")
+        outer_label = QLabel("Outer Factor:")
+        radius_unit_label = QLabel("Å⁻¹")
 
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(0, 1, 3, notation=notation)
 
-        self.radius_line = QLineEdit('0.25')
+        self.radius_line = QLineEdit("0.25")
         self.radius_line.setValidator(validator)
 
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(1, 3, 3, notation=notation)
 
-        self.inner_line = QLineEdit('1.5')
+        self.inner_line = QLineEdit("1.5")
         self.inner_line.setValidator(validator)
 
-        self.outer_line = QLineEdit('2')
+        self.outer_line = QLineEdit("2")
         self.outer_line.setValidator(validator)
 
         integrate_tab = QWidget()
@@ -610,7 +608,7 @@ class UBView(NeuXtalVizWidget):
         integrate_params_layout.addWidget(outer_label, 2, 2)
         integrate_params_layout.addWidget(self.outer_line, 2, 3)
 
-        self.integrate_button = QPushButton('Integrate', self)
+        self.integrate_button = QPushButton("Integrate", self)
 
         integrate_action_layout = QHBoxLayout()
         integrate_action_layout.addWidget(self.integrate_button)
@@ -625,27 +623,27 @@ class UBView(NeuXtalVizWidget):
         integrate_tab.setLayout(integrate_tab_layout)
 
         self.filter_combo = QComboBox(self)
-        self.filter_combo.addItem('I/σ')
-        self.filter_combo.addItem('d')
-        self.filter_combo.addItem('λ')
-        self.filter_combo.addItem('Q')
-        self.filter_combo.addItem('h^2+k^2+l^2')
-        self.filter_combo.addItem('m^2+n^2+p^2')
-        self.filter_combo.addItem('Run #')
+        self.filter_combo.addItem("I/σ")
+        self.filter_combo.addItem("d")
+        self.filter_combo.addItem("λ")
+        self.filter_combo.addItem("Q")
+        self.filter_combo.addItem("h^2+k^2+l^2")
+        self.filter_combo.addItem("m^2+n^2+p^2")
+        self.filter_combo.addItem("Run #")
 
         self.comparison_combo = QComboBox(self)
-        self.comparison_combo.addItem('>')
-        self.comparison_combo.addItem('<')
-        self.comparison_combo.addItem('>=')
-        self.comparison_combo.addItem('<=')
-        self.comparison_combo.addItem('=')
-        self.comparison_combo.addItem('!=')
+        self.comparison_combo.addItem(">")
+        self.comparison_combo.addItem("<")
+        self.comparison_combo.addItem(">=")
+        self.comparison_combo.addItem("<=")
+        self.comparison_combo.addItem("=")
+        self.comparison_combo.addItem("!=")
 
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(-1e6, 1e6, 3, notation=notation)
 
-        self.filter_line = QLineEdit('0')
+        self.filter_line = QLineEdit("0")
         self.filter_line.setValidator(validator)
 
         filter_tab = QWidget()
@@ -657,7 +655,7 @@ class UBView(NeuXtalVizWidget):
         filter_params_layout.addWidget(self.comparison_combo)
         filter_params_layout.addWidget(self.filter_line)
 
-        self.filter_button = QPushButton('Filter', self)
+        self.filter_button = QPushButton("Filter", self)
 
         filter_action_layout = QHBoxLayout()
         filter_action_layout.addWidget(self.filter_button)
@@ -669,30 +667,29 @@ class UBView(NeuXtalVizWidget):
 
         filter_tab.setLayout(filter_tab_layout)
 
-        peaks_tab.addTab(find_tab, 'Find Peaks')
-        peaks_tab.addTab(index_tab, 'Index Peaks')
-        peaks_tab.addTab(predict_tab, 'Predict Peaks')
-        peaks_tab.addTab(integrate_tab, 'Integrate Peaks')
-        peaks_tab.addTab(filter_tab, 'Filter Peaks')
+        peaks_tab.addTab(find_tab, "Find Peaks")
+        peaks_tab.addTab(index_tab, "Index Peaks")
+        peaks_tab.addTab(predict_tab, "Predict Peaks")
+        peaks_tab.addTab(integrate_tab, "Integrate Peaks")
+        peaks_tab.addTab(filter_tab, "Filter Peaks")
 
         return peaks_tab
 
     def __init_ub_tab(self):
-
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(0.01, 1, 5, notation=notation)
 
         ub_tab = QTabWidget()
 
-        calculate_tolerance_label = QLabel('Tolerance:')
+        calculate_tolerance_label = QLabel("Tolerance:")
 
-        self.calculate_tolerance_line = QLineEdit('0.1')
+        self.calculate_tolerance_line = QLineEdit("0.1")
         self.calculate_tolerance_line.setValidator(validator)
 
-        max_scalar_error_label = QLabel('Max Scalar Error:')
+        max_scalar_error_label = QLabel("Max Scalar Error:")
 
-        self.max_scalar_error_line = QLineEdit('0.2')
+        self.max_scalar_error_line = QLineEdit("0.2")
         self.max_scalar_error_line.setValidator(validator)
 
         calculate_tab = QWidget()
@@ -705,20 +702,20 @@ class UBView(NeuXtalVizWidget):
         calculate_params_layout.addWidget(max_scalar_error_label, 0, 2)
         calculate_params_layout.addWidget(self.max_scalar_error_line, 0, 3)
 
-        self.conventional_button = QPushButton('Conventional', self)
-        self.niggli_button = QPushButton('Niggli', self)
-        self.select_button = QPushButton('Select', self)
+        self.conventional_button = QPushButton("Conventional", self)
+        self.niggli_button = QPushButton("Niggli", self)
+        self.select_button = QPushButton("Select", self)
 
-        self.form_line = QLineEdit('')
+        self.form_line = QLineEdit("")
         self.form_line.setReadOnly(True)
 
-        form_label = QLabel('Form:')
+        form_label = QLabel("Form:")
 
-        min_const_label = QLabel('Min(a,b,c) [Å]:')
-        max_const_label = QLabel('Max(a,b,c) [Å]:')
+        min_const_label = QLabel("Min(a,b,c) [Å]:")
+        max_const_label = QLabel("Max(a,b,c) [Å]:")
 
-        self.min_const_line = QLineEdit('5')
-        self.max_const_line = QLineEdit('15')
+        self.min_const_line = QLineEdit("5")
+        self.max_const_line = QLineEdit("15")
 
         notation = QDoubleValidator.StandardNotation
 
@@ -748,7 +745,7 @@ class UBView(NeuXtalVizWidget):
         self.cell_table.setRowCount(0)
         self.cell_table.setColumnCount(9)
 
-        header = ['Error', 'Bravais', 'a', 'b', 'c', 'α', 'β', 'γ', 'V']
+        header = ["Error", "Bravais", "a", "b", "c", "α", "β", "γ", "V"]
 
         self.cell_table.horizontalHeader().setSectionResizeMode(stretch)
         self.cell_table.setHorizontalHeaderLabels(header)
@@ -762,39 +759,39 @@ class UBView(NeuXtalVizWidget):
 
         calculate_tab.setLayout(calculate_tab_layout)
 
-        transform_tolerance_label = QLabel('Tolerance:')
+        transform_tolerance_label = QLabel("Tolerance:")
 
-        self.transform_tolerance_line = QLineEdit('0.1')
+        self.transform_tolerance_line = QLineEdit("0.1")
         self.transform_tolerance_line.setValidator(validator)
 
         self.lattice_combo = QComboBox(self)
-        self.lattice_combo.addItem('Triclinic')
-        self.lattice_combo.addItem('Monoclinic')
-        self.lattice_combo.addItem('Orthorhombic')
-        self.lattice_combo.addItem('Tetragonal')
-        self.lattice_combo.addItem('Rhombohedral')
-        self.lattice_combo.addItem('Hexagonal')
-        self.lattice_combo.addItem('Cubic')
+        self.lattice_combo.addItem("Triclinic")
+        self.lattice_combo.addItem("Monoclinic")
+        self.lattice_combo.addItem("Orthorhombic")
+        self.lattice_combo.addItem("Tetragonal")
+        self.lattice_combo.addItem("Rhombohedral")
+        self.lattice_combo.addItem("Hexagonal")
+        self.lattice_combo.addItem("Cubic")
 
         self.symmetry_combo = QComboBox(self)
-        self.symmetry_combo.addItem('x,y,z')
-        self.symmetry_combo.addItem('-x,-y,-z')
+        self.symmetry_combo.addItem("x,y,z")
+        self.symmetry_combo.addItem("-x,-y,-z")
 
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(-10, 10, 5, notation=notation)
 
-        self.T11_line = QLineEdit('1')
-        self.T12_line = QLineEdit('0')
-        self.T13_line = QLineEdit('0')
+        self.T11_line = QLineEdit("1")
+        self.T12_line = QLineEdit("0")
+        self.T13_line = QLineEdit("0")
 
-        self.T21_line = QLineEdit('0')
-        self.T22_line = QLineEdit('1')
-        self.T23_line = QLineEdit('0')
+        self.T21_line = QLineEdit("0")
+        self.T22_line = QLineEdit("1")
+        self.T23_line = QLineEdit("0")
 
-        self.T31_line = QLineEdit('0')
-        self.T32_line = QLineEdit('0')
-        self.T33_line = QLineEdit('1')
+        self.T31_line = QLineEdit("0")
+        self.T32_line = QLineEdit("0")
+        self.T33_line = QLineEdit("1")
 
         self.T11_line.setValidator(validator)
         self.T12_line.setValidator(validator)
@@ -808,13 +805,13 @@ class UBView(NeuXtalVizWidget):
         self.T32_line.setValidator(validator)
         self.T33_line.setValidator(validator)
 
-        hp_label = QLabel('h′:')
-        kp_label = QLabel('k′:')
-        lp_label = QLabel('l′:')
+        hp_label = QLabel("h′:")
+        kp_label = QLabel("k′:")
+        lp_label = QLabel("l′:")
 
-        h_label = QLabel('h')
-        k_label = QLabel('k')
-        l_label = QLabel('l')
+        h_label = QLabel("h")
+        k_label = QLabel("k")
+        l_label = QLabel("l")
 
         transform_tab = QWidget()
         transform_tab_layout = QVBoxLayout()
@@ -844,7 +841,7 @@ class UBView(NeuXtalVizWidget):
         transform_matrix_layout.addWidget(self.T32_line, 3, 2)
         transform_matrix_layout.addWidget(self.T33_line, 3, 3)
 
-        self.transform_button = QPushButton('Transform', self)
+        self.transform_button = QPushButton("Transform", self)
 
         transform_action_layout = QHBoxLayout()
         transform_action_layout.addWidget(self.transform_button)
@@ -857,25 +854,25 @@ class UBView(NeuXtalVizWidget):
 
         transform_tab.setLayout(transform_tab_layout)
 
-        refine_tolerance_label = QLabel('Tolerance:')
+        refine_tolerance_label = QLabel("Tolerance:")
 
         notation = QDoubleValidator.StandardNotation
 
         validator = QDoubleValidator(0.01, 1, 5, notation=notation)
 
-        self.refine_tolerance_line = QLineEdit('0.1')
+        self.refine_tolerance_line = QLineEdit("0.1")
         self.refine_tolerance_line.setValidator(validator)
 
         self.optimize_combo = QComboBox(self)
-        self.optimize_combo.addItem('Unconstrained')
-        self.optimize_combo.addItem('Constrained')
-        self.optimize_combo.addItem('Triclinic')
-        self.optimize_combo.addItem('Monoclinic')
-        self.optimize_combo.addItem('Orthorhombic')
-        self.optimize_combo.addItem('Tetragonal')
-        self.optimize_combo.addItem('Rhombohedral')
-        self.optimize_combo.addItem('Hexagonal')
-        self.optimize_combo.addItem('Cubic')
+        self.optimize_combo.addItem("Unconstrained")
+        self.optimize_combo.addItem("Constrained")
+        self.optimize_combo.addItem("Triclinic")
+        self.optimize_combo.addItem("Monoclinic")
+        self.optimize_combo.addItem("Orthorhombic")
+        self.optimize_combo.addItem("Tetragonal")
+        self.optimize_combo.addItem("Rhombohedral")
+        self.optimize_combo.addItem("Hexagonal")
+        self.optimize_combo.addItem("Cubic")
 
         refine_tab = QWidget()
         refine_tab_layout = QVBoxLayout()
@@ -885,7 +882,7 @@ class UBView(NeuXtalVizWidget):
         refine_params_layout.addWidget(self.refine_tolerance_line)
         refine_params_layout.addWidget(self.optimize_combo)
 
-        self.refine_button = QPushButton('Refine', self)
+        self.refine_button = QPushButton("Refine", self)
 
         refine_action_layout = QHBoxLayout()
         refine_action_layout.addWidget(self.refine_button)
@@ -897,27 +894,26 @@ class UBView(NeuXtalVizWidget):
 
         refine_tab.setLayout(refine_tab_layout)
 
-        ub_tab.addTab(calculate_tab, 'Calculate UB')
-        ub_tab.addTab(transform_tab, 'Transform UB')
-        ub_tab.addTab(refine_tab, 'Refine UB')
+        ub_tab.addTab(calculate_tab, "Calculate UB")
+        ub_tab.addTab(transform_tab, "Transform UB")
+        ub_tab.addTab(refine_tab, "Refine UB")
 
         return ub_tab
 
     def table_tab(self):
-
         peaks_table_tab = QWidget()
-        self.tab_widget.addTab(peaks_table_tab, 'Peaks')
+        self.tab_widget.addTab(peaks_table_tab, "Peaks")
 
         peaks_layout = QVBoxLayout()
 
         calculator_layout = QGridLayout()
 
-        h_label = QLabel('h', self)
-        k_label = QLabel('k', self)
-        l_label = QLabel('l', self)
+        h_label = QLabel("h", self)
+        k_label = QLabel("k", self)
+        l_label = QLabel("l", self)
 
-        peak_1_label = QLabel('1:', self)
-        peak_2_label = QLabel('2:', self)
+        peak_1_label = QLabel("1:", self)
+        peak_2_label = QLabel("2:", self)
 
         notation = QDoubleValidator.StandardNotation
 
@@ -939,9 +935,9 @@ class UBView(NeuXtalVizWidget):
         self.k2_line.setValidator(validator)
         self.l2_line.setValidator(validator)
 
-        d_label = QLabel('d [Å]', self)
+        d_label = QLabel("d [Å]", self)
 
-        phi_label = QLabel('φ [°]', self)
+        phi_label = QLabel("φ [°]", self)
 
         self.d1_line = QLineEdit()
         self.d2_line = QLineEdit()
@@ -951,7 +947,7 @@ class UBView(NeuXtalVizWidget):
         self.d2_line.setEnabled(False)
         self.phi_line.setEnabled(False)
 
-        self.calculate = QPushButton('Calculate', self)
+        self.calculate = QPushButton("Calculate", self)
 
         calculator_layout.addWidget(h_label, 0, 1, Qt.AlignCenter)
         calculator_layout.addWidget(k_label, 0, 2, Qt.AlignCenter)
@@ -979,7 +975,7 @@ class UBView(NeuXtalVizWidget):
         self.peaks_table.setRowCount(0)
         self.peaks_table.setColumnCount(7)
 
-        header = ['h', 'k', 'l', 'd', 'λ', 'I', 'I/σ']
+        header = ["h", "k", "l", "d", "λ", "I", "I/σ"]
 
         self.peaks_table.horizontalHeader().setSectionResizeMode(stretch)
         self.peaks_table.setHorizontalHeaderLabels(header)
@@ -989,13 +985,13 @@ class UBView(NeuXtalVizWidget):
 
         extended_info = QGridLayout()
 
-        d_label = QLabel('d [Å]:', self)
-        lambda_label = QLabel('λ [Å]:', self)
+        d_label = QLabel("d [Å]:", self)
+        lambda_label = QLabel("λ [Å]:", self)
 
-        run_label = QLabel('Run #', self)
-        bank_label = QLabel('Bank #', self)
-        row_label = QLabel('Row #', self)
-        col_label = QLabel('Col #', self)
+        run_label = QLabel("Run #", self)
+        bank_label = QLabel("Bank #", self)
+        row_label = QLabel("Row #", self)
+        col_label = QLabel("Col #", self)
 
         self.d_line = QLineEdit()
         self.lambda_line = QLineEdit()
@@ -1017,8 +1013,8 @@ class UBView(NeuXtalVizWidget):
         self.intensity_line.setEnabled(False)
         self.sigma_line.setEnabled(False)
 
-        intensity_label = QLabel('I: ', self)
-        sigma_label = QLabel('± σ:', self)
+        intensity_label = QLabel("I: ", self)
+        sigma_label = QLabel("± σ:", self)
 
         extended_info.addWidget(intensity_label, 0, 0)
         extended_info.addWidget(self.intensity_line, 0, 1)
@@ -1042,27 +1038,27 @@ class UBView(NeuXtalVizWidget):
         hkl_info = QHBoxLayout()
         peak_info = QGridLayout()
 
-        left_label = QLabel('(', self)
-        left_comma_label = QLabel(',', self)
-        right_comma_label = QLabel(',', self)
-        right_label = QLabel(')', self)
+        left_label = QLabel("(", self)
+        left_comma_label = QLabel(",", self)
+        right_comma_label = QLabel(",", self)
+        right_label = QLabel(")", self)
 
-        index_label = QLabel('Indexed:', self)
-        total_label = QLabel('Total:', self)
+        index_label = QLabel("Indexed:", self)
+        total_label = QLabel("Total:", self)
 
-        self.index_line = QLineEdit('0')
-        self.total_line = QLineEdit('0')
+        self.index_line = QLineEdit("0")
+        self.total_line = QLineEdit("0")
 
         self.index_line.setEnabled(False)
         self.total_line.setEnabled(False)
 
-        int_h_label = QLabel('h', self)
-        int_k_label = QLabel('k', self)
-        int_l_label = QLabel('l', self)
+        int_h_label = QLabel("h", self)
+        int_k_label = QLabel("k", self)
+        int_l_label = QLabel("l", self)
 
-        int_m_label = QLabel('m', self)
-        int_n_label = QLabel('n', self)
-        int_p_label = QLabel('p', self)
+        int_m_label = QLabel("m", self)
+        int_n_label = QLabel("n", self)
+        int_p_label = QLabel("p", self)
 
         self.h_line = QLineEdit()
         self.k_line = QLineEdit()
@@ -1130,18 +1126,16 @@ class UBView(NeuXtalVizWidget):
         peaks_table_tab.setLayout(peaks_layout)
 
     def verify_tab(self):
-
         inspect_verify_tab = QTabWidget()
-        self.tab_widget.addTab(inspect_verify_tab, 'Views')
+        self.tab_widget.addTab(inspect_verify_tab, "Views")
 
         inspect_tab = self.__init_inspect_tab()
         verify_tab = self.__init_verify_tab()
 
-        inspect_verify_tab.addTab(inspect_tab, 'Slice View')
-        inspect_verify_tab.addTab(verify_tab, 'Detector View')
+        inspect_verify_tab.addTab(inspect_tab, "Slice View")
+        inspect_verify_tab.addTab(verify_tab, "Detector View")
 
     def __init_inspect_tab(self):
-
         convert_to_hkl_tab = QWidget()
         convert_to_hkl_tab_layout = QVBoxLayout()
 
@@ -1151,17 +1145,17 @@ class UBView(NeuXtalVizWidget):
 
         validator = QDoubleValidator(-10, 10, 5, notation=notation)
 
-        self.U1_line = QLineEdit('1')
-        self.U2_line = QLineEdit('0')
-        self.U3_line = QLineEdit('0')
+        self.U1_line = QLineEdit("1")
+        self.U2_line = QLineEdit("0")
+        self.U3_line = QLineEdit("0")
 
-        self.V1_line = QLineEdit('0')
-        self.V2_line = QLineEdit('1')
-        self.V3_line = QLineEdit('0')
+        self.V1_line = QLineEdit("0")
+        self.V2_line = QLineEdit("1")
+        self.V3_line = QLineEdit("0")
 
-        self.W1_line = QLineEdit('0')
-        self.W2_line = QLineEdit('0')
-        self.W3_line = QLineEdit('1')
+        self.W1_line = QLineEdit("0")
+        self.W2_line = QLineEdit("0")
+        self.W3_line = QLineEdit("1")
 
         self.U1_line.setValidator(validator)
         self.U2_line.setValidator(validator)
@@ -1175,13 +1169,13 @@ class UBView(NeuXtalVizWidget):
         self.W2_line.setValidator(validator)
         self.W3_line.setValidator(validator)
 
-        ax1_label = QLabel('1:')
-        ax2_label = QLabel('2:')
-        ax3_label = QLabel('3:')
+        ax1_label = QLabel("1:")
+        ax2_label = QLabel("2:")
+        ax3_label = QLabel("3:")
 
-        h_label = QLabel('h')
-        k_label = QLabel('k')
-        l_label = QLabel('l')
+        h_label = QLabel("h")
+        k_label = QLabel("k")
+        l_label = QLabel("l")
 
         convert_to_hkl_params_layout.addWidget(h_label, 0, 1, Qt.AlignCenter)
         convert_to_hkl_params_layout.addWidget(k_label, 0, 2, Qt.AlignCenter)
@@ -1202,49 +1196,49 @@ class UBView(NeuXtalVizWidget):
         convert_to_hkl_params_layout.addWidget(self.V3_line, 2, 3)
         convert_to_hkl_params_layout.addWidget(self.W3_line, 3, 3)
 
-        self.convert_to_hkl_button = QPushButton('Convert', self)
+        self.convert_to_hkl_button = QPushButton("Convert", self)
 
         self.clim_combo = QComboBox(self)
-        self.clim_combo.addItem('Min/Max')
-        self.clim_combo.addItem('μ±3×σ')
-        self.clim_combo.addItem('Q₃/Q₁±1.5×IQR')
+        self.clim_combo.addItem("Min/Max")
+        self.clim_combo.addItem("μ±3×σ")
+        self.clim_combo.addItem("Q₃/Q₁±1.5×IQR")
         self.clim_combo.setCurrentIndex(1)
 
         self.cbar_combo = QComboBox(self)
-        self.cbar_combo.addItem('Sequential')
-        self.cbar_combo.addItem('Rainbow')
-        self.cbar_combo.addItem('Binary')
-        self.cbar_combo.addItem('Diverging')
+        self.cbar_combo.addItem("Sequential")
+        self.cbar_combo.addItem("Rainbow")
+        self.cbar_combo.addItem("Binary")
+        self.cbar_combo.addItem("Diverging")
         self.cbar_combo.setCurrentIndex(2)
 
         self.slice_combo = QComboBox(self)
-        self.slice_combo.addItem('Axis 1/2')
-        self.slice_combo.addItem('Axis 1/3')
-        self.slice_combo.addItem('Axis 2/3')
+        self.slice_combo.addItem("Axis 1/2")
+        self.slice_combo.addItem("Axis 1/3")
+        self.slice_combo.addItem("Axis 2/3")
         self.slice_combo.setCurrentIndex(0)
 
-        slice_label = QLabel('Slice:', self)
+        slice_label = QLabel("Slice:", self)
 
-        self.slice_line = QLineEdit('0.0')
+        self.slice_line = QLineEdit("0.0")
         self.slice_line.setValidator(validator)
 
         validator = QDoubleValidator(0.0001, 100, 5, notation=notation)
 
-        slice_thickness_label = QLabel('Thickness:', self)
+        slice_thickness_label = QLabel("Thickness:", self)
 
-        self.slice_thickness_line = QLineEdit('0.1')
+        self.slice_thickness_line = QLineEdit("0.1")
         self.slice_thickness_line.setValidator(validator)
 
         validator = QDoubleValidator(0.01, 0.5, 5, notation=notation)
 
-        slice_width_label = QLabel('Width:', self)
+        slice_width_label = QLabel("Width:", self)
 
-        self.slice_width_line = QLineEdit('0.05')
+        self.slice_width_line = QLineEdit("0.05")
         self.slice_width_line.setValidator(validator)
 
         self.slice_scale_combo = QComboBox(self)
-        self.slice_scale_combo.addItem('Linear')
-        self.slice_scale_combo.addItem('Log')
+        self.slice_scale_combo.addItem("Linear")
+        self.slice_scale_combo.addItem("Log")
 
         convert_to_hkl_action_layout = QHBoxLayout()
         convert_to_hkl_action_layout.addWidget(self.convert_to_hkl_button)
@@ -1265,7 +1259,7 @@ class UBView(NeuXtalVizWidget):
         convert_to_hkl_tab_layout.addStretch(1)
         convert_to_hkl_tab_layout.addLayout(convert_to_hkl_action_layout)
 
-        self.canvas_slice = FigureCanvas(Figure(figsize=[12.8,12.8]))
+        self.canvas_slice = FigureCanvas(Figure(figsize=[12.8, 12.8]))
 
         self.ax_xint = None
         self.ax_yint = None
@@ -1289,7 +1283,6 @@ class UBView(NeuXtalVizWidget):
         return convert_to_hkl_tab
 
     def __init_verify_tab(self):
-
         instrument_tab = QWidget()
         instrument_tab_layout = QVBoxLayout()
 
@@ -1297,15 +1290,15 @@ class UBView(NeuXtalVizWidget):
 
         self.data_combo = QComboBox(self)
 
-        d_min_label = QLabel('d(min):', self)
-        d_max_label = QLabel('d(max):', self)
+        d_min_label = QLabel("d(min):", self)
+        d_max_label = QLabel("d(max):", self)
 
-        validator = QDoubleValidator(0, float('inf'), 5, notation=notation)
+        validator = QDoubleValidator(0, float("inf"), 5, notation=notation)
 
-        self.d_min_line = QLineEdit('0')
+        self.d_min_line = QLineEdit("0")
         self.d_min_line.setValidator(validator)
 
-        self.d_max_line = QLineEdit('inf')
+        self.d_max_line = QLineEdit("inf")
         self.d_max_line.setValidator(validator)
 
         data_layout = QHBoxLayout()
@@ -1316,26 +1309,26 @@ class UBView(NeuXtalVizWidget):
         data_layout.addWidget(d_max_label)
         data_layout.addWidget(self.d_max_line)
 
-        vertical_label = QLabel('Vertical Angle:', self)
-        horizontal_label = QLabel('Horizontal Angle:', self)
+        vertical_label = QLabel("Vertical Angle:", self)
+        horizontal_label = QLabel("Horizontal Angle:", self)
 
-        vertical_roi_label = QLabel('ROI:', self)
-        horizontal_roi_label = QLabel('ROI:', self)
+        vertical_roi_label = QLabel("ROI:", self)
+        horizontal_roi_label = QLabel("ROI:", self)
 
         validator = QDoubleValidator(-180, 180, 5, notation=notation)
 
-        self.vertical_line = QLineEdit('0')
+        self.vertical_line = QLineEdit("0")
         self.vertical_line.setValidator(validator)
 
-        self.horizontal_line = QLineEdit('0')
+        self.horizontal_line = QLineEdit("0")
         self.horizontal_line.setValidator(validator)
 
         validator = QDoubleValidator(0, 180, 5, notation=notation)
 
-        self.vertical_roi_line = QLineEdit('5')
+        self.vertical_roi_line = QLineEdit("5")
         self.vertical_roi_line.setValidator(validator)
 
-        self.horizontal_roi_line = QLineEdit('5')
+        self.horizontal_roi_line = QLineEdit("5")
         self.horizontal_roi_line.setValidator(validator)
 
         angle_layout = QHBoxLayout()
@@ -1348,15 +1341,15 @@ class UBView(NeuXtalVizWidget):
         angle_layout.addWidget(vertical_roi_label)
         angle_layout.addWidget(self.vertical_roi_line)
 
-        self.add_peak_button = QPushButton('Add Peak', self)
+        self.add_peak_button = QPushButton("Add Peak", self)
 
-        self.diffraction_label = QLabel('Axis:', self)
+        self.diffraction_label = QLabel("Axis:", self)
 
-        validator = QDoubleValidator(-float('inf'),
-                                     float('inf'),
-                                     5, notation=notation)
+        validator = QDoubleValidator(
+            -float("inf"), float("inf"), 5, notation=notation
+        )
 
-        self.diffraction_line = QLineEdit('0')
+        self.diffraction_line = QLineEdit("0")
         self.diffraction_line.setValidator(validator)
 
         peak_layout = QHBoxLayout()
@@ -1393,339 +1386,275 @@ class UBView(NeuXtalVizWidget):
         return instrument_tab
 
     def connect_h_index(self, update_index):
-
         self.h_line.editingFinished.connect(update_index)
 
     def connect_k_index(self, update_index):
-
         self.k_line.editingFinished.connect(update_index)
 
     def connect_l_index(self, update_index):
-
         self.l_line.editingFinished.connect(update_index)
 
     def connect_integer_h_index(self, update_index):
-
         self.int_h_line.editingFinished.connect(update_index)
 
     def connect_integer_k_index(self, update_index):
-
         self.int_k_line.editingFinished.connect(update_index)
 
     def connect_integer_l_index(self, update_index):
-
         self.int_l_line.editingFinished.connect(update_index)
 
     def connect_integer_m_index(self, update_index):
-
         self.int_m_line.editingFinished.connect(update_index)
 
     def connect_integer_n_index(self, update_index):
-
         self.int_n_line.editingFinished.connect(update_index)
 
     def connect_integer_p_index(self, update_index):
-
         self.int_p_line.editingFinished.connect(update_index)
 
     def connect_data_combo(self, update_inst_data):
-
         self.data_combo.currentIndexChanged.connect(update_inst_data)
 
     def connect_add_peak(self, add_peak):
-
         self.add_peak_button.clicked.connect(add_peak)
 
     def connect_diffraction(self, update_inst_data):
-
         self.diffraction_line.editingFinished.connect(update_inst_data)
 
     def connect_d_min(self, update_inst_data):
-
         self.d_min_line.editingFinished.connect(update_inst_data)
 
     def connect_d_max(self, update_inst_data):
-
         self.d_max_line.editingFinished.connect(update_inst_data)
 
     def connect_horizontal(self, update_inst_data):
-
         self.horizontal_line.editingFinished.connect(update_inst_data)
 
     def connect_vertical(self, update_inst_data):
-
         self.vertical_line.editingFinished.connect(update_inst_data)
 
     def connect_horizontal_roi(self, update_inst_data):
-
         self.horizontal_roi_line.editingFinished.connect(update_inst_data)
 
     def connect_vertical_roi(self, update_inst_data):
-
         self.vertical_roi_line.editingFinished.connect(update_inst_data)
 
     def connect_convert_to_hkl(self, convert_to_hkl):
-
         self.convert_to_hkl_button.clicked.connect(convert_to_hkl)
 
     def connect_browse_calibration(self, load_detector_cal):
-
         self.cal_browse_button.clicked.connect(load_detector_cal)
 
     def connect_browse_tube(self, load_tube_cal):
-
         self.tube_browse_button.clicked.connect(load_tube_cal)
 
     def connect_convert_Q(self, convert_Q):
-
         self.convert_to_q_button.clicked.connect(convert_Q)
 
     def connect_find_peaks(self, find_peaks):
-
         self.find_button.clicked.connect(find_peaks)
 
     def connect_find_conventional(self, find_conventional):
-
         self.conventional_button.clicked.connect(find_conventional)
 
     def connect_find_niggli(self, find_niggli):
-
         self.niggli_button.clicked.connect(find_niggli)
 
     def connect_select_form(self, select_form):
-
         self.select_button.clicked.connect(select_form)
 
     def connect_convert_HKL(self, convert_HKL):
-
         self.convert_to_hkl_button.clicked.connect(convert_HKL)
 
     def connect_switch_instrument(self, switch_instrument):
-
         self.instrument_combo.activated.connect(switch_instrument)
 
     def connect_wavelength(self, update_wavelength):
-
         self.wl_min_line.editingFinished.connect(update_wavelength)
 
     def connect_load_Q(self, load_Q):
-
         self.load_q_button.clicked.connect(load_Q)
 
     def connect_save_Q(self, save_Q):
-
         self.save_q_button.clicked.connect(save_Q)
 
     def connect_load_peaks(self, load_peaks):
-
         self.load_peaks_button.clicked.connect(load_peaks)
 
     def connect_save_peaks(self, save_peaks):
-
         self.save_peaks_button.clicked.connect(save_peaks)
 
     def connect_load_UB(self, load_UB):
-
         self.load_ub_button.clicked.connect(load_UB)
 
     def connect_save_UB(self, save_UB):
-
         self.save_ub_button.clicked.connect(save_UB)
 
     def connect_lattice_transform(self, lattice_transform):
-
         self.lattice_combo.currentIndexChanged.connect(lattice_transform)
 
     def connect_symmetry_transform(self, symmetry_transform):
-
         self.symmetry_combo.currentIndexChanged.connect(symmetry_transform)
 
     def connect_transform_UB(self, transform_UB):
-
         self.transform_button.clicked.connect(transform_UB)
 
     def connect_optimize_UB(self, optimize_UB):
-
         self.refine_button.clicked.connect(optimize_UB)
 
     def connect_index_peaks(self, index_peaks):
-
         self.index_button.clicked.connect(index_peaks)
 
     def connect_predict_peaks(self, predict_peaks):
-
         self.predict_button.clicked.connect(predict_peaks)
 
     def connect_filter_peaks(self, filter_peaks):
-
         self.filter_button.clicked.connect(filter_peaks)
 
     def connect_integrate_peaks(self, integrate_peaks):
-
         self.integrate_button.clicked.connect(integrate_peaks)
 
     def connect_calculate_peaks(self, calculate_peaks):
-
         self.calculate.clicked.connect(calculate_peaks)
 
     def connect_peak_row_highligter(self, highlight_row):
-
         self.peaks_table.itemSelectionChanged.connect(highlight_row)
 
     def connect_cell_row_highligter(self, highlight_row):
-
         self.cell_table.itemSelectionChanged.connect(highlight_row)
 
     def connect_select_cell(self, select_cell):
-
         self.select_button.clicked.connect(select_cell)
 
-    def load_detector_cal_dialog(self, path=''):
-
+    def load_detector_cal_dialog(self, path=""):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.AnyFile)
 
-        file_filters = 'Calibration files (*.DetCal *.detcal *.xml)'
+        file_filters = "Calibration files (*.DetCal *.detcal *.xml)"
 
-        filename, _ = file_dialog.getOpenFileName(self,
-                                                  'Load calibration file',
-                                                  path,
-                                                  file_filters,
-                                                  options=options)
+        filename, _ = file_dialog.getOpenFileName(
+            self, "Load calibration file", path, file_filters, options=options
+        )
 
         return filename
 
-    def load_tube_cal_dialog(self, path=''):
-
+    def load_tube_cal_dialog(self, path=""):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.AnyFile)
 
-        file_filters = 'Tube files (*.h5 *.nxs)'
+        file_filters = "Tube files (*.h5 *.nxs)"
 
-        filename, _ = file_dialog.getOpenFileName(self,
-                                                  'Load calibration file',
-                                                  path,
-                                                  file_filters,
-                                                  options=options)
+        filename, _ = file_dialog.getOpenFileName(
+            self, "Load calibration file", path, file_filters, options=options
+        )
 
         return filename
 
-    def load_Q_file_dialog(self, path=''):
-
+    def load_Q_file_dialog(self, path=""):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.AnyFile)
 
-        filename, _ = file_dialog.getOpenFileName(self,
-                                                  'Load Q file',
-                                                  path,
-                                                  'Q files (*.nxs)',
-                                                  options=options)
+        filename, _ = file_dialog.getOpenFileName(
+            self, "Load Q file", path, "Q files (*.nxs)", options=options
+        )
 
         return filename
 
-    def save_Q_file_dialog(self, path=''):
-
+    def save_Q_file_dialog(self, path=""):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.AnyFile)
 
-        filename, _ = file_dialog.getSaveFileName(self,
-                                                  'Save Q file',
-                                                  path,
-                                                  'Q files (*.nxs)',
-                                                  options=options)
+        filename, _ = file_dialog.getSaveFileName(
+            self, "Save Q file", path, "Q files (*.nxs)", options=options
+        )
 
         if filename is not None:
-            if not filename.endswith('.nxs'):
-                filename += '.nxs'
+            if not filename.endswith(".nxs"):
+                filename += ".nxs"
 
         return filename
 
-    def load_peaks_file_dialog(self, path=''):
-
+    def load_peaks_file_dialog(self, path=""):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.AnyFile)
 
-        filename, _ = QFileDialog.getOpenFileName(self,
-                                                  'Load peaks file',
-                                                  path,
-                                                  'Peaks files (*.nxs)',
-                                                  options=options)
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Load peaks file",
+            path,
+            "Peaks files (*.nxs)",
+            options=options,
+        )
 
         return filename
 
-    def save_peaks_file_dialog(self, path=''):
-
+    def save_peaks_file_dialog(self, path=""):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.AnyFile)
 
-        filename, _ = file_dialog.getSaveFileName(self,
-                                                  'Save peaks file',
-                                                  path,
-                                                  'Peaks files (*.nxs)',
-                                                  options=options)
+        filename, _ = file_dialog.getSaveFileName(
+            self,
+            "Save peaks file",
+            path,
+            "Peaks files (*.nxs)",
+            options=options,
+        )
 
         if filename is not None:
-            if not filename.endswith('.nxs'):
-                filename += '.nxs'
+            if not filename.endswith(".nxs"):
+                filename += ".nxs"
 
         return filename
 
-    def load_UB_file_dialog(self, path=''):
-
+    def load_UB_file_dialog(self, path=""):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.AnyFile)
 
-        filename, _ = file_dialog.getOpenFileName(self,
-                                                  'Load UB file',
-                                                  path,
-                                                  'UB files (*.mat)',
-                                                  options=options)
+        filename, _ = file_dialog.getOpenFileName(
+            self, "Load UB file", path, "UB files (*.mat)", options=options
+        )
 
         return filename
 
-    def save_UB_file_dialog(self, path=''):
-
+    def save_UB_file_dialog(self, path=""):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
 
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.AnyFile)
 
-        filename, _ = file_dialog.getSaveFileName(self,
-                                                  'Save UB file',
-                                                  path,
-                                                  'UB files (*.mat)',
-                                                  options=options)
+        filename, _ = file_dialog.getSaveFileName(
+            self, "Save UB file", path, "UB files (*.mat)", options=options
+        )
 
         if filename is not None:
-            if not filename.endswith('.mat'):
-                filename += '.mat'
+            if not filename.endswith(".mat"):
+                filename += ".mat"
 
         return filename
 
     def set_wavelength(self, wavelength):
-
         if type(wavelength) is list:
             self.wl_min_line.setText(str(wavelength[0]))
             self.wl_max_line.setText(str(wavelength[1]))
@@ -1736,86 +1665,71 @@ class UBView(NeuXtalVizWidget):
             self.wl_max_line.setEnabled(False)
 
     def get_wavelength(self):
-
         params = self.wl_min_line, self.wl_max_line
 
         valid_params = all([param.hasAcceptableInput() for param in params])
 
         if valid_params:
-
             return [float(param.text()) for param in params]
 
     def update_wavelength(self, lamda_min):
-
         if not self.wl_max_line.isEnabled():
-
             self.wl_max_line.setText(str(lamda_min))
 
     def get_instrument(self):
-
         return self.instrument_combo.currentText()
 
     def update_diffraction_label(self, mono):
-
-        text = 'Wavelength:' if not mono else 'Angle:'
+        text = "Wavelength:" if not mono else "Angle:"
 
         self.diffraction_label.setText(text)
 
     def clear_run_info(self, filepath):
-
-        self.exp_line.setText('')
+        self.exp_line.setText("")
         # self.run_line.setText('')
         # self.ipts_line.setText('')
-        self.cal_line.setText('')
-        self.tube_line.setText('')
+        self.cal_line.setText("")
+        self.tube_line.setText("")
 
-        if 'exp' in filepath:
+        if "exp" in filepath:
             self.exp_line.setEnabled(True)
         else:
             self.exp_line.setEnabled(False)
 
-        if 'SNS' in filepath:
+        if "SNS" in filepath:
             self.filter_time_line.setEnabled(True)
-            self.filter_time_line.setText('300')
+            self.filter_time_line.setText("300")
             self.tube_line.setEnabled(False)
             self.tube_browse_button.setEnabled(False)
-            if 'CORELLI' in filepath:
+            if "CORELLI" in filepath:
                 self.tube_line.setEnabled(True)
                 self.tube_browse_button.setEnabled(True)
         else:
             self.filter_time_line.setEnabled(False)
-            self.filter_time_line.setText('')
+            self.filter_time_line.setText("")
             self.cal_line.setEnabled(False)
             self.cal_browse_button.setEnabled(False)
             self.tube_line.setEnabled(False)
             self.tube_browse_button.setEnabled(False)
 
     def get_tube_calibration(self):
-
         return self.tube_line.text()
 
     def get_detector_calibration(self):
-
         return self.cal_line.text()
 
     def set_tube_calibration(self, filename):
-
         return self.tube_line.setText(filename)
 
     def set_detector_calibration(self, filename):
-
         return self.cal_line.setText(filename)
 
     def get_IPTS(self):
-
         if self.ipts_line.hasAcceptableInput():
-
             return self.ipts_line.text()
 
     def get_experiment(self):
-
         if self.exp_line.hasAcceptableInput():
-
             return self.exp_line.text()
 
     def runs_string_to_list(self, runs_str):
@@ -1835,16 +1749,16 @@ class UBView(NeuXtalVizWidget):
 
         """
 
-        pattern = r'^(\d+(:\d+)?)(,\d+(:\d+)?)*$'
+        pattern = r"^(\d+(:\d+)?)(,\d+(:\d+)?)*$"
 
         if not re.match(pattern, runs_str):
             return None
 
-        ranges = runs_str.split(',')
+        ranges = runs_str.split(",")
         runs = []
         for part in ranges:
-            if ':' in part:
-                start, end = map(int, part.split(':'))
+            if ":" in part:
+                start, end = map(int, part.split(":"))
                 if start > end:
                     return None
                 runs.extend(range(start, end + 1))
@@ -1853,67 +1767,62 @@ class UBView(NeuXtalVizWidget):
         return runs
 
     def get_runs(self):
-
         run_str = self.runs_line.text()
 
         return self.runs_string_to_list(run_str)
 
     def get_lorentz(self):
-
         return self.lorentz_box.isChecked()
 
     def get_time_stop(self):
-
         if self.filter_time_line.hasAcceptableInput():
-
             return self.filter_time_line.text()
 
     def add_Q_viz(self, Q_dict):
-
         self.clear_scene()
 
-        signal = Q_dict.get('signal')
-        x = Q_dict.get('x')
-        y = Q_dict.get('y')
-        z = Q_dict.get('z')
+        signal = Q_dict.get("signal")
+        x = Q_dict.get("x")
+        y = Q_dict.get("y")
+        z = Q_dict.get("z")
 
         if all([elem is not None for elem in [signal, x, y, z]]):
-
             points = np.column_stack([x, y, z])
 
             point_cloud = pv.PolyData(points)
-            point_cloud['scalars'] = signal
+            point_cloud["scalars"] = signal
 
-            self.plotter.add_mesh(point_cloud,
-                                  scalars='scalars',
-                                  cmap='binary',
-                                  show_scalar_bar=False,
-                                  opacity=1,
-                                  log_scale=True,
-                                  point_size=1,
-                                  smooth_shading=False,
-                                  culling=False,
-                                  emissive=False,
-                                  style='points_gaussian')
+            self.plotter.add_mesh(
+                point_cloud,
+                scalars="scalars",
+                cmap="binary",
+                show_scalar_bar=False,
+                opacity=1,
+                log_scale=True,
+                point_size=1,
+                smooth_shading=False,
+                culling=False,
+                emissive=False,
+                style="points_gaussian",
+            )
 
-        transforms = Q_dict.get('transforms')
-        intensities = Q_dict.get('intensities')
-        indexings = Q_dict.get('indexings')
-        numbers = Q_dict.get('numbers')
+        transforms = Q_dict.get("transforms")
+        intensities = Q_dict.get("intensities")
+        indexings = Q_dict.get("indexings")
+        numbers = Q_dict.get("numbers")
 
         params = [transforms, intensities, indexings, numbers]
 
         integrate = np.any(intensities)
 
         if all([elem is not None for elem in params]) and len(numbers) > 0:
-
             sphere = pv.Icosphere(radius=1, nsub=1)
 
             geoms, self.indexing = [], {}
             for i, (T, I, ind, no) in enumerate(zip(*params)):
                 ellipsoid = sphere.copy().transform(T)
                 color = I if integrate else ind
-                ellipsoid['scalars'] = np.full(sphere.n_cells, color)
+                ellipsoid["scalars"] = np.full(sphere.n_cells, color)
                 geoms.append(ellipsoid)
                 self.indexing[i] = i
 
@@ -1922,34 +1831,37 @@ class UBView(NeuXtalVizWidget):
             mu = np.nanmean(intensities)
             sigma = np.nanstd(intensities)
 
-            cmap = 'viridis' if integrate else ['lightblue', 'lightgreen']
+            cmap = "viridis" if integrate else ["lightblue", "lightgreen"]
             n_colors = 256 if integrate else 2
-            clim = [mu-3*sigma, mu+3*sigma] if integrate else [0, 1]
+            clim = [mu - 3 * sigma, mu + 3 * sigma] if integrate else [0, 1]
 
-            _, mapper = self.plotter.add_composite(multiblock,
-                                                   scalars='scalars',
-                                                   color=None,
-                                                   log_scale=False,
-                                                   style='surface',
-                                                   cmap=cmap,
-                                                   clim=clim,
-                                                   n_colors=n_colors,
-                                                   show_scalar_bar=False,
-                                                   smooth_shading=True)
+            _, mapper = self.plotter.add_composite(
+                multiblock,
+                scalars="scalars",
+                color=None,
+                log_scale=False,
+                style="surface",
+                cmap=cmap,
+                clim=clim,
+                n_colors=n_colors,
+                show_scalar_bar=False,
+                smooth_shading=True,
+            )
 
             self.mapper = mapper
 
-            self.plotter.enable_block_picking(callback=self.highlight,
-                                              side='left')
-            self.plotter.enable_block_picking(callback=self.highlight,
-                                              side='right')
+            self.plotter.enable_block_picking(
+                callback=self.highlight, side="left"
+            )
+            self.plotter.enable_block_picking(
+                callback=self.highlight, side="right"
+            )
 
             self.last_highlight = None
 
         self.reset_scene()
 
     def highlight(self, index, dataset):
-
         if self.last_highlight is not None:
             self.mapper.block_attr[self.last_highlight].color = None
 
@@ -1957,17 +1869,17 @@ class UBView(NeuXtalVizWidget):
 
         self.peaks_table.clearSelection()
 
-        if color == 'pink':
+        if color == "pink":
             color = None
         else:
-            color = 'pink'
+            color = "pink"
             self.last_highlight = index
 
         self.mapper.block_attr[index].color = color
 
-        ind = self.indexing[index-1]
+        ind = self.indexing[index - 1]
 
-        if color == 'pink':
+        if color == "pink":
             selected = self.peaks_table.selectedIndexes()
             if selected:
                 selected_row = selected[0].row()
@@ -1976,229 +1888,219 @@ class UBView(NeuXtalVizWidget):
             self.peaks_table.selectRow(ind)
 
     def highlight_peak(self, index):
-
         if self.last_highlight is not None:
             self.mapper.block_attr[self.last_highlight].color = None
 
-        self.mapper.block_attr[index].color = 'pink'
+        self.mapper.block_attr[index].color = "pink"
         self.last_highlight = index
 
     def set_sample_directions(self, params):
-
         v, w, u = params
 
-        self.uh_line.setText('{}'.format(u[0]))
-        self.uk_line.setText('{}'.format(u[1]))
-        self.ul_line.setText('{}'.format(u[2]))
+        self.uh_line.setText("{}".format(u[0]))
+        self.uk_line.setText("{}".format(u[1]))
+        self.ul_line.setText("{}".format(u[2]))
 
-        self.vh_line.setText('{}'.format(v[0]))
-        self.vk_line.setText('{}'.format(v[1]))
-        self.vl_line.setText('{}'.format(v[2]))
+        self.vh_line.setText("{}".format(v[0]))
+        self.vk_line.setText("{}".format(v[1]))
+        self.vl_line.setText("{}".format(v[2]))
 
-        self.wh_line.setText('{}'.format(w[0]))
-        self.wk_line.setText('{}'.format(w[1]))
-        self.wl_line.setText('{}'.format(w[2]))
+        self.wh_line.setText("{}".format(w[0]))
+        self.wk_line.setText("{}".format(w[1]))
+        self.wl_line.setText("{}".format(w[2]))
 
     def set_lattice_constants(self, params):
+        self.a_line.setText("{:.4f}".format(params[0]))
+        self.b_line.setText("{:.4f}".format(params[1]))
+        self.c_line.setText("{:.4f}".format(params[2]))
 
-        self.a_line.setText('{:.4f}'.format(params[0]))
-        self.b_line.setText('{:.4f}'.format(params[1]))
-        self.c_line.setText('{:.4f}'.format(params[2]))
-
-        self.alpha_line.setText('{:.4f}'.format(params[3]))
-        self.beta_line.setText('{:.4f}'.format(params[4]))
-        self.gamma_line.setText('{:.4f}'.format(params[5]))
+        self.alpha_line.setText("{:.4f}".format(params[3]))
+        self.beta_line.setText("{:.4f}".format(params[4]))
+        self.gamma_line.setText("{:.4f}".format(params[5]))
 
     def get_lattice_constants(self):
-
-        params = self.a_line, self.b_line, self.c_line, \
-                 self.alpha_line, self.beta_line, self.gamma_line
+        params = (
+            self.a_line,
+            self.b_line,
+            self.c_line,
+            self.alpha_line,
+            self.beta_line,
+            self.gamma_line,
+        )
 
         valid_params = all([param.hasAcceptableInput() for param in params])
 
         if valid_params:
-
             return [float(param.text()) for param in params]
 
     def get_min_max_constants(self):
-
         params = self.min_const_line, self.max_const_line
 
         valid_params = all([param.hasAcceptableInput() for param in params])
 
         if valid_params:
-
             return [float(param.text()) for param in params]
 
     def get_find_peaks_parameters(self):
-
         params = self.density_threshold_line, self.max_peaks_line
 
         valid_params = all([param.hasAcceptableInput() for param in params])
 
         if valid_params:
-
             return [int(param.text()) for param in params]
 
     def get_find_peaks_distance(self):
-
         param = self.min_distance_line
 
         if param.hasAcceptableInput():
-
             return float(param.text())
 
     def get_find_peaks_edge(self):
-
         param = self.find_edge_line
 
         if param.hasAcceptableInput():
-
             return int(param.text())
 
     def get_calculate_UB_tol(self):
-
         param = self.calculate_tolerance_line
 
         if param.hasAcceptableInput():
-
             return float(param.text())
 
     def get_lattice_transform(self):
-
         return self.lattice_combo.currentText()
 
     def get_symmetry_symbol(self):
-
         return self.symmetry_combo.currentText()
 
     def update_symmetry_symbols(self, symbols):
-
         self.symmetry_combo.clear()
         for symbol in symbols:
             self.symmetry_combo.addItem(symbol)
 
     def get_transform_matrix(self):
-
-        params = self.T11_line, self.T12_line, self.T13_line, \
-                 self.T21_line, self.T22_line, self.T23_line, \
-                 self.T31_line, self.T32_line, self.T33_line, \
-
+        params = (
+            self.T11_line,
+            self.T12_line,
+            self.T13_line,
+            self.T21_line,
+            self.T22_line,
+            self.T23_line,
+            self.T31_line,
+            self.T32_line,
+            self.T33_line,
+        )
         valid_params = all([param.hasAcceptableInput() for param in params])
 
         if valid_params:
-
             params = [float(param.text()) for param in params]
 
             return params
 
     def get_projection_matrix(self):
-
-        params = self.U1_line, self.U2_line, self.U3_line, \
-                 self.V1_line, self.V2_line, self.V3_line, \
-                 self.W1_line, self.W2_line, self.W3_line, \
-
+        params = (
+            self.U1_line,
+            self.U2_line,
+            self.U3_line,
+            self.V1_line,
+            self.V2_line,
+            self.V3_line,
+            self.W1_line,
+            self.W2_line,
+            self.W3_line,
+        )
         valid_params = all([param.hasAcceptableInput() for param in params])
 
         if valid_params:
-
             params = [float(param.text()) for param in params]
 
             return params
 
     def set_transform_matrix(self, params):
+        self.T11_line.setText("{:.0f}".format(params[0][0]))
+        self.T12_line.setText("{:.0f}".format(params[0][1]))
+        self.T13_line.setText("{:.0f}".format(params[0][2]))
 
-        self.T11_line.setText('{:.0f}'.format(params[0][0]))
-        self.T12_line.setText('{:.0f}'.format(params[0][1]))
-        self.T13_line.setText('{:.0f}'.format(params[0][2]))
+        self.T21_line.setText("{:.0f}".format(params[1][0]))
+        self.T22_line.setText("{:.0f}".format(params[1][1]))
+        self.T23_line.setText("{:.0f}".format(params[1][2]))
 
-        self.T21_line.setText('{:.0f}'.format(params[1][0]))
-        self.T22_line.setText('{:.0f}'.format(params[1][1]))
-        self.T23_line.setText('{:.0f}'.format(params[1][2]))
-
-        self.T31_line.setText('{:.0f}'.format(params[2][0]))
-        self.T32_line.setText('{:.0f}'.format(params[2][1]))
-        self.T33_line.setText('{:.0f}'.format(params[2][2]))
+        self.T31_line.setText("{:.0f}".format(params[2][0]))
+        self.T32_line.setText("{:.0f}".format(params[2][1]))
+        self.T33_line.setText("{:.0f}".format(params[2][2]))
 
     def get_transform_UB_tol(self):
-
         param = self.transform_tolerance_line
 
         if param.hasAcceptableInput():
-
             return float(param.text())
 
     def get_refine_UB_option(self):
-
         return self.optimize_combo.currentText()
 
     def get_refine_UB_tol(self):
-
         param = self.refine_tolerance_line
 
         if param.hasAcceptableInput():
-
             return float(param.text())
 
     def get_modulatation_offsets(self):
-
-        params = self.dh1_line, self.dk1_line, self.dl1_line, \
-                 self.dh2_line, self.dk2_line, self.dl2_line, \
-                 self.dh3_line, self.dk3_line, self.dl3_line
+        params = (
+            self.dh1_line,
+            self.dk1_line,
+            self.dl1_line,
+            self.dh2_line,
+            self.dk2_line,
+            self.dl2_line,
+            self.dh3_line,
+            self.dk3_line,
+            self.dl3_line,
+        )
 
         valid_params = all([param.hasAcceptableInput() for param in params])
 
         if valid_params:
-
             params = [float(param.text()) for param in params]
 
             return params
 
     def set_modulatation_offsets(self, params):
+        self.dh1_line.setText("{:.3f}".format(params[0][0]))
+        self.dk1_line.setText("{:.3f}".format(params[0][1]))
+        self.dl1_line.setText("{:.3f}".format(params[0][2]))
 
-        self.dh1_line.setText('{:.3f}'.format(params[0][0]))
-        self.dk1_line.setText('{:.3f}'.format(params[0][1]))
-        self.dl1_line.setText('{:.3f}'.format(params[0][2]))
+        self.dh2_line.setText("{:.3f}".format(params[1][0]))
+        self.dk2_line.setText("{:.3f}".format(params[1][1]))
+        self.dl2_line.setText("{:.3f}".format(params[1][2]))
 
-        self.dh2_line.setText('{:.3f}'.format(params[1][0]))
-        self.dk2_line.setText('{:.3f}'.format(params[1][1]))
-        self.dl2_line.setText('{:.3f}'.format(params[1][2]))
-
-        self.dh3_line.setText('{:.3f}'.format(params[2][0]))
-        self.dk3_line.setText('{:.3f}'.format(params[2][1]))
-        self.dl3_line.setText('{:.3f}'.format(params[2][2]))
+        self.dh3_line.setText("{:.3f}".format(params[2][0]))
+        self.dk3_line.setText("{:.3f}".format(params[2][1]))
+        self.dl3_line.setText("{:.3f}".format(params[2][2]))
 
     def get_max_order_cross_terms(self):
-
         param = self.max_order_line
 
         if param.hasAcceptableInput():
-
             return int(param.text()), self.cross_box.isChecked()
 
     def get_max_scalar_error(self):
-
         param = self.max_scalar_error_line
 
         if param.hasAcceptableInput():
-
             return float(param.text())
 
     def get_form_number(self):
-
         form = self.form_line.text()
 
-        if form != '':
+        if form != "":
             return int(form)
 
     def get_index_peaks_parameters(self):
-
         param = self.index_tolerance_line
 
         sat_param = self.index_sat_tolerance_line
 
         if param.hasAcceptableInput():
-
             tol = float(param.text())
 
             if sat_param.hasAcceptableInput():
@@ -2209,25 +2111,20 @@ class UBView(NeuXtalVizWidget):
             return tol, sat_tol
 
     def get_index_satellite_peaks(self):
-
         return self.index_sat_box.isChecked()
 
     def get_index_peaks_round(self):
-
         return self.round_box.isChecked()
 
     def get_predict_peaks_centering(self):
-
         return self.centering_combo.currentText()
 
     def get_predict_peaks_parameters(self):
-
         param = self.min_d_line
 
         sat_param = self.min_sat_d_line
 
         if param.hasAcceptableInput():
-
             d_min = float(param.text())
 
             if sat_param.hasAcceptableInput():
@@ -2238,55 +2135,43 @@ class UBView(NeuXtalVizWidget):
             return d_min, sat_d_min
 
     def get_predict_peaks_edge(self):
-
         param = self.predict_edge_line
 
         if param.hasAcceptableInput():
-
             return int(param.text())
 
     def get_predict_satellite_peaks(self):
-
         return self.predict_sat_box.isChecked()
 
     def get_integrate_peaks_parameters(self):
-
         params = self.radius_line, self.inner_line, self.outer_line
 
         valid_params = all([param.hasAcceptableInput() for param in params])
 
         if valid_params:
-
             params = [float(param.text()) for param in params]
 
             return params
 
     def get_centroid(self):
-
         return self.centroid_box.isChecked()
 
     def get_ellipsoid(self):
-
         return self.adaptive_box.isChecked()
 
     def get_filter_variable(self):
-
         return self.filter_combo.currentText()
 
     def get_filter_comparison(self):
-
         return self.comparison_combo.currentText()
 
     def get_filter_value(self):
-
         param = self.filter_line
 
         if param.hasAcceptableInput():
-
             return float(param.text())
 
     def update_peaks_table(self, peaks):
-
         self.peaks_table.clearSelection()
         self.peaks_table.setRowCount(0)
         self.peaks_table.setRowCount(len(peaks))
@@ -2297,20 +2182,19 @@ class UBView(NeuXtalVizWidget):
             ind += peak[-2]
             tot += 1
 
-        self.index_line.setText('{}'.format(ind))
-        self.total_line.setText('{}'.format(tot))
+        self.index_line.setText("{}".format(ind))
+        self.total_line.setText("{}".format(tot))
 
     def set_peak(self, row, peak):
-
         hkl, d, lamda, intens, sig_noise, *_ = peak
         h, k, l = hkl
-        h = '{:.3f}'.format(h)
-        k = '{:.3f}'.format(k)
-        l = '{:.3f}'.format(l)
-        d = '{:.4f}'.format(d)
-        lamda = '{:.4f}'.format(lamda)
-        intens = '{:.2e}'.format(intens)
-        sig_noise = '{:.2f}'.format(sig_noise)
+        h = "{:.3f}".format(h)
+        k = "{:.3f}".format(k)
+        l = "{:.3f}".format(l)
+        d = "{:.4f}".format(d)
+        lamda = "{:.4f}".format(lamda)
+        intens = "{:.2e}".format(intens)
+        sig_noise = "{:.2f}".format(sig_noise)
         self.peaks_table.setItem(row, 0, QTableWidgetItem(h))
         self.peaks_table.setItem(row, 1, QTableWidgetItem(k))
         self.peaks_table.setItem(row, 2, QTableWidgetItem(l))
@@ -2320,13 +2204,11 @@ class UBView(NeuXtalVizWidget):
         self.peaks_table.setItem(row, 6, QTableWidgetItem(sig_noise))
 
     def clear_niggli_info(self):
-
         self.cell_table.clearSelection()
         self.cell_table.setRowCount(0)
-        self.form_line.setText('')
+        self.form_line.setText("")
 
     def update_cell_table(self, cells):
-
         self.cell_table.clearSelection()
         self.cell_table.setRowCount(0)
         self.cell_table.setRowCount(len(cells))
@@ -2335,18 +2217,17 @@ class UBView(NeuXtalVizWidget):
             self.set_cell(row, cell)
 
     def set_cell(self, row, cell):
-
         form, error, bl, params = cell
         a, b, c, alpha, beta, gamma, vol = params
-        error = '{:.4f}'.format(error)
-        bravais = ' '.join(bl)
-        a = '{:.2f}'.format(a)
-        b = '{:.2f}'.format(b)
-        c = '{:.2f}'.format(c)
-        alpha = '{:.1f}'.format(alpha)
-        beta = '{:.1f}'.format(beta)
-        gamma = '{:.1f}'.format(gamma)
-        vol = '{:.0f}'.format(vol)
+        error = "{:.4f}".format(error)
+        bravais = " ".join(bl)
+        a = "{:.2f}".format(a)
+        b = "{:.2f}".format(b)
+        c = "{:.2f}".format(c)
+        alpha = "{:.1f}".format(alpha)
+        beta = "{:.1f}".format(beta)
+        gamma = "{:.1f}".format(gamma)
+        vol = "{:.0f}".format(vol)
         self.cell_table.setVerticalHeaderItem(row, QTableWidgetItem(str(form)))
         self.cell_table.setItem(row, 0, QTableWidgetItem(error))
         self.cell_table.setItem(row, 1, QTableWidgetItem(bravais))
@@ -2359,34 +2240,44 @@ class UBView(NeuXtalVizWidget):
         self.cell_table.setItem(row, 8, QTableWidgetItem(vol))
 
     def get_form(self):
-
         row = self.cell_table.currentRow()
         if row is not None:
             item = int(self.cell_table.verticalHeaderItem(row).text())
             return item
 
     def set_cell_form(self, form):
-
         self.form_line.setText(str(form))
 
     def get_peak(self):
-
         row = self.peaks_table.currentRow()
         if row is not None:
             return row
 
     def set_peak_info(self, peak):
-
-        hkl, d, lamda, intens, signal_noise, sigma, int_hkl, int_mnp, \
-        run, bank, row, col, ind, Q = peak
+        (
+            hkl,
+            d,
+            lamda,
+            intens,
+            signal_noise,
+            sigma,
+            int_hkl,
+            int_mnp,
+            run,
+            bank,
+            row,
+            col,
+            ind,
+            Q,
+        ) = peak
 
         self.set_indices(hkl, int_hkl, int_mnp)
 
-        self.intensity_line.setText('{:.2e}'.format(intens))
-        self.sigma_line.setText('{:.2e}'.format(sigma))
+        self.intensity_line.setText("{:.2e}".format(intens))
+        self.sigma_line.setText("{:.2e}".format(sigma))
 
-        self.lambda_line.setText('{:.4f}'.format(lamda))
-        self.d_line.setText('{:.4f}'.format(d))
+        self.lambda_line.setText("{:.4f}".format(lamda))
+        self.d_line.setText("{:.4f}".format(d))
 
         self.run_line.setText(str(run))
         self.bank_line.setText(str(bank))
@@ -2394,17 +2285,15 @@ class UBView(NeuXtalVizWidget):
         self.col_line.setText(str(col))
 
     def update_table_index(self, row, hkl):
-
         h, k, l = hkl
-        h = '{:.3f}'.format(h)
-        k = '{:.3f}'.format(k)
-        l = '{:.3f}'.format(l)
+        h = "{:.3f}".format(h)
+        k = "{:.3f}".format(k)
+        l = "{:.3f}".format(l)
         self.peaks_table.setItem(row, 0, QTableWidgetItem(h))
         self.peaks_table.setItem(row, 1, QTableWidgetItem(k))
         self.peaks_table.setItem(row, 2, QTableWidgetItem(l))
 
     def set_indices(self, hkl, int_hkl, int_mnp):
-
         H, K, L = hkl
 
         h, k, l = int_hkl
@@ -2422,17 +2311,17 @@ class UBView(NeuXtalVizWidget):
         self.int_n_line.blockSignals(True)
         self.int_p_line.blockSignals(True)
 
-        self.h_line.setText('{:.3f}'.format(H))
-        self.k_line.setText('{:.3f}'.format(K))
-        self.l_line.setText('{:.3f}'.format(L))
+        self.h_line.setText("{:.3f}".format(H))
+        self.k_line.setText("{:.3f}".format(K))
+        self.l_line.setText("{:.3f}".format(L))
 
-        self.int_h_line.setText('{:.0f}'.format(h))
-        self.int_k_line.setText('{:.0f}'.format(k))
-        self.int_l_line.setText('{:.0f}'.format(l))
+        self.int_h_line.setText("{:.0f}".format(h))
+        self.int_k_line.setText("{:.0f}".format(k))
+        self.int_l_line.setText("{:.0f}".format(l))
 
-        self.int_m_line.setText('{:.0f}'.format(m))
-        self.int_n_line.setText('{:.0f}'.format(n))
-        self.int_p_line.setText('{:.0f}'.format(p))
+        self.int_m_line.setText("{:.0f}".format(m))
+        self.int_n_line.setText("{:.0f}".format(n))
+        self.int_p_line.setText("{:.0f}".format(p))
 
         self.h_line.blockSignals(False)
         self.k_line.blockSignals(False)
@@ -2447,12 +2336,11 @@ class UBView(NeuXtalVizWidget):
         self.int_p_line.blockSignals(False)
 
     def get_indices(self):
-
         params_hkl = self.h_line, self.k_line, self.l_line
         params_int_hkl = self.int_h_line, self.int_k_line, self.int_l_line
         params_int_mnp = self.int_m_line, self.int_n_line, self.int_p_line
 
-        params = params_hkl+params_int_hkl+params_int_mnp
+        params = params_hkl + params_int_hkl + params_int_mnp
 
         valid_params = all([param.hasAcceptableInput() for param in params])
 
@@ -2463,11 +2351,9 @@ class UBView(NeuXtalVizWidget):
             return hkl, int_hkl, int_mnp
 
     def connect_hand_index_peak(self, reindex):
-
         self.index_ready.connect(reindex)
 
     def get_input_hkls(self):
-
         params_1 = self.h1_line, self.k1_line, self.l1_line
         params_2 = self.h2_line, self.k2_line, self.l2_line
 
@@ -2488,105 +2374,84 @@ class UBView(NeuXtalVizWidget):
         return params_1, params_2
 
     def set_d_phi(self, d_1, d_2, phi_12):
-
         if d_1 is not None:
-            self.d1_line.setText('{:.4f}'.format(d_1))
+            self.d1_line.setText("{:.4f}".format(d_1))
         else:
-            self.d1_line.setText('')
+            self.d1_line.setText("")
         if d_2 is not None:
-            self.d2_line.setText('{:.4f}'.format(d_2))
+            self.d2_line.setText("{:.4f}".format(d_2))
         else:
-            self.d2_line.setText('')
+            self.d2_line.setText("")
         if phi_12 is not None:
-            self.phi_line.setText('{:.4f}'.format(phi_12))
+            self.phi_line.setText("{:.4f}".format(phi_12))
         else:
-            self.phi_line.setText('')
+            self.phi_line.setText("")
 
     def get_data_combo(self):
-
         return self.data_combo.currentIndex()
 
     def get_diffraction(self):
-
         if self.diffraction_line.hasAcceptableInput():
-
             return float(self.diffraction_line.text())
 
     def set_diffraction(self, val):
-
         self.diffraction_line.setText(str(round(val, 3)))
 
     def get_d_min(self):
-
         if self.d_min_line.hasAcceptableInput():
-
             return float(self.d_min_line.text())
 
     def get_d_max(self):
-
         text = self.d_max_line.text()
 
-        if self.d_max_line.hasAcceptableInput() or text == 'inf':
-
+        if self.d_max_line.hasAcceptableInput() or text == "inf":
             return float(text)
 
     def get_horizontal(self):
-
         if self.horizontal_line.hasAcceptableInput():
-
             return float(self.horizontal_line.text())
 
     def get_vertical(self):
-
         if self.vertical_line.hasAcceptableInput():
-
             return float(self.vertical_line.text())
 
     def set_horizontal(self, val):
-
         self.horizontal_line.setText(str(round(val, 2)))
 
     def set_vertical(self, val):
-
         self.vertical_line.setText(str(round(val, 2)))
 
     def get_horizontal_roi(self):
-
         if self.horizontal_roi_line.hasAcceptableInput():
-
             return float(self.horizontal_roi_line.text())
 
-    def get_vertical_roi(self,):
-
+    def get_vertical_roi(
+        self,
+    ):
         if self.vertical_roi_line.hasAcceptableInput():
-
             return float(self.vertical_roi_line.text())
 
-    def update_instrument_view(self, inst_view, norm='log'):
-
-        gamma = inst_view['gamma']
-        nu = inst_view['nu']
-        counts = inst_view['counts']
+    def update_instrument_view(self, inst_view, norm="log"):
+        gamma = inst_view["gamma"]
+        nu = inst_view["nu"]
+        counts = inst_view["counts"]
 
         if self.cb_inst is not None:
             self.cb_inst.remove()
 
         self.ax_inst.clear()
 
-        self.im = self.ax_inst.scatter(gamma,
-                                       nu,
-                                       c=counts,
-                                       marker='o',
-                                       norm=norm,
-                                       rasterized=True)
+        self.im = self.ax_inst.scatter(
+            gamma, nu, c=counts, marker="o", norm=norm, rasterized=True
+        )
 
         self.ax_inst.set_aspect(1)
         self.ax_inst.minorticks_on()
 
-        self.ax_inst.set_xlabel(r'$\gamma$')
-        self.ax_inst.set_ylabel(r'$\nu$')
+        self.ax_inst.set_xlabel(r"$\gamma$")
+        self.ax_inst.set_ylabel(r"$\nu$")
 
-        fmt_str_form = FormatStrFormatter(r'$%d^\circ$')
+        fmt_str_form = FormatStrFormatter(r"$%d^\circ$")
 
         self.ax_inst.xaxis.set_major_formatter(fmt_str_form)
         self.ax_inst.yaxis.set_major_formatter(fmt_str_form)
@@ -2598,62 +2463,62 @@ class UBView(NeuXtalVizWidget):
         self.canvas_inst.flush_events()
 
     def update_roi_view(self, roi_view):
-
-        horz = roi_view['horz']
-        vert = roi_view['vert']
-        horz_roi = roi_view['horz_roi']
-        vert_roi = roi_view['vert_roi']
+        horz = roi_view["horz"]
+        vert = roi_view["vert"]
+        horz_roi = roi_view["horz_roi"]
+        vert_roi = roi_view["vert_roi"]
 
         for line in self.ax_inst.lines:
             line.remove()
 
-        self.ax_inst.axvline(x=horz-horz_roi, color='k', linestyle='--')
-        self.ax_inst.axvline(x=horz+horz_roi, color='k', linestyle='--')
+        self.ax_inst.axvline(x=horz - horz_roi, color="k", linestyle="--")
+        self.ax_inst.axvline(x=horz + horz_roi, color="k", linestyle="--")
 
-        self.ax_inst.axhline(y=vert-vert_roi, color='k', linestyle='--')
-        self.ax_inst.axhline(y=vert+vert_roi, color='k', linestyle='--')
+        self.ax_inst.axhline(y=vert - vert_roi, color="k", linestyle="--")
+        self.ax_inst.axhline(y=vert + vert_roi, color="k", linestyle="--")
 
         self.canvas_inst.draw_idle()
         self.canvas_inst.flush_events()
 
-        self.inst_roi = {'roi': (horz_roi, vert_roi)}
+        self.inst_roi = {"roi": (horz_roi, vert_roi)}
 
-        self.fig_inst.canvas.mpl_connect('button_press_event',
-                                         self.on_press_inst)
+        self.fig_inst.canvas.mpl_connect(
+            "button_press_event", self.on_press_inst
+        )
 
     def update_scan_view(self, roi_view):
-
-        x = roi_view['x']
-        y = roi_view['y']
-        val = roi_view['val']
-        label = roi_view['label']
+        x = roi_view["x"]
+        y = roi_view["y"]
+        val = roi_view["val"]
+        label = roi_view["label"]
 
         self.ax_scan.clear()
 
-        self.ax_scan.errorbar(x, y, yerr=np.sqrt(y), fmt='o', color='C0')
-        self.ax_scan.plot(x, y, color='C1')
-        #self.ax_scan.set_yscale('log')
-        self.line_scan = self.ax_scan.axvline(x=val, color='k', linestyle='--')
+        self.ax_scan.errorbar(x, y, yerr=np.sqrt(y), fmt="o", color="C0")
+        self.ax_scan.plot(x, y, color="C1")
+        # self.ax_scan.set_yscale('log')
+        self.line_scan = self.ax_scan.axvline(x=val, color="k", linestyle="--")
         self.ax_scan.minorticks_on()
 
-        if label == 'wavelength':
-            xlabel = r'$\lambda$ [Å]'
+        if label == "wavelength":
+            xlabel = r"$\lambda$ [Å]"
         else:
-            xlabel = r'$\vartheta$ [°]'
+            xlabel = r"$\vartheta$ [°]"
 
         self.ax_scan.set_xlabel(xlabel)
 
         self.canvas_scan.draw_idle()
         self.canvas_scan.flush_events()
 
-        self.fig_scan.canvas.mpl_connect('button_press_event',
-                                         self.on_press_scan)
+        self.fig_scan.canvas.mpl_connect(
+            "button_press_event", self.on_press_scan
+        )
 
     def on_press_scan(self, event):
-
-        if event.inaxes == self.ax_scan and \
-            self.fig_scan.canvas.toolbar.mode == '':
-
+        if (
+            event.inaxes == self.ax_scan
+            and self.fig_scan.canvas.toolbar.mode == ""
+        ):
             val = event.xdata
 
             self.diffraction_line.blockSignals(True)
@@ -2668,14 +2533,14 @@ class UBView(NeuXtalVizWidget):
             self.canvas_scan.flush_events()
 
     def on_press_inst(self, event):
-
-        if event.inaxes == self.ax_inst and \
-            self.fig_inst.canvas.toolbar.mode == '':
-
+        if (
+            event.inaxes == self.ax_inst
+            and self.fig_inst.canvas.toolbar.mode == ""
+        ):
             for line in self.ax_inst.lines:
                 line.remove()
 
-            horz_roi, vert_roi = self.inst_roi['roi']
+            horz_roi, vert_roi = self.inst_roi["roi"]
 
             horz, vert = event.xdata, event.ydata
 
@@ -2688,11 +2553,11 @@ class UBView(NeuXtalVizWidget):
             self.horizontal_line.blockSignals(False)
             self.vertical_line.blockSignals(False)
 
-            self.ax_inst.axvline(x=horz-horz_roi, color='k', linestyle='--')
-            self.ax_inst.axvline(x=horz+horz_roi, color='k', linestyle='--')
+            self.ax_inst.axvline(x=horz - horz_roi, color="k", linestyle="--")
+            self.ax_inst.axvline(x=horz + horz_roi, color="k", linestyle="--")
 
-            self.ax_inst.axhline(y=vert-vert_roi, color='k', linestyle='--')
-            self.ax_inst.axhline(y=vert+vert_roi, color='k', linestyle='--')
+            self.ax_inst.axhline(y=vert - vert_roi, color="k", linestyle="--")
+            self.ax_inst.axhline(y=vert + vert_roi, color="k", linestyle="--")
 
             self.canvas_inst.draw_idle()
             self.canvas_inst.flush_events()
@@ -2700,73 +2565,60 @@ class UBView(NeuXtalVizWidget):
             self.roi_ready.emit()
 
     def connect_roi_ready(self, replot):
-
         self.roi_ready.connect(replot)
 
     def get_slice_value(self):
-
         if self.slice_line.hasAcceptableInput():
-
             return float(self.slice_line.text())
 
     def get_slice_thickness(self):
-
         if self.slice_thickness_line.hasAcceptableInput():
-
             return float(self.slice_thickness_line.text())
 
     def get_slice_width(self):
-
         if self.slice_width_line.hasAcceptableInput():
-
             return float(self.slice_width_line.text())
 
     def get_clim_clip_type(self):
-
         return self.clim_combo.currentText()
 
     def get_slice(self):
-
         return self.slice_combo.currentText()
 
     def get_slice_scale(self):
-
         return self.slice_scale_combo.currentText().lower()
 
     def get_colormap(self):
-
         return self.cbar_combo.currentText()
 
     def __format_axis_coord(self, x, y):
-
         x, y, _ = np.dot(self.T_inv, [x, y, 1])
-        return 'x={:.3f}, y={:.3f}'.format(x, y)
+        return "x={:.3f}, y={:.3f}".format(x, y)
 
     def update_slice(self, slice_dict):
-
         cmap = cmaps[self.get_colormap()]
 
-        x = slice_dict['x']
-        y = slice_dict['y']
+        x = slice_dict["x"]
+        y = slice_dict["y"]
 
-        labels = slice_dict['labels']
-        title = slice_dict['title']
-        signal = slice_dict['signal']
-        clip = slice_dict['clip']
+        labels = slice_dict["labels"]
+        title = slice_dict["title"]
+        signal = slice_dict["signal"]
+        clip = slice_dict["clip"]
 
         scale = self.get_slice_scale()
 
         vmin = np.nanmin(clip)
         vmax = np.nanmax(clip)
 
-        if scale == 'log' and np.isclose(vmin, 0):
+        if scale == "log" and np.isclose(vmin, 0):
             vmin = np.nanmin(signal[signal > 0])
 
         if np.isclose(vmax, vmin) or not np.isfinite([vmin, vmax]).all():
-            vmin, vmax = (0.1, 1) if scale == 'log' else (0, 1)
+            vmin, vmax = (0.1, 1) if scale == "log" else (0, 1)
 
-        T = slice_dict['transform']
-        aspect = slice_dict['aspect']
+        T = slice_dict["transform"]
+        aspect = slice_dict["aspect"]
 
         transform = Affine2D(T)
 
@@ -2792,16 +2644,16 @@ class UBView(NeuXtalVizWidget):
         grid_locator1.set_params(integer=True)
         grid_locator2.set_params(integer=True)
 
-        grid_helper = GridHelperCurveLinear(transform,
-                                            extreme_finder=extreme_finder,
-                                            grid_locator1=grid_locator1,
-                                            grid_locator2=grid_locator2)
+        grid_helper = GridHelperCurveLinear(
+            transform,
+            extreme_finder=extreme_finder,
+            grid_locator1=grid_locator1,
+            grid_locator2=grid_locator2,
+        )
 
-        self.ax_slice = self.fig_slice.add_subplot(1,
-                                                   1,
-                                                   1,
-                                                   axes_class=Axes,
-                                                   grid_helper=grid_helper)
+        self.ax_slice = self.fig_slice.add_subplot(
+            1, 1, 1, axes_class=Axes, grid_helper=grid_helper
+        )
 
         # self.ax_slice.set_xlabel(labels[0])
         # self.ax_slice.set_ylabel(labels[1])
@@ -2819,18 +2671,20 @@ class UBView(NeuXtalVizWidget):
         #                                    pad=0.15,
         #                                    sharex=self.ax_slice)
 
-        trans = transform+self.ax_slice.transData
+        trans = transform + self.ax_slice.transData
 
-        im = self.ax_slice.pcolormesh(x,
-                                      y,
-                                      clip,
-                                      norm=scale,
-                                      cmap=cmap,
-                                      vmin=vmin,
-                                      vmax=vmax,
-                                      shading='flat',
-                                      transform=trans,
-                                      rasterized=True)
+        im = self.ax_slice.pcolormesh(
+            x,
+            y,
+            clip,
+            norm=scale,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            shading="flat",
+            transform=trans,
+            rasterized=True,
+        )
 
         # self.ax_slice.set_xticks([])
         # self.ax_slice.set_yticks([])
@@ -2838,38 +2692,44 @@ class UBView(NeuXtalVizWidget):
         xlim = self.ax_slice.get_xlim()
         ylim = self.ax_slice.get_ylim()
 
-        ascale = (ylim[1]-ylim[0])/(xlim[1]-xlim[0])*aspect
+        ascale = (ylim[1] - ylim[0]) / (xlim[1] - xlim[0]) * aspect
 
         # xstart = 1+0.05 if ascale > 1 else 1+0.05*ascale
         # ystart = 1+0.05 if ascale < 1 else 1+0.05*ascale
 
-        xwidth = 0.1 if ascale < 1 else 0.1*ascale
-        ywidth = 0.1 if ascale > 1 else 0.1/ascale
+        xwidth = 0.1 if ascale < 1 else 0.1 * ascale
+        ywidth = 0.1 if ascale > 1 else 0.1 / ascale
 
-        self.ax_xint = self.ax_slice.inset_axes([0, 0-ywidth, 1, ywidth],
-                                                sharex=self.ax_slice)
+        self.ax_xint = self.ax_slice.inset_axes(
+            [0, 0 - ywidth, 1, ywidth], sharex=self.ax_slice
+        )
 
-        self.ax_yint = self.ax_slice.inset_axes([0-xwidth, 0, xwidth, 1],
-                                                sharey=self.ax_slice)
+        self.ax_yint = self.ax_slice.inset_axes(
+            [0 - xwidth, 0, xwidth, 1], sharey=self.ax_slice
+        )
 
         xint = signal.sum(axis=0)
         yint = signal.sum(axis=1)
         sigx = np.sqrt(xint)
         sigy = np.sqrt(yint)
 
-        self.ax_xint.errorbar(0.5*(x[1:]+x[:-1]),
-                              xint,
-                              yerr=sigx,
-                              fmt='.',
-                              linestyle='-',
-                              color='C0')
+        self.ax_xint.errorbar(
+            0.5 * (x[1:] + x[:-1]),
+            xint,
+            yerr=sigx,
+            fmt=".",
+            linestyle="-",
+            color="C0",
+        )
 
-        self.ax_yint.errorbar(yint,
-                              0.5*(y[1:]+y[:-1]),
-                              xerr=sigy,
-                              fmt='.',
-                              linestyle='-',
-                              color='C1')
+        self.ax_yint.errorbar(
+            yint,
+            0.5 * (y[1:] + y[:-1]),
+            xerr=sigy,
+            fmt=".",
+            linestyle="-",
+            color="C1",
+        )
 
         self.ax_xint.minorticks_on()
         self.ax_yint.minorticks_on()
@@ -2883,8 +2743,8 @@ class UBView(NeuXtalVizWidget):
         self.ax_xint.yaxis.tick_right()
         self.ax_yint.xaxis.tick_top()
 
-        self.ax_xint.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        self.ax_yint.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+        self.ax_xint.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+        self.ax_yint.ticklabel_format(style="sci", axis="x", scilimits=(0, 0))
 
         self.ax_xint.grid(True)
         self.ax_yint.grid(True)

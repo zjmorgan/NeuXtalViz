@@ -1,20 +1,16 @@
 class NeuXtalVizPresenter:
-
     def __init__(self, view, model):
-
         self.view = view
         self.model = model
 
         self.view.connect_manual_axis(self.view_manual)
         self.view.connect_manual_up_axis(self.view_up_manual)
 
-        self.view.connect_reciprocal_axes(self.view_bc_star,
-                                          self.view_ca_star,
-                                          self.view_ab_star)
+        self.view.connect_reciprocal_axes(
+            self.view_bc_star, self.view_ca_star, self.view_ab_star
+        )
 
-        self.view.connect_real_axes(self.view_bc,
-                                    self.view_ca,
-                                    self.view_ab)
+        self.view.connect_real_axes(self.view_bc, self.view_ca, self.view_ab)
 
         self.view.connect_save_screenshot(self.save_screenshot)
         self.view.connect_reciprocal_real_compass(self.change_lattice)
@@ -51,10 +47,10 @@ class NeuXtalVizPresenter:
 
         """
 
-        self.update_status('Invalid parameters.')
+        self.update_status("Invalid parameters.")
         self.update_progress(0)
 
-    def update_complete(self, status='Complete!'):
+    def update_complete(self, status="Complete!"):
         """
         Indicate complete.
 
@@ -68,7 +64,7 @@ class NeuXtalVizPresenter:
         self.update_status(status)
         self.update_progress(0)
 
-    def update_processing(self, status='Processing...', progress=1):
+    def update_processing(self, status="Processing...", progress=1):
         """
         Indicate processing.
 
@@ -113,7 +109,6 @@ class NeuXtalVizPresenter:
         filename = self.view.save_screenshot_file_dialog()
 
         if filename:
-
             self.view.save_screenshot(filename)
 
     def view_manual(self):
