@@ -529,7 +529,8 @@ class ExperimentView(NeuXtalVizWidget):
         col = 0
 
         for angle in angles:
-            self.plan_table.setItem(row, col, QTableWidgetItem(str(angle)))
+            item = QTableWidgetItem("{:.1f}".format(angle))
+            self.plan_table.setItem(row, col, item)
             col += 1
 
         self.plan_table.setItem(row, col, QTableWidgetItem(comment))
