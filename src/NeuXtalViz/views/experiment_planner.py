@@ -363,6 +363,15 @@ class ExperimentView(NeuXtalVizWidget):
     def connect_load_UB(self, load_UB):
         self.load_UB_button.clicked.connect(load_UB)
 
+    def connect_save_CSV(self, save_CSV):
+        self.save_plan_button.clicked.connect(save_CSV)
+
+    def connect_load_experiment(self, load_experiment):
+        self.load_experiment_button.clicked.connect(load_experiment)
+
+    def connect_save_experiment(self, save_experiment):
+        self.save_experiment_button.clicked.connect(save_experiment)
+
     def connect_wavelength(self, update_wavelength):
         self.wl_min_line.editingFinished.connect(update_wavelength)
 
@@ -376,6 +385,65 @@ class ExperimentView(NeuXtalVizWidget):
         filename, _ = file_dialog.getOpenFileName(
             self, "Load UB file", "", "UB files (*.mat)", options=options
         )
+
+        return filename
+
+    def save_CSV_file_dialog(self, path=""):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getSaveFileName(
+            self,
+            "Save peaks file",
+            path,
+            "Experiment files (*.csv)",
+            options=options,
+        )
+
+        if filename is not None:
+            if not filename.endswith(".csv"):
+                filename += ".csv"
+
+        return filename
+
+    def load_experiment_file_dialog(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getOpenFileName(
+            self,
+            "Load experiment file",
+            "",
+            "Experiment files (*.nxs)",
+            options=options,
+        )
+
+        return filename
+
+    def save_experiment_file_dialog(self, path=""):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        filename, _ = file_dialog.getSaveFileName(
+            self,
+            "Save experiment file",
+            path,
+            "Experiment files (*.nxs)",
+            options=options,
+        )
+
+        if filename is not None:
+            if not filename.endswith(".csv"):
+                filename += ".csv"
 
         return filename
 

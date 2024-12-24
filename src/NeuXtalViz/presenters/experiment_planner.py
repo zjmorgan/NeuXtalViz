@@ -16,6 +16,7 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_calculate_single(self.calculate_single)
         self.view.connect_calculate_double(self.calculate_double)
         self.view.connect_add_orientation(self.add_orientation)
+        self.view.connect_save_CSV(self.save_CSV)
 
         self.view.connect_roi_ready(self.lookup_angle)
         self.view.connect_viz_ready(self.visualize)
@@ -303,3 +304,9 @@ class Experiment(NeuXtalVizPresenter):
 
         else:
             progress("Invalid parameters.", 0)
+
+    def save_CSV(self):
+        filename = self.view.save_CSV_file_dialog()
+
+        if filename:
+            self.model.save_plan(filename)
