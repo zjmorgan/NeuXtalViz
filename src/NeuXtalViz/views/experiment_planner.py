@@ -80,6 +80,7 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.load_UB_button = QPushButton("Load UB", self)
         self.optimize_button = QPushButton("Optimize Coverage", self)
+        self.delete_button = QPushButton("Delete Highlighted", self)
 
         self.save_plan_button = QPushButton("Save CSV", self)
         self.save_experiment_button = QPushButton("Save Experiment", self)
@@ -182,8 +183,9 @@ class ExperimentView(NeuXtalVizWidget):
         planning_layout.addWidget(self.optimize_button)
 
         save_layout = QHBoxLayout()
-        save_layout.addWidget(self.save_plan_button)
+        save_layout.addWidget(self.delete_button)
         save_layout.addStretch(1)
+        save_layout.addWidget(self.save_plan_button)
         save_layout.addWidget(self.save_experiment_button)
         save_layout.addWidget(self.load_experiment_button)
 
@@ -335,6 +337,9 @@ class ExperimentView(NeuXtalVizWidget):
 
     def connect_add_orientation(self, add_orientation):
         self.add_button.clicked.connect(add_orientation)
+
+    def connect_delete_angles(self, delete_angles):
+        self.delete_button.clicked.connect(delete_angles)
 
     def connect_calculate_single(self, calculate_single):
         self.calculate_single_button.clicked.connect(calculate_single)
@@ -544,6 +549,17 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.setHorizontalHeaderLabels(labels)
 
         self.plan_table.itemChanged.connect(self.handle_item_changed)
+
+    def delete_angles(self):
+        self.plan_table.blockSignals(True)
+
+        rows = set(index.row() for index in self.plan_table.selectedIndexes())
+        for row in sorted(rows, reverse=True):
+            self.plan_table.removeRow(row)
+
+        self.plan_table.blockSignals(True)
+
+        return rows
 
     def get_all_angles(self):
         rows = self.goniometer_table.rowCount()

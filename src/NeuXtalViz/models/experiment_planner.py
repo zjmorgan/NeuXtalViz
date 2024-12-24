@@ -774,6 +774,23 @@ class ExperimentModel(NeuXtalVizModel):
 
         return rgb
 
+    def delete_angles(self, rows):
+        for row in rows:
+            FilterPeaks(
+                InputWorkspace="combined",
+                FilterVariable="RunNumber",
+                FilterValue=str(row),
+                Operator="!=",
+                OutputWorkspace="combined",
+            )
+
+        runs = mtd["combined"].column(0)
+
+        u, new_runs = np.unique(runs, return_index=True)
+
+        for new_run, peak in zip(new_runs.tolist(), mtd["combined"]):
+            peak.setRunNumber(new_run)
+
     def get_coverage_info(self, point_group):
         pg = PointGroupFactory.createPointGroup(point_group)
 

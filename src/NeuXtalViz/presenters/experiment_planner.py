@@ -16,6 +16,7 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_calculate_single(self.calculate_single)
         self.view.connect_calculate_double(self.calculate_double)
         self.view.connect_add_orientation(self.add_orientation)
+        self.view.connect_delete_angles(self.delete_angles)
         self.view.connect_save_CSV(self.save_CSV)
 
         self.view.connect_roi_ready(self.lookup_angle)
@@ -183,6 +184,13 @@ class Experiment(NeuXtalVizPresenter):
 
         angles = self.model.get_angles(gamma, nu)
         self.view.set_angles(angles)
+
+    def delete_angles(self):
+        rows = self.view.delete_angles()
+
+        if len(rows) > 0:
+            self.model.delete_angles(rows)
+            self.visualize()
 
     def add_orientation(self):
         worker = self.view.worker(self.add_orientation_process)
