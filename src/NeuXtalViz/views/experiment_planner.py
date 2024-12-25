@@ -682,6 +682,45 @@ class ExperimentView(NeuXtalVizWidget):
         )
 
         self.plotter.enable_depth_peeling()
+        # self.plotter.add_axes_at_origin()
+
+        coords = np.array(peak_dict["axis_coords"])
+        colors = np.array(peak_dict["axis_colors"])
+
+        for i in range(3):
+            arrow = pv.Arrow([0, 0, 0], coords[i], scale="auto")
+            self.plotter.add_mesh(arrow, color=colors[i], smooth_shading=True)
+
+        radius = 0.2 * np.sqrt(np.min(np.sum(coords**2, axis=1)))
+        sphere = pv.Sphere(radius=radius)
+
+        self.plotter.add_mesh(sphere, color="w", smooth_shading=True)
+
+        Q_max = 2 * np.pi / peak_dict["axis_limit"]
+
+        mesh = pv.Line(
+            pointa=(-Q_max, 0, 0), pointb=(Q_max, 0, 0), resolution=1
+        )
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
+
+        mesh = pv.Line(
+            pointa=(0, -Q_max, 0), pointb=(0, Q_max, 0), resolution=1
+        )
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
+
+        mesh = pv.Line(
+            pointa=(0, 0, -Q_max), pointb=(0, 0, Q_max), resolution=1
+        )
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
 
         self.reset_view()
 
@@ -753,9 +792,11 @@ class ExperimentView(NeuXtalVizWidget):
     def plot_instrument(self, gamma_inst, nu_inst, gamma, nu, lamda):
         if self.cb_inst is not None:
             self.cb_inst.remove()
+            self.cb_inst = None
 
         if self.cb_inst_alt is not None:
             self.cb_inst_alt.remove()
+            self.cb_inst_alt = None
 
         self.ax_inst.clear()
 
@@ -783,7 +824,7 @@ class ExperimentView(NeuXtalVizWidget):
                 self.im, ax=self.ax_inst, orientation="horizontal"
             )
             self.cb_inst.minorticks_on()
-            self.cb_inst.ax.set_xlabel(r"$\lambda$ [Å]")
+            self.cb_inst.ax.set_xlabel(r"$\lambda$λ [Å]")
 
         self.fig_inst.canvas.mpl_connect(
             "button_press_event", self.on_press_inst
@@ -805,9 +846,11 @@ class ExperimentView(NeuXtalVizWidget):
     ):
         if self.cb_inst is not None:
             self.cb_inst.remove()
+            self.cb_inst = None
 
         if self.cb_inst_alt is not None:
             self.cb_inst_alt.remove()
+            self.cb_inst_alt = None
 
         self.ax_inst.clear()
 

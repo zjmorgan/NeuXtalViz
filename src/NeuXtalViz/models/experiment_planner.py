@@ -835,6 +835,24 @@ class ExperimentModel(NeuXtalVizModel):
         coverage_dict["sizes"] = nos / nos.max()
         coverage_dict["coords"] = coords
 
+        hkls = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+        r = np.sqrt(hkls[:, 0] ** 2 + hkls[:, 1] ** 2 + hkls[:, 2] ** 2)
+        theta = np.arccos(hkls[:, 2] / r)
+        phi = np.arctan2(hkls[:, 1], hkls[:, 0])
+
+        hue = phi * 180 / np.pi + 180
+        saturation = np.ones_like(hue)
+        lightness = theta / np.pi
+
+        coverage_dict["axis_coords"] = coords
+
+        rgb = self.hsl_to_rgb(hue, saturation, lightness)
+        coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
+
+        coverage_dict["axis_colors"] = (rgb * 255).astype(np.uint8)
+        coverage_dict["axis_coords"] = coords
+
         return coverage_dict
 
     def crystal_plan(self, *args):

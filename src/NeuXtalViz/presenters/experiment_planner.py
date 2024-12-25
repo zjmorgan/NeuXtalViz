@@ -247,6 +247,7 @@ class Experiment(NeuXtalVizPresenter):
             self.view.plot_statistics(*stats)
 
             peak_dict = self.model.get_coverage_info(point_group)
+            peak_dict["axis_limit"] = self.view.get_d_min()
 
             self.view.add_peaks(peak_dict)
 
