@@ -2438,6 +2438,7 @@ class UBView(NeuXtalVizWidget):
 
         if self.cb_inst is not None:
             self.cb_inst.remove()
+            self.cb_inst = None
 
         self.ax_inst.clear()
 
@@ -2628,13 +2629,14 @@ class UBView(NeuXtalVizWidget):
 
         if self.cb_slice is not None:
             self.cb_slice.remove()
+            self.cb_slice = None
 
         self.ax_slice.remove()
 
-        if self.ax_xint:
-            self.ax_xint.remove()
-        if self.ax_yint:
-            self.ax_yint.remove()
+        # if self.ax_xint:
+        #     self.ax_xint.remove()
+        # if self.ax_yint:
+        #     self.ax_yint.remove()
 
         extreme_finder = ExtremeFinderSimple(20, 20)
 
@@ -2686,68 +2688,71 @@ class UBView(NeuXtalVizWidget):
             rasterized=True,
         )
 
+        self.ax_slice.set_xlabel(labels[0])
+        self.ax_slice.set_ylabel(labels[1])
+
         # self.ax_slice.set_xticks([])
         # self.ax_slice.set_yticks([])
 
-        xlim = self.ax_slice.get_xlim()
-        ylim = self.ax_slice.get_ylim()
+        # xlim = self.ax_slice.get_xlim()
+        # ylim = self.ax_slice.get_ylim()
 
-        ascale = (ylim[1] - ylim[0]) / (xlim[1] - xlim[0]) * aspect
+        # ascale = (ylim[1] - ylim[0]) / (xlim[1] - xlim[0]) * aspect
 
         # xstart = 1+0.05 if ascale > 1 else 1+0.05*ascale
         # ystart = 1+0.05 if ascale < 1 else 1+0.05*ascale
 
-        xwidth = 0.1 if ascale < 1 else 0.1 * ascale
-        ywidth = 0.1 if ascale > 1 else 0.1 / ascale
+        # xwidth = 0.1 if ascale < 1 else 0.1 * ascale
+        # ywidth = 0.1 if ascale > 1 else 0.1 / ascale
 
-        self.ax_xint = self.ax_slice.inset_axes(
-            [0, 0 - ywidth, 1, ywidth], sharex=self.ax_slice
-        )
+        # self.ax_xint = self.ax_slice.inset_axes(
+        #     [0, 0 - ywidth, 1, ywidth], sharex=self.ax_slice
+        # )
 
-        self.ax_yint = self.ax_slice.inset_axes(
-            [0 - xwidth, 0, xwidth, 1], sharey=self.ax_slice
-        )
+        # self.ax_yint = self.ax_slice.inset_axes(
+        #     [0 - xwidth, 0, xwidth, 1], sharey=self.ax_slice
+        # )
 
-        xint = signal.sum(axis=0)
-        yint = signal.sum(axis=1)
-        sigx = np.sqrt(xint)
-        sigy = np.sqrt(yint)
+        # xint = signal.sum(axis=0)
+        # yint = signal.sum(axis=1)
+        # sigx = np.sqrt(xint)
+        # sigy = np.sqrt(yint)
 
-        self.ax_xint.errorbar(
-            0.5 * (x[1:] + x[:-1]),
-            xint,
-            yerr=sigx,
-            fmt=".",
-            linestyle="-",
-            color="C0",
-        )
+        # self.ax_xint.errorbar(
+        #     0.5 * (x[1:] + x[:-1]),
+        #     xint,
+        #     yerr=sigx,
+        #     fmt=".",
+        #     linestyle="-",
+        #     color="C0",
+        # )
 
-        self.ax_yint.errorbar(
-            yint,
-            0.5 * (y[1:] + y[:-1]),
-            xerr=sigy,
-            fmt=".",
-            linestyle="-",
-            color="C1",
-        )
+        # self.ax_yint.errorbar(
+        #     yint,
+        #     0.5 * (y[1:] + y[:-1]),
+        #     xerr=sigy,
+        #     fmt=".",
+        #     linestyle="-",
+        #     color="C1",
+        # )
 
-        self.ax_xint.minorticks_on()
-        self.ax_yint.minorticks_on()
+        # self.ax_xint.minorticks_on()
+        # self.ax_yint.minorticks_on()
 
-        self.ax_xint.xaxis.get_major_locator().set_params(integer=True)
-        self.ax_yint.yaxis.get_major_locator().set_params(integer=True)
+        # self.ax_xint.xaxis.get_major_locator().set_params(integer=True)
+        # self.ax_yint.yaxis.get_major_locator().set_params(integer=True)
 
-        self.ax_xint.set_xlabel(labels[0])
-        self.ax_yint.set_ylabel(labels[1])
+        # self.ax_xint.set_xlabel(labels[0])
+        # self.ax_yint.set_ylabel(labels[1])
 
-        self.ax_xint.yaxis.tick_right()
-        self.ax_yint.xaxis.tick_top()
+        # self.ax_xint.yaxis.tick_right()
+        # self.ax_yint.xaxis.tick_top()
 
-        self.ax_xint.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-        self.ax_yint.ticklabel_format(style="sci", axis="x", scilimits=(0, 0))
+        # self.ax_xint.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+        # self.ax_yint.ticklabel_format(style="sci", axis="x", scilimits=(0, 0))
 
-        self.ax_xint.grid(True)
-        self.ax_yint.grid(True)
+        # self.ax_xint.grid(True)
+        # self.ax_yint.grid(True)
 
         # self.ax_xint.set_xticks([])
         # self.ax_yint.set_yticks([])
@@ -2762,10 +2767,10 @@ class UBView(NeuXtalVizWidget):
 
         # cax = self.ax_yint.inset_axes([1.1, 0, 0.25, 1])
 
-        # self.cb_slice = self.fig_slice.colorbar(self.im, cax=cax)
-        # self.cb_slice.minorticks_on()
+        self.cb_slice = self.fig_slice.colorbar(self.im, ax=self.ax_slice)
+        self.cb_slice.minorticks_on()
 
-        self.fig_slice.tight_layout()
+        # self.fig_slice.tight_layout()
 
         self.canvas_slice.draw_idle()
         self.canvas_slice.flush_events()
