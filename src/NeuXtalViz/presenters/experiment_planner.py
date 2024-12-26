@@ -18,6 +18,8 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_add_orientation(self.add_orientation)
         self.view.connect_delete_angles(self.delete_angles)
         self.view.connect_save_CSV(self.save_CSV)
+        self.view.connect_save_experiment(self.save_experiment)
+        self.view.connect_load_experiment(self.load_experiment)
         self.view.connect_peak_table(self.update_peaks)
 
         self.view.connect_roi_ready(self.lookup_angle)
@@ -331,7 +333,10 @@ class Experiment(NeuXtalVizPresenter):
         comments = self.view.get_all_comments()
         use = self.view.get_orientations_to_use()
         names = self.view.get_free_angles()
-        self.model.create_plan(instrument, mode, names, settings, comments, use)
+        UB = self.model.get_UB()
+        self.model.create_plan(
+            instrument, mode, names, settings, comments, use, UB
+        )
 
     def save_CSV(self):
         filename = self.view.save_CSV_file_dialog()
@@ -339,3 +344,13 @@ class Experiment(NeuXtalVizPresenter):
         if filename:
             self.update_plan()
             self.model.save_plan(filename)
+
+    def save_experiment(self):
+        filename = self.view.save_experiment_file_dialog()
+
+        if filename:
+            self.update_plan()
+            self.model.save_experiment(filename)
+
+    def load_experiment(self):
+        filename = self.view.load_experiment_file_dialog()

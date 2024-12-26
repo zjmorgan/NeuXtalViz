@@ -41,7 +41,7 @@ exclude = ["tests*"]
 "*" = ["*.yml","*.yaml","*.ini"]
 
 [tool.pylint]
-max-line-length = 80
+max-line-length = 79
 disable = ["too-many-locals",
            "too-many-statements",
            "too-many-instance-attributes",

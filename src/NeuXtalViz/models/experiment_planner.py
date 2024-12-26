@@ -315,11 +315,11 @@ class ExperimentModel(NeuXtalVizModel):
     def get_symmetry(self, point_group, centering):
         return str(point_group), str(centering)
 
-    def create_plan(self, instrument, mode, names, settings, comments, use):
+    def create_plan(self, instrument, mode, names, settings, comments, use, UB):
         CreateEmptyTableWorkspace(OutputWorkspace="plan")
 
         mtd["plan"].setTitle("{} {}".format(instrument, mode))
-        mtd["plan"].setComment("{} {}".format(instrument, mode))
+        mtd["plan"].setComment("{} {} {} {} {} {}".format(*UB.flatten()))
 
         for name in names:
             mtd["plan"].addColumn("float", name)
@@ -340,10 +340,13 @@ class ExperimentModel(NeuXtalVizModel):
 
         self.copy_UB()
 
-    def copy_UB(self):
+    def get_UB(self):
         if self.has_UB():
-            UB = mtd["coverage"].sample().getOrientedLattice().getUB().copy()
+            return mtd["coverage"].sample().getOrientedLattice().getUB().copy()
 
+    def copy_UB(self):
+        UB = self.get_UB()
+        if UB is not None:
             self.set_UB(UB)
 
     def has_UB(self):
@@ -409,6 +412,29 @@ class ExperimentModel(NeuXtalVizModel):
             writer.writeheader()
             for row in zip(*plan_dict.values()):
                 writer.writerow(dict(zip(plan_dict.keys(), row)))
+
+    def save_experiment(self, filename):
+        if mtd.doesExist("plan"):
+            SaveNexus(InputWorkspace="plan", Filename=filename)
+
+    def load_experiment(self, filename):
+        LoadNexus(Filename=filename, OutputWorkspace="plan")
+
+        UB = (
+            np.array(mtd["plan"].getComment().split(" "))
+            .astype(float)
+            .reshape(3, 3)
+        )
+        SetUB(Workspace="coverage", UB=UB)
+
+        self.set_UB(UB)
+
+        instrument, mode = mtd["plan"].getTitle().split(" ")
+
+        return instrument, mode
+
+    def regenerate_experiment(self):
+        pass
 
     def _calculate_matrices(self, axes, polarities, limits, step):
         self.axes = [None] * 6
