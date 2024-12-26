@@ -335,6 +335,9 @@ class ExperimentView(NeuXtalVizWidget):
 
         inst_tab.setLayout(peak_layout)
 
+    def connect_peak_table(self, update_table):
+        self.angles_combo.activated.connect(update_table)
+
     def connect_add_orientation(self, add_orientation):
         self.add_button.clicked.connect(add_orientation)
 
@@ -483,6 +486,14 @@ class ExperimentView(NeuXtalVizWidget):
         for mode in modes:
             self.mode_combo.addItem(mode)
 
+    def set_peak_list(self, rows):
+        self.angles_combo.clear()
+        for row in range(rows):
+            self.angles_combo.addItem((str(row + 1)))
+
+    def get_peak_list(self):
+        return int(self.angles_combo.currentText()) - 1
+
     def set_wavelength(self, wavelength):
         if type(wavelength) is list:
             self.wl_min_line.setText(str(wavelength[0]))
@@ -558,6 +569,7 @@ class ExperimentView(NeuXtalVizWidget):
             self.plan_table.removeRow(row)
 
         self.plan_table.blockSignals(True)
+        self.set_peak_list(self.get_number_of_orientations())
 
         return rows
 
@@ -591,6 +603,28 @@ class ExperimentView(NeuXtalVizWidget):
             use.append(item.checkState() == Qt.Checked)
 
         return use
+
+    def get_all_comments(self):
+        col = self.plan_table.columnCount() - 2
+
+        comment = []
+        for row in range(self.get_number_of_orientations()):
+            comment.append(self.plan_table.item(row, col).text())
+
+        return comment
+
+    def get_all_settings(self):
+        cols = self.plan_table.columnCount() - 2
+
+        settings = []
+        for row in range(self.get_number_of_orientations()):
+            setting = []
+            for col in range(cols):
+                angle = float(self.plan_table.item(row, col).text())
+                setting.append(angle)
+            settings.append(setting)
+
+        return settings
 
     def get_settings(self):
         if self.settings_line.hasAcceptableInput():
@@ -630,12 +664,12 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.setItem(row, col, checkbox)
         self.plan_table.blockSignals(False)
 
+        self.set_peak_list(self.get_number_of_orientations())
+
     def handle_item_changed(self, item):
         col = item.column()
-        # row = item.row()
 
         if col == self.plan_table.columnCount() - 1:
-            # state = item.checkState() == Qt.Checked
             self.viz_ready.emit()
 
     def connect_viz_ready(self, visualize):
@@ -733,8 +767,7 @@ class ExperimentView(NeuXtalVizWidget):
             self.set_peak(row, peak)
 
     def set_peak(self, row, peak):
-        hkl, d, lamda = peak
-        h, k, l = hkl
+        h, k, l, d, lamda = peak
         h = "{:.3f}".format(h)
         k = "{:.3f}".format(k)
         l = "{:.3f}".format(l)
@@ -824,7 +857,7 @@ class ExperimentView(NeuXtalVizWidget):
                 self.im, ax=self.ax_inst, orientation="horizontal"
             )
             self.cb_inst.minorticks_on()
-            self.cb_inst.ax.set_xlabel(r"$\lambda$λ [Å]")
+            self.cb_inst.ax.set_xlabel(r"$\lambda$ [Å]")
 
         self.fig_inst.canvas.mpl_connect(
             "button_press_event", self.on_press_inst

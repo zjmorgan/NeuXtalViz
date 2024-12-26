@@ -18,6 +18,7 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_add_orientation(self.add_orientation)
         self.view.connect_delete_angles(self.delete_angles)
         self.view.connect_save_CSV(self.save_CSV)
+        self.view.connect_peak_table(self.update_peaks)
 
         self.view.connect_roi_ready(self.lookup_angle)
         self.view.connect_viz_ready(self.visualize)
@@ -178,6 +179,11 @@ class Experiment(NeuXtalVizPresenter):
         else:
             progress("Invalid parameters.", 0)
 
+    def update_peaks(self):
+        row = self.view.get_peak_list()
+        peak_list = self.model.generate_table(row)
+        self.view.update_peaks_table(peak_list)
+
     def lookup_angle(self):
         gamma = self.view.get_horizontal()
         nu = self.view.get_vertical()
@@ -191,6 +197,7 @@ class Experiment(NeuXtalVizPresenter):
         if len(rows) > 0:
             self.model.delete_angles(rows)
             self.visualize()
+            self.update_peaks()
 
     def add_orientation(self):
         worker = self.view.worker(self.add_orientation_process)
@@ -210,6 +217,7 @@ class Experiment(NeuXtalVizPresenter):
                 update_angles.append(angle)
 
         self.view.add_orientation(comment, update_angles)
+        self.update_peaks()
 
     def add_orientation_process(self, progress):
         angles = self.view.get_angles()
@@ -218,7 +226,6 @@ class Experiment(NeuXtalVizPresenter):
 
         wavelength = self.view.get_wavelength()
         d_min = self.view.get_d_min()
-        # centering = self.view.get_lattice_centering()
         rows = self.view.get_number_of_orientations()
 
         if len(angles) > 0:
@@ -246,7 +253,9 @@ class Experiment(NeuXtalVizPresenter):
         if stats is not None:
             self.view.plot_statistics(*stats)
 
-            peak_dict = self.model.get_coverage_info(point_group)
+            peak_dict = self.model.get_coverage_info(
+                point_group, lattice_centering
+            )
             peak_dict["axis_limit"] = self.view.get_d_min()
 
             self.view.add_peaks(peak_dict)
@@ -263,6 +272,7 @@ class Experiment(NeuXtalVizPresenter):
         if result is not None:
             for angles in result:
                 self.view.add_orientation("CrystalPlan", angles)
+            self.update_peaks()
 
     def optimize_coverage_process(self, progress):
         point_group = self.view.get_point_group()
@@ -314,8 +324,18 @@ class Experiment(NeuXtalVizPresenter):
         else:
             progress("Invalid parameters.", 0)
 
+    def update_plan(self):
+        instrument = self.view.get_instrument()
+        mode = self.view.get_mode()
+        settings = self.view.get_all_settings()
+        comments = self.view.get_all_comments()
+        use = self.view.get_orientations_to_use()
+        names = self.view.get_free_angles()
+        self.model.create_plan(instrument, mode, names, settings, comments, use)
+
     def save_CSV(self):
         filename = self.view.save_CSV_file_dialog()
 
         if filename:
+            self.update_plan()
             self.model.save_plan(filename)

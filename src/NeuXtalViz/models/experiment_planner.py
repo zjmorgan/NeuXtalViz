@@ -175,12 +175,22 @@ crystal_system_point_groups = {
     "Cubic": ["23", "m-3", "432", "-43m", "m-3m"],
 }
 
+centering_conditions = {
+    "P": lambda h, k, l: True,
+    "I": lambda h, k, l: (h + k + l) % 2 == 0,
+    "F": lambda h, k, l: (h % 2 == k % 2 == l % 2),
+    "C": lambda h, k, l: k % 2 == 0 and l % 2 == 0,
+    "A": lambda h, k, l: h % 2 == 0 and l % 2 == 0,
+    "B": lambda h, k, l: h % 2 == 0 and k % 2 == 0,
+    "R": lambda h, k, l: True,
+    "Robv": lambda h, k, l: (-h + k + l) % 3 == 0,
+    "Rrev": lambda h, k, l: (h - k + l) % 3 == 0,
+}
+
 
 class ExperimentModel(NeuXtalVizModel):
     def __init__(self):
         super(ExperimentModel, self).__init__()
-
-        CreateEmptyTableWorkspace(OutputWorkspace="plan")
 
         CreatePeaksWorkspace(
             NumberOfPeaks=0,
@@ -305,20 +315,25 @@ class ExperimentModel(NeuXtalVizModel):
     def get_symmetry(self, point_group, centering):
         return str(point_group), str(centering)
 
-    def create_plan(self, instrument, mode, angles):
-        mtd["plan"].setRowCount(0)
-        for col in mtd["plan"].getColumnNames():
-            mtd["plan"].removeColumn(col)
+    def create_plan(self, instrument, mode, names, settings, comments, use):
+        CreateEmptyTableWorkspace(OutputWorkspace="plan")
 
         mtd["plan"].setTitle("{} {}".format(instrument, mode))
         mtd["plan"].setComment("{} {}".format(instrument, mode))
-        mtd["plan"].addColumn("str", "Title")
 
-        for angle in angles:
-            mtd["plan"].addColumn("float", angle)
+        for name in names:
+            mtd["plan"].addColumn("float", name)
 
         mtd["plan"].addColumn("str", "comment")
         mtd["plan"].addColumn("bool", "use")
+
+        for setting, comment, active in zip(settings, comments, use):
+            row = {}
+            for angle, name in zip(setting, names):
+                row[name] = np.round(angle, 2)
+            row["comment"] = comment
+            row["use"] = active
+            mtd["plan"].addRow(row)
 
     def load_UB(self, filename):
         LoadIsawUB(InputWorkspace="coverage", Filename=filename)
@@ -380,12 +395,14 @@ class ExperimentModel(NeuXtalVizModel):
 
     def save_plan(self, filename):
         plan_dict = mtd["plan"].toDict().copy()
-        use_angle = plan_dict("Use")
+        use_angle = plan_dict["use"]
 
         for key in plan_dict.keys():
             items = plan_dict[key]
             items = [item for item, use in zip(items, use_angle) if use]
             plan_dict[key] = items
+
+        plan_dict.pop("use")
 
         with open(filename, mode="w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=plan_dict.keys())
@@ -697,6 +714,48 @@ class ExperimentModel(NeuXtalVizModel):
             LHSWorkspace="combined", RHSWorkspace=ws, OutputWorkspace="combined"
         )
 
+    def generate_table(self, row):
+        FilterPeaks(
+            InputWorkspace="combined",
+            FilterVariable="RunNumber",
+            FilterValue=str(row),
+            Operator="!=",
+            OutputWorkspace="table",
+        )
+
+        SortPeaksWorkspace(
+            InputWorkspace="table",
+            ColumnNameToSortBy="DSpacing",
+            SortAscending=False,
+            OutputWorkspace="table",
+        )
+
+        columns = ["l", "k", "h"]
+
+        for col in columns:
+            SortPeaksWorkspace(
+                InputWorkspace="table",
+                ColumnNameToSortBy=col,
+                SortAscending=False,
+                OutputWorkspace="table",
+            )
+
+        SortPeaksWorkspace(
+            InputWorkspace="table",
+            ColumnNameToSortBy="DSpacing",
+            SortAscending=False,
+            OutputWorkspace="table",
+        )
+
+        h = mtd["table"].column("h")
+        k = mtd["table"].column("k")
+        l = mtd["table"].column("l")
+
+        d = mtd["table"].column("DSpacing")
+        lamda = mtd["table"].column("Wavelength")
+
+        return np.array([h, k, l, d, lamda]).T.tolist()
+
     def calculate_statistics(self, point_group, lattice_centering, use, d_min):
         if mtd.doesExist("combined"):
             CloneWorkspace(
@@ -791,7 +850,7 @@ class ExperimentModel(NeuXtalVizModel):
         for new_run, peak in zip(new_runs.tolist(), mtd["combined"]):
             peak.setRunNumber(new_run)
 
-    def get_coverage_info(self, point_group):
+    def get_coverage_info(self, point_group, lattice_centering):
         pg = PointGroupFactory.createPointGroup(point_group)
 
         coverage_dict = {}
@@ -807,15 +866,16 @@ class ExperimentModel(NeuXtalVizModel):
 
         hkl_dict = {}
         for hkl in hkls:
-            equiv_hkls = pg.getEquivalents(hkl)
-            for equiv_hkl in equiv_hkls:
-                key = tuple(equiv_hkl)
-                no = hkl_dict.get(key)
-                if no is None:
-                    no = 1
-                else:
-                    no += 1
-                hkl_dict[key] = no
+            if centering_conditions[lattice_centering](*hkl):
+                equiv_hkls = pg.getEquivalents(hkl)
+                for equiv_hkl in equiv_hkls:
+                    key = tuple(equiv_hkl)
+                    no = hkl_dict.get(key)
+                    if no is None:
+                        no = 1
+                    else:
+                        no += 1
+                    hkl_dict[key] = no
 
         nos = np.array([value for value in hkl_dict.values()])
         hkls = np.array([key for key in hkl_dict.keys()])
@@ -827,6 +887,10 @@ class ExperimentModel(NeuXtalVizModel):
         hue = phi * 180 / np.pi + 180
         saturation = np.ones_like(hue)
         lightness = theta / np.pi
+
+        # hue = (phi / (2 * np.pi)) * 360
+        # saturation = np.sin(theta)
+        # lightness = 0.5 * (1 + np.cos(theta))
 
         rgb = self.hsl_to_rgb(hue, saturation, lightness)
         coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
