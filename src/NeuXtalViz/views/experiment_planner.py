@@ -492,7 +492,9 @@ class ExperimentView(NeuXtalVizWidget):
             self.angles_combo.addItem((str(row + 1)))
 
     def get_peak_list(self):
-        return int(self.angles_combo.currentText()) - 1
+        val = self.angles_combo.currentText()
+        if len(val) == 1:
+            return int(val) - 1
 
     def set_wavelength(self, wavelength):
         if type(wavelength) is list:

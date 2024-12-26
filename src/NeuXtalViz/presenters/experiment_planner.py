@@ -183,8 +183,9 @@ class Experiment(NeuXtalVizPresenter):
 
     def update_peaks(self):
         row = self.view.get_peak_list()
-        peak_list = self.model.generate_table(row)
-        self.view.update_peaks_table(peak_list)
+        if row is not None:
+            peak_list = self.model.generate_table(row)
+            self.view.update_peaks_table(peak_list)
 
     def lookup_angle(self):
         gamma = self.view.get_horizontal()

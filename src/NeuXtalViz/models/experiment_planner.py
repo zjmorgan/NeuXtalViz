@@ -1000,9 +1000,9 @@ class CrystalPlan:
         self.lattice_centering = lattice_centering
         self.genes = {}
 
-        # rng seed --------#
+        # rng seed ---------#
         np.random.seed(13)  #
-        ####################
+        #####################
 
     def generation(self, i, j):
         axes = self.axes.copy()
