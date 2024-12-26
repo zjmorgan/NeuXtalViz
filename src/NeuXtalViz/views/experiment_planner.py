@@ -450,8 +450,8 @@ class ExperimentView(NeuXtalVizWidget):
         )
 
         if filename is not None:
-            if not filename.endswith(".csv"):
-                filename += ".csv"
+            if not filename.endswith(".nxs"):
+                filename += ".nxs"
 
         return filename
 

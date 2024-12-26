@@ -354,3 +354,8 @@ class Experiment(NeuXtalVizPresenter):
 
     def load_experiment(self):
         filename = self.view.load_experiment_file_dialog()
+
+        if filename:
+            self.model.load_experiment(filename)
+
+            # self.model.add_orientation(angles, wavelength, d_min, rows):

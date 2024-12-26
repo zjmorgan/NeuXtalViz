@@ -415,6 +415,7 @@ class ExperimentModel(NeuXtalVizModel):
 
     def save_experiment(self, filename):
         if mtd.doesExist("plan"):
+            print(filename)
             SaveNexus(InputWorkspace="plan", Filename=filename)
 
     def load_experiment(self, filename):
@@ -432,9 +433,6 @@ class ExperimentModel(NeuXtalVizModel):
         instrument, mode = mtd["plan"].getTitle().split(" ")
 
         return instrument, mode
-
-    def regenerate_experiment(self):
-        pass
 
     def _calculate_matrices(self, axes, polarities, limits, step):
         self.axes = [None] * 6
@@ -1001,6 +999,10 @@ class CrystalPlan:
         self.point_group = point_group
         self.lattice_centering = lattice_centering
         self.genes = {}
+
+        # rng seed --------#
+        np.random.seed(13)  #
+        ####################
 
     def generation(self, i, j):
         axes = self.axes.copy()
