@@ -21,10 +21,12 @@ from mantid.simpleapi import (
     PreprocessDetectorsToMD,
     GroupDetectors,
     AddSampleLog,
+    CreateSampleWorkspace,
     CreateEmptyTableWorkspace,
     DeleteTableRows,
     CloneWorkspace,
     DeleteWorkspace,
+    RenameWorkspace,
     RenameWorkspaces,
     HasUB,
     mtd,
@@ -315,11 +317,8 @@ class ExperimentModel(NeuXtalVizModel):
     def get_symmetry(self, point_group, centering):
         return str(point_group), str(centering)
 
-    def create_plan(self, instrument, mode, names, settings, comments, use, UB):
+    def create_plan(self, names, settings, comments, use):
         CreateEmptyTableWorkspace(OutputWorkspace="plan")
-
-        mtd["plan"].setTitle("{} {}".format(instrument, mode))
-        mtd["plan"].setComment("{} {} {} {} {} {}".format(*UB.flatten()))
 
         for name in names:
             mtd["plan"].addColumn("float", name)
@@ -334,6 +333,83 @@ class ExperimentModel(NeuXtalVizModel):
             row["comment"] = comment
             row["use"] = active
             mtd["plan"].addRow(row)
+
+    def create_sample(self, instrument, mode, UB, wavelength, d_min):
+
+        CreateSampleWorkspace(OutputWorkspace="sample")
+
+        SetUB(Workspace="sample", UB=UB)
+
+        AddSampleLog(
+            Workspace="sample",
+            LogName='instrument',
+            LogText=instrument,
+            LogType="String",
+        )
+
+        AddSampleLog(
+            Workspace="sample",
+            LogName='mode',
+            LogText=mode,
+            LogType="String",
+        )
+
+        AddSampleLog(
+            Workspace="sample",
+            LogName="lamda_min",
+            LogText=str(wavelength[0]),
+            LogType="Number",
+            NumberType="Double",
+        )
+
+        AddSampleLog(
+            Workspace="sample",
+            LogName="lamda_max",
+            LogText=str(wavelength[1]),
+            LogType="Number",
+            NumberType="Double",
+        )
+
+        AddSampleLog(
+            Workspace="sample",
+            LogName="d_min",
+            LogText=str(d_min),
+            LogType="Number",
+            NumberType="Double",
+        )
+
+    def update_sample(self, crytsal_system, point_group, lattice_centering):
+        if mtd.doesExist('sample'):
+            AddSampleLog(
+                Workspace="sample",
+                LogName='crystal_system',
+                LogText=crytsal_system,
+                LogType="String",
+            )
+    
+            AddSampleLog(
+                Workspace="sample",
+                LogName='point_group',
+                LogText=point_group,
+                LogType="String",
+            )
+    
+            AddSampleLog(
+                Workspace="sample",
+                LogName='lattice_centering',
+                LogText=lattice_centering,
+                LogType="String",
+            )
+
+    def update_goniometer_motors(self, limits, motors):
+        if mtd.doesExist('sample'):
+            mtd['sample'].run()['limits'] = np.array(limits).flatten().tolist()
+            
+            values = []
+            for key in motors.keys():
+                values.append(motors[key])
+            if len(values) > 0:
+                mtd['sample'].run()['motors'] = values
 
     def load_UB(self, filename):
         LoadIsawUB(InputWorkspace="coverage", Filename=filename)
@@ -415,31 +491,81 @@ class ExperimentModel(NeuXtalVizModel):
 
     def save_experiment(self, filename):
         if mtd.doesExist("plan"):
-            print(filename)
             SaveNexus(InputWorkspace="plan", Filename=filename)
+            if mtd.doesExist("sample"):
+                SaveNexus(InputWorkspace="sample",
+                          Filename=filename,
+                          Append=True)
 
     def load_experiment(self, filename):
-        LoadNexus(Filename=filename, OutputWorkspace="plan")
+        LoadNexus(Filename=filename, OutputWorkspace="experiment")
 
-        UB = (
-            np.array(mtd["plan"].getComment().split(" "))
-            .astype(float)
-            .reshape(3, 3)
-        )
+        plan, sample = mtd["experiment"].getNames()
+
+        UB = mtd[sample].sample().getOrientedLattice().getUB().copy()
         SetUB(Workspace="coverage", UB=UB)
 
         self.set_UB(UB)
 
-        instrument, mode = mtd["plan"].getTitle().split(" ")
+        instrument = mtd[sample].run().getProperty('instrument').value
+        mode = mtd[sample].run().getProperty('mode').value
+        wl_min = mtd[sample].run().getProperty('lamda_min').value
+        wl_max = mtd[sample].run().getProperty('lamda_max').value
+        d_min = mtd[sample].run().getProperty('d_min').value
+        cs = mtd[sample].run().getProperty('crystal_system').value
+        pg = mtd[sample].run().getProperty('point_group').value
+        lc = mtd[sample].run().getProperty('lattice_centering').value
+        lims = mtd[sample].run().getProperty('limits').value
+        lims = np.array(lims).reshape(-1, 2).tolist()
+        vals = []
+        if mtd[sample].run().hasProperty('motors'):
+            vals = mtd[sample].run().getProperty('motors').value
+        
+        if np.isclose(wl_min, wl_max):
+            wl = wl_min
+        else:
+            wl = [wl_min, wl_max]
 
-        return instrument, mode
+        cols = mtd[plan].columnCount() - 2
+        rows = mtd[plan].rowCount()
 
-    def _calculate_matrices(self, axes, polarities, limits, step):
+        use = mtd[plan].column(cols + 1)
+        comments = mtd[plan].column(cols)
+
+        settings = []
+        for row in range(rows):
+            angles = []
+            for col in range(cols):
+                angle = mtd[plan].cell(row, col)
+                angles.append(angle)
+            settings.append(angles)
+
+        plan = (settings, comments, use)
+        config = (instrument, mode, wl, d_min, lims, vals)
+        symm = (cs, pg, lc)
+
+        return plan, config, symm
+
+    def generate_axes(self, axes, polarities):
         self.axes = [None] * 6
 
         for i, (axis, polarity) in enumerate(zip(axes, polarities)):
             self.axes[i] = "{},"
             self.axes[i] += ",".join(np.array([*axis, polarity]).astype(str))
+
+    def get_setting(self, free_angles, limits):
+        setting = []
+        col = 0
+        for limit in limits:
+            if np.isclose(limit[0], limit[1]):
+                setting.append(limit[0])
+            else:
+                setting.append(free_angles[col])
+                col += 1
+        return setting
+
+    def _calculate_matrices(self, axes, polarities, limits, step):
+        self.generate_axes(axes, polarities)
 
         angular_coverage = []
         for limit in limits:

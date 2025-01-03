@@ -1,6 +1,2 @@
-BL12:Mot:goniokm:omega,BL12:Mot:goniokm:phi,comment
-40.29999923706055,15.0,CrystalPlan
--45.400001525878906,118.5999984741211,CrystalPlan
-114.0,-118.19999694824219,CrystalPlan
-121.69999694824219,-54.099998474121094,CrystalPlan
--127.80000305175781,21.700000762939453,CrystalPlan
+# BL9:Mot:Sample:Axis3 , comment , use 
+# float , str , bool 

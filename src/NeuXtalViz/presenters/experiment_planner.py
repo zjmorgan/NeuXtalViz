@@ -335,9 +335,17 @@ class Experiment(NeuXtalVizPresenter):
         use = self.view.get_orientations_to_use()
         names = self.view.get_free_angles()
         UB = self.model.get_UB()
-        self.model.create_plan(
-            instrument, mode, names, settings, comments, use, UB
-        )
+        wavelength = self.view.get_wavelength()
+        d_min = self.view.get_d_min()
+        crysal_system = self.view.get_crystal_system()
+        point_group = self.view.get_point_group()
+        lattice_centering = self.view.get_lattice_centering()
+        motors = self.view.get_motors()
+        limits = self.view.get_goniometer_limits()
+        self.model.create_plan(names, settings, comments, use)
+        self.model.create_sample(instrument, mode, UB, wavelength, d_min)
+        self.model.update_sample(crysal_system, point_group, lattice_centering)
+        self.model.update_goniometer_motors(limits, motors)
 
     def save_CSV(self):
         filename = self.view.save_CSV_file_dialog()
@@ -357,6 +365,66 @@ class Experiment(NeuXtalVizPresenter):
         filename = self.view.load_experiment_file_dialog()
 
         if filename:
-            self.model.load_experiment(filename)
+            plan, config, symm = self.model.load_experiment(filename)
 
-            # self.model.add_orientation(angles, wavelength, d_min, rows):
+            settings, comments, use = plan
+            instrument, mode, wl, d_min, lims, vals = config
+            cs, pg, lc = symm
+
+            self.view.set_instrument(instrument)
+            self.switch_instrument()
+            self.view.set_mode(mode)
+            self.update_oriented_lattice()
+            self.view.set_transform(self.model.get_transform())
+            self.view.set_wavelength(wl)
+            self.view.set_d_min(d_min)
+            self.view.set_goniometer_limits(lims)
+            self.view.set_motors(vals)
+            self.view.set_crystal_system(cs)
+            self.switch_crystal()
+            self.view.set_point_group(pg)
+            self.switch_group()
+            self.view.set_lattice_centering(lc)
+            self.view.add_settings(settings, comments, use)
+            self.add_settings()
+
+    def add_settings(self):
+        worker = self.view.worker(self.add_settings_process)
+        worker.connect_result(self.add_settings_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
+
+        self.view.start_worker_pool(worker)
+
+    def add_settings_complete(self, result):
+        if result is not None:
+            self.update_peaks()
+
+    def add_settings_process(self, progress):
+        wavelength = self.view.get_wavelength()
+        d_min = self.view.get_d_min()
+        rows = self.view.get_number_of_orientations()
+
+        instrument = self.view.get_instrument()
+        mode = self.view.get_mode()
+        axes, polarities = self.model.get_axes_polarities(instrument, mode)
+        self.model.generate_axes(axes, polarities)
+        limits = self.view.get_goniometer_limits()
+
+        progress("Initializing instrument", 5)
+
+        self.create_instrument()
+
+        for row in range(rows):
+    
+            progress("Calculating settings", 90 // rows * (row + 1) + 5)
+
+            angles = self.view.get_angle_setting(row)
+
+            setting = self.model.get_setting(angles, limits)
+
+            self.model.add_orientation(setting, wavelength, d_min, row)
+
+        progress("Settings calculated!", 0)
+
+        return rows

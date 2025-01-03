@@ -459,8 +459,18 @@ class ExperimentView(NeuXtalVizWidget):
         if self.d_min_line.hasAcceptableInput():
             return float(self.d_min_line.text())
 
+    def set_d_min(self, d_min):
+        self.d_min_line.setText(str(d_min))
+
     def get_crystal_system(self):
         return self.crystal_combo.currentText()
+
+    def set_crystal_system(self, crystal_system):
+        index = self.crystal_combo.findText(crystal_system)
+        if index >= 0:
+            self.crystal_combo.blockSignals(True)
+            self.crystal_combo.setCurrentIndex(index)
+            self.crystal_combo.blockSignals(False)
 
     def set_point_groups(self, groups):
         self.point_group_combo.clear()
@@ -470,6 +480,13 @@ class ExperimentView(NeuXtalVizWidget):
     def get_point_group(self):
         return self.point_group_combo.currentText()
 
+    def set_point_group(self, point_group):
+        index = self.point_group_combo.findText(point_group)
+        if index >= 0:
+            self.point_group_combo.blockSignals(True)
+            self.point_group_combo.setCurrentIndex(index)
+            self.point_group_combo.blockSignals(False)
+
     def set_lattice_centerings(self, centerings):
         self.lattice_centering_combo.clear()
         for centering in centerings:
@@ -478,8 +495,22 @@ class ExperimentView(NeuXtalVizWidget):
     def get_lattice_centering(self):
         return self.lattice_centering_combo.currentText()
 
+    def set_lattice_centering(self, lattice_centering):
+        index = self.lattice_centering_combo.findText(lattice_centering)
+        if index >= 0:
+            self.lattice_centering_combo.blockSignals(True)
+            self.lattice_centering_combo.setCurrentIndex(index)
+            self.lattice_centering_combo.blockSignals(False)
+
     def get_mode(self):
         return self.mode_combo.currentText()
+
+    def set_mode(self, mode):
+        index = self.mode_combo.findText(mode)
+        if index >= 0:
+            self.mode_combo.blockSignals(True)
+            self.mode_combo.setCurrentIndex(index)
+            self.mode_combo.blockSignals(False)
 
     def set_modes(self, modes):
         self.mode_combo.clear()
@@ -487,9 +518,11 @@ class ExperimentView(NeuXtalVizWidget):
             self.mode_combo.addItem(mode)
 
     def set_peak_list(self, rows):
+        self.angles_combo.blockSignals(True)
         self.angles_combo.clear()
         for row in range(rows):
             self.angles_combo.addItem((str(row + 1)))
+        self.angles_combo.blockSignals(False)
 
     def get_peak_list(self):
         val = self.angles_combo.currentText()
@@ -497,6 +530,8 @@ class ExperimentView(NeuXtalVizWidget):
             return int(val) - 1
 
     def set_wavelength(self, wavelength):
+        self.wl_min_line.blockSignals(True)
+        self.wl_max_line.blockSignals(True)
         if type(wavelength) is list:
             self.wl_min_line.setText(str(wavelength[0]))
             self.wl_max_line.setText(str(wavelength[1]))
@@ -505,6 +540,8 @@ class ExperimentView(NeuXtalVizWidget):
             self.wl_min_line.setText(str(wavelength))
             self.wl_max_line.setText(str(wavelength))
             self.wl_max_line.setEnabled(False)
+        self.wl_min_line.blockSignals(False)
+        self.wl_max_line.blockSignals(False)
 
     def get_wavelength(self):
         params = self.wl_min_line, self.wl_max_line
@@ -519,6 +556,7 @@ class ExperimentView(NeuXtalVizWidget):
             self.wl_max_line.setText(str(lamda_min))
 
     def update_tables(self, goniometers, motors):
+        self.goniometer_table.clearContents()
         self.goniometer_table.setRowCount(0)
         self.goniometer_table.setRowCount(len(goniometers))
 
@@ -549,8 +587,9 @@ class ExperimentView(NeuXtalVizWidget):
             item = self.motor_table.item(row, 0)
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
 
+        self.plan_table.blockSignals(True)
+        self.plan_table.clearContents()
         self.plan_table.setRowCount(0)
-        self.plan_table.setColumnCount(0)
         self.plan_table.setColumnCount(len(free) + 2)
 
         labels = free + ["Comment", "Use"]
@@ -562,6 +601,7 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.setHorizontalHeaderLabels(labels)
 
         self.plan_table.itemChanged.connect(self.handle_item_changed)
+        self.plan_table.blockSignals(False)
 
     def delete_angles(self):
         self.plan_table.blockSignals(True)
@@ -570,7 +610,7 @@ class ExperimentView(NeuXtalVizWidget):
         for row in sorted(rows, reverse=True):
             self.plan_table.removeRow(row)
 
-        self.plan_table.blockSignals(True)
+        self.plan_table.blockSignals(False)
         self.set_peak_list(self.get_number_of_orientations())
 
         return rows
@@ -616,14 +656,10 @@ class ExperimentView(NeuXtalVizWidget):
         return comment
 
     def get_all_settings(self):
-        cols = self.plan_table.columnCount() - 2
 
         settings = []
         for row in range(self.get_number_of_orientations()):
-            setting = []
-            for col in range(cols):
-                angle = float(self.plan_table.item(row, col).text())
-                setting.append(angle)
+            setting = self.get_angle_setting(row)
             settings.append(setting)
 
         return settings
@@ -641,6 +677,15 @@ class ExperimentView(NeuXtalVizWidget):
             opt.append(item.text() == "CrystalPlan")
 
         return opt
+
+    def get_angle_setting(self, row):
+        cols = self.plan_table.columnCount() - 2
+
+        setting = []
+        for col in range(cols):
+            setting.append(float(self.plan_table.item(row, col).text()))
+
+        return setting
 
     def add_orientation(self, comment, angles):
         row = self.get_number_of_orientations()
@@ -668,6 +713,36 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.set_peak_list(self.get_number_of_orientations())
 
+    def add_settings(self, settings, comments, use):
+        self.plan_table.setUpdatesEnabled(False)
+        self.plan_table.blockSignals(True)
+        self.plan_table.clearContents()
+        self.plan_table.setRowCount(len(use))
+
+        for row, angles in enumerate(settings):
+            col = 0
+
+            for angle in angles:
+                item = QTableWidgetItem("{:.1f}".format(angle))
+                self.plan_table.setItem(row, col, item)
+                col += 1
+
+            self.plan_table.setItem(row, col, QTableWidgetItem(comments[row]))
+            col += 1
+
+            flags = Qt.ItemIsUserCheckable | Qt.ItemIsEnabled
+
+            checkbox = QTableWidgetItem("")
+            checkbox.setText("")
+            checkbox.setFlags(flags)
+            checkbox.setCheckState(Qt.Checked if use[row] else Qt.Unchecked)
+            self.plan_table.setItem(row, col, checkbox)
+
+        self.plan_table.setUpdatesEnabled(True)
+        self.plan_table.blockSignals(False)
+
+        self.set_peak_list(self.get_number_of_orientations())
+
     def handle_item_changed(self, item):
         col = item.column()
 
@@ -680,6 +755,13 @@ class ExperimentView(NeuXtalVizWidget):
     def get_instrument(self):
         return self.instrument_combo.currentText()
 
+    def set_instrument(self, instrument):
+        index = self.instrument_combo.findText(instrument)
+        if index >= 0:
+            self.instrument_combo.blockSignals(True)
+            self.instrument_combo.setCurrentIndex(index)
+            self.instrument_combo.blockSignals(False)
+
     def get_motors(self):
         logs = {}
         for row in range(self.motor_table.rowCount()):
@@ -687,6 +769,10 @@ class ExperimentView(NeuXtalVizWidget):
             logs[setting] = float(self.motor_table.item(row, 1).text())
 
         return logs
+
+    def set_motors(self, values):
+        for row, value in enumerate(values):
+            self.motor_table.setItem(row, 1, QTableWidgetItem(str(value)))
 
     def get_goniometer_limits(self):
         limits = []
@@ -696,6 +782,12 @@ class ExperimentView(NeuXtalVizWidget):
             limits.append([amin, amax])
 
         return limits
+
+    def set_goniometer_limits(self, limits):
+        for row, limit in enumerate(limits):
+            amin, amax = str(limit[0]), str(limit[1])
+            self.goniometer_table.setItem(row, 1, QTableWidgetItem(amin))
+            self.goniometer_table.setItem(row, 2, QTableWidgetItem(amax))
 
     def add_peaks(self, peak_dict):
         self.plotter.clear_actors()
