@@ -608,7 +608,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
             "button_release_event", self.on_release
         )
 
-        self.fig_slice.canvas.mpl_connect("motion_notify_event", self.on_motion)
+        self.fig_slice.canvas.mpl_connect(
+            "motion_notify_event", self.on_motion
+        )
 
     def on_press(self, event):
         if (

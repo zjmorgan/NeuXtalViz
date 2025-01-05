@@ -141,7 +141,9 @@ class CrystalStructureModel(NeuXtalVizModel):
 
         F2s = generator.getFsSquared(hkls)
 
-        return hkls, ds, F2s
+        sort = np.argsort(ds)[::-1]
+
+        return np.array(hkls)[sort], np.array(ds)[sort], np.array(F2s)[sort]
 
     def calculate_F2(self, h, k, l):
         cryst_struct = mtd["crystal"].sample().getCrystalStructure()

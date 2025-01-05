@@ -149,6 +149,8 @@ class UB(NeuXtalVizPresenter):
             if data_load is None:
                 progress("Files do not exist.", 0)
 
+            self.view.set_data_list(self.model.get_number_workspaces())
+
             progress("Data loaded...", 40)
 
             progress("Data calibrating...", 50)
@@ -172,7 +174,7 @@ class UB(NeuXtalVizPresenter):
 
     def add_peak(self):
         if self.model.has_Q():
-            ind = self.view.get_data_combo()
+            ind = self.view.get_data_list()
             horz = self.view.get_horizontal()
             vert = self.view.get_vertical()
             val = self.view.get_diffraction()
@@ -200,7 +202,7 @@ class UB(NeuXtalVizPresenter):
 
     def update_instrument_view_process(self, progress):
         if self.model.has_Q():
-            ind = self.view.get_data_combo()
+            ind = self.view.get_data_list()
             d_min = self.view.get_d_min()
             d_max = self.view.get_d_max()
             horz = self.view.get_horizontal()
@@ -459,7 +461,7 @@ class UB(NeuXtalVizPresenter):
             peak = self.model.get_peak(no)
             self.view.set_peak_info(peak)
             self.view.highlight_peak(no + 1)
-            self.view.set_position(peak[-1])
+            self.view.set_position(peak["Q"])
 
     def lattice_transform(self):
         cell = self.view.get_lattice_transform()

@@ -335,21 +335,20 @@ class ExperimentModel(NeuXtalVizModel):
             mtd["plan"].addRow(row)
 
     def create_sample(self, instrument, mode, UB, wavelength, d_min):
-
         CreateSampleWorkspace(OutputWorkspace="sample")
 
         SetUB(Workspace="sample", UB=UB)
 
         AddSampleLog(
             Workspace="sample",
-            LogName='instrument',
+            LogName="instrument",
             LogText=instrument,
             LogType="String",
         )
 
         AddSampleLog(
             Workspace="sample",
-            LogName='mode',
+            LogName="mode",
             LogText=mode,
             LogType="String",
         )
@@ -379,37 +378,37 @@ class ExperimentModel(NeuXtalVizModel):
         )
 
     def update_sample(self, crytsal_system, point_group, lattice_centering):
-        if mtd.doesExist('sample'):
+        if mtd.doesExist("sample"):
             AddSampleLog(
                 Workspace="sample",
-                LogName='crystal_system',
+                LogName="crystal_system",
                 LogText=crytsal_system,
                 LogType="String",
             )
-    
+
             AddSampleLog(
                 Workspace="sample",
-                LogName='point_group',
+                LogName="point_group",
                 LogText=point_group,
                 LogType="String",
             )
-    
+
             AddSampleLog(
                 Workspace="sample",
-                LogName='lattice_centering',
+                LogName="lattice_centering",
                 LogText=lattice_centering,
                 LogType="String",
             )
 
     def update_goniometer_motors(self, limits, motors):
-        if mtd.doesExist('sample'):
-            mtd['sample'].run()['limits'] = np.array(limits).flatten().tolist()
-            
+        if mtd.doesExist("sample"):
+            mtd["sample"].run()["limits"] = np.array(limits).flatten().tolist()
+
             values = []
             for key in motors.keys():
                 values.append(motors[key])
             if len(values) > 0:
-                mtd['sample'].run()['motors'] = values
+                mtd["sample"].run()["motors"] = values
 
     def load_UB(self, filename):
         LoadIsawUB(InputWorkspace="coverage", Filename=filename)
@@ -493,9 +492,9 @@ class ExperimentModel(NeuXtalVizModel):
         if mtd.doesExist("plan"):
             SaveNexus(InputWorkspace="plan", Filename=filename)
             if mtd.doesExist("sample"):
-                SaveNexus(InputWorkspace="sample",
-                          Filename=filename,
-                          Append=True)
+                SaveNexus(
+                    InputWorkspace="sample", Filename=filename, Append=True
+                )
 
     def load_experiment(self, filename):
         LoadNexus(Filename=filename, OutputWorkspace="experiment")
@@ -507,20 +506,20 @@ class ExperimentModel(NeuXtalVizModel):
 
         self.set_UB(UB)
 
-        instrument = mtd[sample].run().getProperty('instrument').value
-        mode = mtd[sample].run().getProperty('mode').value
-        wl_min = mtd[sample].run().getProperty('lamda_min').value
-        wl_max = mtd[sample].run().getProperty('lamda_max').value
-        d_min = mtd[sample].run().getProperty('d_min').value
-        cs = mtd[sample].run().getProperty('crystal_system').value
-        pg = mtd[sample].run().getProperty('point_group').value
-        lc = mtd[sample].run().getProperty('lattice_centering').value
-        lims = mtd[sample].run().getProperty('limits').value
+        instrument = mtd[sample].run().getProperty("instrument").value
+        mode = mtd[sample].run().getProperty("mode").value
+        wl_min = mtd[sample].run().getProperty("lamda_min").value
+        wl_max = mtd[sample].run().getProperty("lamda_max").value
+        d_min = mtd[sample].run().getProperty("d_min").value
+        cs = mtd[sample].run().getProperty("crystal_system").value
+        pg = mtd[sample].run().getProperty("point_group").value
+        lc = mtd[sample].run().getProperty("lattice_centering").value
+        lims = mtd[sample].run().getProperty("limits").value
         lims = np.array(lims).reshape(-1, 2).tolist()
         vals = []
-        if mtd[sample].run().hasProperty('motors'):
-            vals = mtd[sample].run().getProperty('motors').value
-        
+        if mtd[sample].run().hasProperty("motors"):
+            vals = mtd[sample].run().getProperty("motors").value
+
         if np.isclose(wl_min, wl_max):
             wl = wl_min
         else:
@@ -861,7 +860,9 @@ class ExperimentModel(NeuXtalVizModel):
 
         SetUB(Workspace="combined", UB=UB)
         CombinePeaksWorkspaces(
-            LHSWorkspace="combined", RHSWorkspace=ws, OutputWorkspace="combined"
+            LHSWorkspace="combined",
+            RHSWorkspace=ws,
+            OutputWorkspace="combined",
         )
 
     def generate_table(self, row):
@@ -1119,7 +1120,9 @@ class CrystalPlan:
 
         self.UB = UB.copy()
         self.d_min = d_min
-        self.d_max = 1.1 * np.max([ol.d(1, 0, 0), ol.d(0, 1, 0), ol.d(0, 0, 1)])
+        self.d_max = 1.1 * np.max(
+            [ol.d(1, 0, 0), ol.d(0, 1, 0), ol.d(0, 0, 1)]
+        )
         self.offset = len(use) + 1
 
         self.point_group = point_group

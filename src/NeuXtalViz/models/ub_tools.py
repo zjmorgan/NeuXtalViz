@@ -220,6 +220,7 @@ class UBModel(NeuXtalVizModel):
         if instrument == "DEMAND":
             filenames = [filepath.format(IPTS, exp, runs)]
             if np.all([os.path.exists(filename) for filename in filenames]):
+                self.runs = runs
                 HB3AAdjustSampleNorm(
                     Filename=filenames,
                     OutputType="Detector",
@@ -235,6 +236,7 @@ class UBModel(NeuXtalVizModel):
                 return True
         elif instrument == "WAND²":
             filenames = [filepath.format(IPTS, run) for run in runs]
+            self.runs = runs
             if np.all([os.path.exists(filename) for filename in filenames]):
                 filenames = ",".join([filename for filename in filenames])
                 LoadWANDSCD(
@@ -251,6 +253,7 @@ class UBModel(NeuXtalVizModel):
         else:
             filenames = [filepath.format(IPTS, run) for run in runs]
             if np.all([os.path.exists(filename) for filename in filenames]):
+                self.runs = runs
                 filenames = ",".join([filename for filename in filenames])
                 Load(
                     Filename=filenames,
@@ -333,6 +336,11 @@ class UBModel(NeuXtalVizModel):
                     else:
                         LoadIsawDetCal(InputWorkspace="data", Filename=det_cal)
 
+    def get_number_workspaces(self):
+        if mtd.doesExist("data"):
+            input_ws_names = mtd["data"].getNames()
+            return len(input_ws_names)
+
     def convert_data(self, instrument, wavelength, lorentz):
         filepath = self.get_raw_file_path(instrument)
 
@@ -366,7 +374,9 @@ class UBModel(NeuXtalVizModel):
 
                 counts = [c.reshape(-1, c.shape[2]) for c in counts]
 
-                Q_max = 4 * np.pi / wavelength[0] * np.sin(0.5 * max(two_theta))
+                Q_max = (
+                    4 * np.pi / wavelength[0] * np.sin(0.5 * max(two_theta))
+                )
 
                 ConvertHFIRSCDtoMDE(
                     InputWorkspace="data",
@@ -530,14 +540,13 @@ class UBModel(NeuXtalVizModel):
 
         mtd["ub_peaks"].run().getGoniometer().setR(R)
         peak = mtd["ub_peaks"].createPeak([Qx, Qy, Qz])
+        peak.setRunNumber(self.runs[ind])
         mtd["ub_peaks"].addPeak(peak)
 
     def calculate_instrument_view(self, ind, d_min, d_max):
         inst_view = {}
 
         R = self.Rs[ind]
-
-        print(np.shape(R))
 
         if type(self.lamda) is float:
             lamda = np.full(len(R), self.lamda)
@@ -817,7 +826,7 @@ class UBModel(NeuXtalVizModel):
 
                 shape = eval(peak.getPeakShape().toJSON())
 
-                pk_no = peak.getPeakNumber()
+                pk_no = j
 
                 Q = peak.getQSampleFrame()
 
@@ -837,7 +846,7 @@ class UBModel(NeuXtalVizModel):
                     P = np.dot(v, np.dot(np.diag(r), v.T))
 
                 else:
-                    P = np.zeros((3, 3))
+                    P = np.eye(3) * 0.2
 
                 T[:3, -1] = Q
                 T[:3, :3] = P
@@ -1733,37 +1742,24 @@ class UBModel(NeuXtalVizModel):
 
             peak_info = []
             for i, peak in enumerate(mtd[self.table]):
-                bank = banks[i]
-                intens = peak.getIntensity()
-                sigma = peak.getSigmaIntensity()
-                signal_noise = peak.getIntensityOverSigma()
-                hkl = list(peak.getHKL())
-                int_hkl = list(peak.getIntHKL())
-                int_mnp = list(peak.getIntMNP())
-                lamda = peak.getWavelength()
-                d = peak.getDSpacing()
-                run = peak.getRunNumber()
-                row = peak.getRow()
-                col = peak.getCol()
-                ind = peak.getHKL().norm2() > 0
-                Q = list(peak.getQSampleFrame())
-                vals = (
-                    hkl,
-                    d,
-                    lamda,
-                    intens,
-                    signal_noise,
-                    sigma,
-                    int_hkl,
-                    int_mnp,
-                    run,
-                    bank,
-                    row,
-                    col,
-                    ind,
-                    Q,
-                )
-                peak_info.append(vals)
+                peak_data = {
+                    "hkl": list(peak.getHKL()),
+                    "d_spacing": peak.getDSpacing(),
+                    "wavelength": peak.getWavelength(),
+                    "intensity": peak.getIntensity(),
+                    "signal_to_noise": peak.getIntensityOverSigma(),
+                    "sigma": peak.getSigmaIntensity(),
+                    "int_hkl": list(peak.getIntHKL()),
+                    "int_mnp": list(peak.getIntMNP()),
+                    "run_number": peak.getRunNumber(),
+                    "bank": banks[i],
+                    "row": peak.getRow(),
+                    "col": peak.getCol(),
+                    "ind": peak.getHKL().norm2() > 0,
+                    "Q": list(peak.getQSampleFrame()),
+                    "peak_no": i,
+                }
+                peak_info.append(peak_data)
 
             self.peak_info = peak_info
 

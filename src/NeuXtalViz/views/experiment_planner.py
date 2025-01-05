@@ -526,7 +526,7 @@ class ExperimentView(NeuXtalVizWidget):
 
     def get_peak_list(self):
         val = self.angles_combo.currentText()
-        if len(val) == 1:
+        if len(val) >= 1:
             return int(val) - 1
 
     def set_wavelength(self, wavelength):
@@ -656,7 +656,6 @@ class ExperimentView(NeuXtalVizWidget):
         return comment
 
     def get_all_settings(self):
-
         settings = []
         for row in range(self.get_number_of_orientations()):
             setting = self.get_angle_setting(row)

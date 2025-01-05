@@ -31,7 +31,10 @@ from matplotlib.ticker import FormatStrFormatter
 
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.axisartist import Axes, GridHelperCurveLinear
-from mpl_toolkits.axisartist.grid_finder import ExtremeFinderSimple, MaxNLocator
+from mpl_toolkits.axisartist.grid_finder import (
+    ExtremeFinderSimple,
+    MaxNLocator,
+)
 
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
 
@@ -973,9 +976,9 @@ class UBView(NeuXtalVizWidget):
 
         self.peaks_table = QTableWidget()
         self.peaks_table.setRowCount(0)
-        self.peaks_table.setColumnCount(7)
+        self.peaks_table.setColumnCount(8)
 
-        header = ["h", "k", "l", "d", "λ", "I", "I/σ"]
+        header = ["h", "k", "l", "d", "λ", "I", "I/σ", "#"]
 
         self.peaks_table.horizontalHeader().setSectionResizeMode(stretch)
         self.peaks_table.setHorizontalHeaderLabels(header)
@@ -1654,6 +1657,17 @@ class UBView(NeuXtalVizWidget):
 
         return filename
 
+    def set_data_list(self, rows):
+        self.data_combo.clear()
+        if rows is not None:
+            for row in range(rows):
+                self.data_combo.addItem((str(row + 1)))
+
+    def get_data_list(self):
+        val = self.data_combo.currentText()
+        if len(val) >= 1:
+            return int(val) - 1
+
     def set_wavelength(self, wavelength):
         if type(wavelength) is list:
             self.wl_min_line.setText(str(wavelength[0]))
@@ -1864,28 +1878,24 @@ class UBView(NeuXtalVizWidget):
     def highlight(self, index, dataset):
         if self.last_highlight is not None:
             self.mapper.block_attr[self.last_highlight].color = None
+        if self.last_highlight == index:
+            self.last_highlight = None
+            return
 
-        color = self.mapper.block_attr[index].color
-
+        self.peaks_table.blockSignals(True)
         self.peaks_table.clearSelection()
 
-        if color == "pink":
-            color = None
-        else:
-            color = "pink"
-            self.last_highlight = index
-
-        self.mapper.block_attr[index].color = color
+        self.mapper.block_attr[index].color = "pink"
+        self.last_highlight = index
 
         ind = self.indexing[index - 1]
 
-        if color == "pink":
-            selected = self.peaks_table.selectedIndexes()
-            if selected:
-                selected_row = selected[0].row()
-                if selected_row == ind:
-                    return
-            self.peaks_table.selectRow(ind)
+        rows = self.peaks_table.rowCount()
+        for row in range(rows):
+            if ind == int(self.peaks_table.item(row, 7).text()) - 1:
+                self.peaks_table.selectRow(row)
+
+        self.peaks_table.blockSignals(False)
 
     def highlight_peak(self, index):
         if self.last_highlight is not None:
@@ -2179,14 +2189,19 @@ class UBView(NeuXtalVizWidget):
         ind, tot = 0, 0
         for row, peak in enumerate(peaks):
             self.set_peak(row, peak)
-            ind += peak[-2]
+            ind += peak["ind"]
             tot += 1
 
         self.index_line.setText("{}".format(ind))
         self.total_line.setText("{}".format(tot))
 
     def set_peak(self, row, peak):
-        hkl, d, lamda, intens, sig_noise, *_ = peak
+        hkl = peak["hkl"]
+        d = peak["d_spacing"]
+        lamda = peak["wavelength"]
+        intens = peak["intensity"]
+        signal_to_noise = peak["signal_to_noise"]
+        peak_no = peak["peak_no"]
         h, k, l = hkl
         h = "{:.3f}".format(h)
         k = "{:.3f}".format(k)
@@ -2194,14 +2209,16 @@ class UBView(NeuXtalVizWidget):
         d = "{:.4f}".format(d)
         lamda = "{:.4f}".format(lamda)
         intens = "{:.2e}".format(intens)
-        sig_noise = "{:.2f}".format(sig_noise)
+        signal_to_noise = "{:.2f}".format(signal_to_noise)
+        peak_no = str(peak_no + 1)
         self.peaks_table.setItem(row, 0, QTableWidgetItem(h))
         self.peaks_table.setItem(row, 1, QTableWidgetItem(k))
         self.peaks_table.setItem(row, 2, QTableWidgetItem(l))
         self.peaks_table.setItem(row, 3, QTableWidgetItem(d))
         self.peaks_table.setItem(row, 4, QTableWidgetItem(lamda))
         self.peaks_table.setItem(row, 5, QTableWidgetItem(intens))
-        self.peaks_table.setItem(row, 6, QTableWidgetItem(sig_noise))
+        self.peaks_table.setItem(row, 6, QTableWidgetItem(signal_to_noise))
+        self.peaks_table.setItem(row, 7, QTableWidgetItem(peak_no))
 
     def clear_niggli_info(self):
         self.cell_table.clearSelection()
@@ -2251,25 +2268,20 @@ class UBView(NeuXtalVizWidget):
     def get_peak(self):
         row = self.peaks_table.currentRow()
         if row is not None:
-            return row
+            return int(self.peaks_table.item(row, 7).text()) - 1
 
     def set_peak_info(self, peak):
-        (
-            hkl,
-            d,
-            lamda,
-            intens,
-            signal_noise,
-            sigma,
-            int_hkl,
-            int_mnp,
-            run,
-            bank,
-            row,
-            col,
-            ind,
-            Q,
-        ) = peak
+        hkl = peak["hkl"]
+        d = peak["d_spacing"]
+        lamda = peak["wavelength"]
+        intens = peak["intensity"]
+        sigma = peak["sigma"]
+        int_hkl = peak["int_hkl"]
+        int_mnp = peak["int_mnp"]
+        run = peak["run_number"]
+        bank = peak["bank"]
+        row = peak["row"]
+        col = peak["col"]
 
         self.set_indices(hkl, int_hkl, int_mnp)
 
@@ -2386,9 +2398,6 @@ class UBView(NeuXtalVizWidget):
             self.phi_line.setText("{:.4f}".format(phi_12))
         else:
             self.phi_line.setText("")
-
-    def get_data_combo(self):
-        return self.data_combo.currentIndex()
 
     def get_diffraction(self):
         if self.diffraction_line.hasAcceptableInput():

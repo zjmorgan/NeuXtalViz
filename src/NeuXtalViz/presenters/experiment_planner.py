@@ -416,7 +416,6 @@ class Experiment(NeuXtalVizPresenter):
         self.create_instrument()
 
         for row in range(rows):
-    
             progress("Calculating settings", 90 // rows * (row + 1) + 5)
 
             angles = self.view.get_angle_setting(row)

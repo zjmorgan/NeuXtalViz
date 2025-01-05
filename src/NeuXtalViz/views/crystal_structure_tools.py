@@ -545,7 +545,9 @@ class CrystalStructureView(NeuXtalVizWidget):
         self.mapper = mapper
 
         self.plotter.enable_block_picking(callback=self.highlight, side="left")
-        self.plotter.enable_block_picking(callback=self.highlight, side="right")
+        self.plotter.enable_block_picking(
+            callback=self.highlight, side="right"
+        )
 
         self.reset_view()
 
