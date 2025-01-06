@@ -140,19 +140,16 @@ class ExperimentView(NeuXtalVizWidget):
         self.motor_table.horizontalHeader().setSectionResizeMode(resize)
         self.motor_table.setHorizontalHeaderLabels(labels)
 
-        optimize_layout = QHBoxLayout()
-
-        optimize_layout.addWidget(self.load_UB_button)
-        optimize_layout.addWidget(self.instrument_combo)
-
         settings_layout = QHBoxLayout()
 
+        settings_layout.addWidget(self.load_UB_button)
         settings_layout.addWidget(self.crystal_combo)
         settings_layout.addWidget(self.point_group_combo)
         settings_layout.addWidget(self.lattice_centering_combo)
 
         params_layout = QHBoxLayout()
 
+        params_layout.addWidget(self.instrument_combo)
         params_layout.addWidget(wl_label)
         params_layout.addWidget(self.wl_min_line)
         params_layout.addWidget(self.wl_max_line)
@@ -221,7 +218,6 @@ class ExperimentView(NeuXtalVizWidget):
         self.ax_cov[1].set_ylabel("Multiplicity")
         self.ax_cov[2].set_ylabel("Reflections")
 
-        coverage_layout.addLayout(optimize_layout)
         coverage_layout.addLayout(settings_layout)
         coverage_layout.addLayout(params_layout)
         coverage_layout.addLayout(result_layout)
