@@ -1892,8 +1892,10 @@ class UBView(NeuXtalVizWidget):
 
         rows = self.peaks_table.rowCount()
         for row in range(rows):
-            if ind == int(self.peaks_table.item(row, 7).text()) - 1:
-                self.peaks_table.selectRow(row)
+            peak_no = self.peaks_table.item(row, 7).text()
+            if peak_no.isnumeric():
+                if ind == int(peak_no) - 1:
+                    self.peaks_table.selectRow(row)
 
         self.peaks_table.blockSignals(False)
 
@@ -2268,7 +2270,9 @@ class UBView(NeuXtalVizWidget):
     def get_peak(self):
         row = self.peaks_table.currentRow()
         if row is not None:
-            return int(self.peaks_table.item(row, 7).text()) - 1
+            peak_no = self.peaks_table.item(row, 7).text()
+            if peak_no.isnumeric():
+                return int(peak_no) - 1
 
     def set_peak_info(self, peak):
         hkl = peak["hkl"]
@@ -2296,14 +2300,19 @@ class UBView(NeuXtalVizWidget):
         self.row_line.setText(str(row))
         self.col_line.setText(str(col))
 
-    def update_table_index(self, row, hkl):
-        h, k, l = hkl
-        h = "{:.3f}".format(h)
-        k = "{:.3f}".format(k)
-        l = "{:.3f}".format(l)
-        self.peaks_table.setItem(row, 0, QTableWidgetItem(h))
-        self.peaks_table.setItem(row, 1, QTableWidgetItem(k))
-        self.peaks_table.setItem(row, 2, QTableWidgetItem(l))
+    def update_table_index(self, ind, hkl):
+        rows = self.peaks_table.rowCount()
+        for row in range(rows):
+            peak_no = self.peaks_table.item(row, 7).text()
+            if peak_no.isnumeric():
+                if ind == int(peak_no) - 1:
+                    h, k, l = hkl
+                    h = "{:.3f}".format(h)
+                    k = "{:.3f}".format(k)
+                    l = "{:.3f}".format(l)
+                    self.peaks_table.setItem(row, 0, QTableWidgetItem(h))
+                    self.peaks_table.setItem(row, 1, QTableWidgetItem(k))
+                    self.peaks_table.setItem(row, 2, QTableWidgetItem(l))
 
     def set_indices(self, hkl, int_hkl, int_mnp):
         H, K, L = hkl

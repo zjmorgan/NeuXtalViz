@@ -484,7 +484,7 @@ class UBModel(NeuXtalVizModel):
 
             signal = mtd["Q3D"].getSignalArray().copy()
 
-            threshold = np.nanpercentile(signal[signal > 0], 95)
+            threshold = np.nanpercentile(signal[signal > 0], 99.7)
             mask = signal >= threshold
 
             self.signal = signal[mask]

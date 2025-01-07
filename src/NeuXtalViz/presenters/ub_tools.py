@@ -71,7 +71,11 @@ class UB(NeuXtalVizPresenter):
         hkl_info = self.view.get_indices()
         index_row = self.view.get_peak()
 
-        if mod_info is not None and hkl_info is not None:
+        if (
+            mod_info is not None
+            and hkl_info is not None
+            and index_row is not None
+        ):
             mod_vec_1, mod_vec_2, mod_vec_3, *_ = mod_info
             hkl, int_hkl, int_mnp = hkl_info
 
@@ -90,7 +94,11 @@ class UB(NeuXtalVizPresenter):
         hkl_info = self.view.get_indices()
         index_row = self.view.get_peak()
 
-        if mod_info is not None and hkl_info is not None:
+        if (
+            mod_info is not None
+            and hkl_info is not None
+            and index_row is not None
+        ):
             mod_vec_1, mod_vec_2, mod_vec_3, *_ = mod_info
             hkl, int_hkl, int_mnp = hkl_info
 
