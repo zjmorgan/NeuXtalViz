@@ -606,8 +606,8 @@ class ExperimentView(NeuXtalVizWidget):
         for row in sorted(rows, reverse=True):
             self.plan_table.removeRow(row)
 
-        self.plan_table.blockSignals(False)
         self.set_peak_list(self.get_number_of_orientations())
+        self.plan_table.blockSignals(False)
 
         return rows
 
@@ -704,9 +704,9 @@ class ExperimentView(NeuXtalVizWidget):
         checkbox.setFlags(flags)
         checkbox.setCheckState(Qt.Checked)
         self.plan_table.setItem(row, col, checkbox)
-        self.plan_table.blockSignals(False)
 
         self.set_peak_list(self.get_number_of_orientations())
+        self.plan_table.blockSignals(False)
 
     def add_settings(self, settings, comments, use):
         self.plan_table.setUpdatesEnabled(False)
