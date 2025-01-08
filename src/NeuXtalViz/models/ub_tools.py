@@ -69,6 +69,8 @@ config["Q.convention"] = "Crystallography"
 from mantid.geometry import PointGroupFactory, UnitCell
 from mantid.kernel import V3D
 
+from sklearn.cluster import DBSCAN
+
 import numpy as np
 import scipy
 import json
@@ -483,11 +485,10 @@ class UBModel(NeuXtalVizModel):
             )
 
             signal = mtd["Q3D"].getSignalArray().copy()
+            events = mtd["Q3D"].getNumEventsArray().copy()
 
             threshold = np.nanpercentile(signal[signal > 0], 99.7)
             mask = signal >= threshold
-
-            self.signal = signal[mask]
 
             dims = [mtd["Q3D"].getDimension(i) for i in range(3)]
 
@@ -506,7 +507,44 @@ class UBModel(NeuXtalVizModel):
 
             x, y, z = np.meshgrid(x, y, z, indexing="ij")
 
-            self.x, self.y, self.z = x[mask], y[mask], z[mask]
+            thresh_x, thresh_y, thresh_z = x[mask], y[mask], z[mask]
+
+            thresh_signal = signal[mask]
+            thresh_events = events[mask]
+
+            data = np.vstack((thresh_x, thresh_y, thresh_z)).T
+
+            dbscan = DBSCAN(eps=0.1, min_samples=5)
+            labels = dbscan.fit_predict(data, sample_weight=thresh_events)
+
+            clusters = {}
+            for label in np.unique(labels):
+                if label != -1:
+                    cluster_mask = labels == label
+                    cluster_coords = data[cluster_mask]
+                    cluster_signal = thresh_signal[cluster_mask]
+
+                    aggregate_signal = np.sum(cluster_signal)
+                    aggregate_coords = np.mean(cluster_coords, axis=0)
+
+                    clusters[label] = {
+                        "coords": aggregate_coords,
+                        "signal": aggregate_signal,
+                    }
+
+            cluster_coords = np.array(
+                [clusters[label]["coords"] for label in clusters]
+            )
+            cluster_signals = np.array(
+                [clusters[label]["signal"] for label in clusters]
+            )
+
+            self.x, self.y, self.z = (
+                cluster_coords[:, 0],
+                cluster_coords[:, 1],
+                cluster_coords[:, 2],
+            )
+            self.signal = cluster_signals
 
             self.wavelength = wavelength
             self.counts = counts
