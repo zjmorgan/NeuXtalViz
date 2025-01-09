@@ -512,9 +512,11 @@ class UBModel(NeuXtalVizModel):
             thresh_signal = signal[mask]
             thresh_events = events[mask]
 
+            min_samples = int(np.percentile(thresh_events, 5))
+
             data = np.vstack((thresh_x, thresh_y, thresh_z)).T
 
-            dbscan = DBSCAN(eps=0.1, min_samples=5)
+            dbscan = DBSCAN(eps=0.1, min_samples=min_samples + 1)
             labels = dbscan.fit_predict(data, sample_weight=thresh_events)
 
             clusters = {}
@@ -1805,7 +1807,8 @@ class UBModel(NeuXtalVizModel):
 
     def get_peak(self, i):
         if self.peak_info is not None:
-            return self.peak_info[i]
+            if self.peak_info(i) is not None:
+                return self.peak_info[i]
 
     def calculate_fractional(
         self, mod_vec_1, mod_vec_2, mod_vec_3, int_hkl, int_mnp

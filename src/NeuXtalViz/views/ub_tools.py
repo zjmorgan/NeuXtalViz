@@ -1813,7 +1813,7 @@ class UBView(NeuXtalVizWidget):
                 show_scalar_bar=False,
                 opacity=1,
                 log_scale=True,
-                point_size=1,
+                point_size=2.5,
                 smooth_shading=False,
                 culling=False,
                 emissive=False,
