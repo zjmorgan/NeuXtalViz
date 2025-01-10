@@ -1820,6 +1820,29 @@ class UBView(NeuXtalVizWidget):
                 style="points_gaussian",
             )
 
+        # opacity = Q_dict.get("opacity")
+        # min_lim = Q_dict["min_lim"]
+        # # max_lim = Q_dict["max_lim"]
+        # spacing = Q_dict["spacing"]
+
+        # grid = pv.ImageData()
+
+        # grid.dimensions = np.array(signal.shape) + 1
+
+        # grid.origin = min_lim
+        # grid.spacing = spacing
+        # grid.cell_data["scalars"] = np.arcsinh(signal.flatten(order="F"))
+        # # grid.cell_data["opacity"] = opacity.flatten(order="F")
+
+        # self.plotter.add_volume(
+        #     grid,
+        #     opacity='foreground',
+        #     log_scale=False,
+        #     show_scalar_bar=False,
+        #     cmap="binary",
+        #     shade=False,
+        # )
+
         transforms = Q_dict.get("transforms")
         intensities = Q_dict.get("intensities")
         indexings = Q_dict.get("indexings")

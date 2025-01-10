@@ -474,7 +474,7 @@ class UBModel(NeuXtalVizModel):
 
             xmin, ymin, zmin = [dim.getMinimum() for dim in dims]
             xmax, ymax, zmax = [dim.getMaximum() for dim in dims]
-            xn, yn, zn = [4 * dim.getNBins() for dim in dims]
+            xn, yn, zn = [2 * dim.getNBins() for dim in dims]
 
             BinMD(
                 InputWorkspace=self.Q,
@@ -491,6 +491,14 @@ class UBModel(NeuXtalVizModel):
             mask = signal >= threshold
 
             dims = [mtd["Q3D"].getDimension(i) for i in range(3)]
+
+            # self.signal = signal
+            # self.signal[~mask] = 0
+            # self.opacity = mask*1.0
+
+            # self.min_lim = [dim.getMinimum() for dim in dims]
+            # self.max_lim = [dim.getMaximum() for dim in dims]
+            # self.spacing = [dim.getBinWidth() for dim in dims]
 
             x, y, z = [
                 np.linspace(
@@ -513,40 +521,51 @@ class UBModel(NeuXtalVizModel):
             thresh_events = events[mask]
 
             min_samples = int(np.percentile(thresh_events, 5))
+            eps = np.mean([4 * dim.getBinWidth() for dim in dims])
 
             data = np.vstack((thresh_x, thresh_y, thresh_z)).T
 
-            dbscan = DBSCAN(eps=0.1, min_samples=min_samples + 1)
+            dbscan = DBSCAN(eps=eps, min_samples=min_samples + 1)
             labels = dbscan.fit_predict(data, sample_weight=thresh_events)
 
-            clusters = {}
-            for label in np.unique(labels):
-                if label != -1:
-                    cluster_mask = labels == label
-                    cluster_coords = data[cluster_mask]
-                    cluster_signal = thresh_signal[cluster_mask]
+            # clusters = {}
+            # for label in np.unique(labels):
+            #     if label != -1:
+            #         cluster_mask = labels == label
+            #         cluster_coords = data[cluster_mask]
+            #         cluster_signal = thresh_signal[cluster_mask]
 
-                    aggregate_signal = np.sum(cluster_signal)
-                    aggregate_coords = np.mean(cluster_coords, axis=0)
+            #         aggregate_signal = np.sum(cluster_signal)
+            #         aggregate_coords = np.mean(cluster_coords, axis=0)
 
-                    clusters[label] = {
-                        "coords": aggregate_coords,
-                        "signal": aggregate_signal,
-                    }
+            #         clusters[label] = {
+            #             "coords": aggregate_coords,
+            #             "signal": aggregate_signal,
+            #         }
 
-            cluster_coords = np.array(
-                [clusters[label]["coords"] for label in clusters]
-            )
-            cluster_signals = np.array(
-                [clusters[label]["signal"] for label in clusters]
-            )
+            # cluster_coords = np.array(
+            #     [clusters[label]["coords"] for label in clusters]
+            # )
+            # cluster_signals = np.array(
+            #     [clusters[label]["signal"] for label in clusters]
+            # )
+
+            # self.x, self.y, self.z = (
+            #     cluster_coords[:, 0],
+            #     cluster_coords[:, 1],
+            #     cluster_coords[:, 2],
+            # )
+            # self.signal = cluster_signals
+
+            mask = labels != -1
 
             self.x, self.y, self.z = (
-                cluster_coords[:, 0],
-                cluster_coords[:, 1],
-                cluster_coords[:, 2],
+                thresh_x[mask],
+                thresh_y[mask],
+                thresh_z[mask],
             )
-            self.signal = cluster_signals
+
+            self.signal = thresh_signal[mask]
 
             self.wavelength = wavelength
             self.counts = counts
@@ -845,6 +864,11 @@ class UBModel(NeuXtalVizModel):
 
         if self.get_has_Q_vol():
             Q_dict["signal"] = self.signal
+            # Q_dict["opacity"] = self.opacity
+
+            # Q_dict["min_lim"] = self.min_lim
+            # Q_dict["max_lim"] = self.max_lim
+            # Q_dict["spacing"] = self.spacing
 
             Q_dict["x"] = self.x
             Q_dict["y"] = self.y
