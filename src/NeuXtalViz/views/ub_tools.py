@@ -1813,35 +1813,12 @@ class UBView(NeuXtalVizWidget):
                 show_scalar_bar=False,
                 opacity=1,
                 log_scale=True,
-                point_size=2.5,
-                smooth_shading=False,
+                point_size=3.5,
+                smooth_shading=True,
                 culling=False,
                 emissive=False,
                 style="points_gaussian",
             )
-
-        # opacity = Q_dict.get("opacity")
-        # min_lim = Q_dict["min_lim"]
-        # # max_lim = Q_dict["max_lim"]
-        # spacing = Q_dict["spacing"]
-
-        # grid = pv.ImageData()
-
-        # grid.dimensions = np.array(signal.shape) + 1
-
-        # grid.origin = min_lim
-        # grid.spacing = spacing
-        # grid.cell_data["scalars"] = np.arcsinh(signal.flatten(order="F"))
-        # # grid.cell_data["opacity"] = opacity.flatten(order="F")
-
-        # self.plotter.add_volume(
-        #     grid,
-        #     opacity='foreground',
-        #     log_scale=False,
-        #     show_scalar_bar=False,
-        #     cmap="binary",
-        #     shade=False,
-        # )
 
         transforms = Q_dict.get("transforms")
         intensities = Q_dict.get("intensities")
@@ -2207,6 +2184,8 @@ class UBView(NeuXtalVizWidget):
             return float(param.text())
 
     def update_peaks_table(self, peaks):
+        self.peaks_table.blockSignals(True)
+        self.peaks_table.setSortingEnabled(False)
         self.peaks_table.clearSelection()
         self.peaks_table.setRowCount(0)
         self.peaks_table.setRowCount(len(peaks))
@@ -2219,6 +2198,9 @@ class UBView(NeuXtalVizWidget):
 
         self.index_line.setText("{}".format(ind))
         self.total_line.setText("{}".format(tot))
+
+        self.peaks_table.blockSignals(False)
+        self.peaks_table.setSortingEnabled(True)
 
     def set_peak(self, row, peak):
         hkl = peak["hkl"]

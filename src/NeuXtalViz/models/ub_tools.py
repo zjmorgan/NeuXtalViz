@@ -463,9 +463,18 @@ class UBModel(NeuXtalVizModel):
             )
 
             CreatePeaksWorkspace(
-                InstrumentWorkspace="Q3D",
+                InstrumentWorkspace=self.Q,
                 NumberOfPeaks=0,
-                OutputWorkspace="ub_peaks",
+                OutputWorkspace=self.table,
+            )
+
+            CopySample(
+                InputWorkspace=self.Q,
+                OutputWorkspace=self.table,
+                CopyName=False,
+                CopyMaterial=False,
+                CopyEnvironment=False,
+                CopyShape=False,
             )
 
             CompactMD(InputWorkspace="Q3D", OutputWorkspace="Q3D")
@@ -491,14 +500,6 @@ class UBModel(NeuXtalVizModel):
             mask = signal >= threshold
 
             dims = [mtd["Q3D"].getDimension(i) for i in range(3)]
-
-            # self.signal = signal
-            # self.signal[~mask] = 0
-            # self.opacity = mask*1.0
-
-            # self.min_lim = [dim.getMinimum() for dim in dims]
-            # self.max_lim = [dim.getMaximum() for dim in dims]
-            # self.spacing = [dim.getBinWidth() for dim in dims]
 
             x, y, z = [
                 np.linspace(
@@ -527,35 +528,6 @@ class UBModel(NeuXtalVizModel):
 
             dbscan = DBSCAN(eps=eps, min_samples=min_samples + 1)
             labels = dbscan.fit_predict(data, sample_weight=thresh_events)
-
-            # clusters = {}
-            # for label in np.unique(labels):
-            #     if label != -1:
-            #         cluster_mask = labels == label
-            #         cluster_coords = data[cluster_mask]
-            #         cluster_signal = thresh_signal[cluster_mask]
-
-            #         aggregate_signal = np.sum(cluster_signal)
-            #         aggregate_coords = np.mean(cluster_coords, axis=0)
-
-            #         clusters[label] = {
-            #             "coords": aggregate_coords,
-            #             "signal": aggregate_signal,
-            #         }
-
-            # cluster_coords = np.array(
-            #     [clusters[label]["coords"] for label in clusters]
-            # )
-            # cluster_signals = np.array(
-            #     [clusters[label]["signal"] for label in clusters]
-            # )
-
-            # self.x, self.y, self.z = (
-            #     cluster_coords[:, 0],
-            #     cluster_coords[:, 1],
-            #     cluster_coords[:, 2],
-            # )
-            # self.signal = cluster_signals
 
             mask = labels != -1
 
@@ -1824,6 +1796,7 @@ class UBModel(NeuXtalVizModel):
                     "peak_no": i,
                 }
                 peak_info.append(peak_data)
+                peak.setPeakNumber(i)
 
             self.peak_info = peak_info
 
@@ -1831,7 +1804,7 @@ class UBModel(NeuXtalVizModel):
 
     def get_peak(self, i):
         if self.peak_info is not None:
-            if self.peak_info(i) is not None:
+            if i >= 0 and i < len(self.peak_info):
                 return self.peak_info[i]
 
     def calculate_fractional(
