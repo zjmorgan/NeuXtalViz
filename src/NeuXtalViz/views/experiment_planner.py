@@ -685,6 +685,7 @@ class ExperimentView(NeuXtalVizWidget):
     def add_orientation(self, comment, angles):
         row = self.get_number_of_orientations()
         self.plan_table.blockSignals(True)
+        self.plan_table.setSortingEnabled(False)
         self.plan_table.setRowCount(row + 1)
 
         col = 0
@@ -707,9 +708,11 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.set_peak_list(self.get_number_of_orientations())
         self.plan_table.blockSignals(False)
+        self.plan_table.setSortingEnabled(True)
 
     def add_settings(self, settings, comments, use):
         self.plan_table.setUpdatesEnabled(False)
+        self.plan_table.setSortingEnabled(False)
         self.plan_table.blockSignals(True)
         self.plan_table.clearContents()
         self.plan_table.setRowCount(len(use))
@@ -735,14 +738,19 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.plan_table.setUpdatesEnabled(True)
         self.plan_table.blockSignals(False)
+        self.plan_table.setSortingEnabled(True)
 
         self.set_peak_list(self.get_number_of_orientations())
 
     def handle_item_changed(self, item):
+        self.plan_table.blockSignals(True)
+
         col = item.column()
 
         if col == self.plan_table.columnCount() - 1:
             self.viz_ready.emit()
+
+        self.plan_table.blockSignals(False)
 
     def connect_viz_ready(self, visualize):
         self.viz_ready.connect(visualize)
@@ -849,11 +857,14 @@ class ExperimentView(NeuXtalVizWidget):
 
     def update_peaks_table(self, peaks):
         self.peaks_table.clearSelection()
+        self.peaks_table.setSortingEnabled(False)
         self.peaks_table.setRowCount(0)
         self.peaks_table.setRowCount(len(peaks))
 
         for row, peak in enumerate(peaks):
             self.set_peak(row, peak)
+
+        self.peaks_table.setSortingEnabled(True)
 
     def set_peak(self, row, peak):
         h, k, l, d, lamda = peak
