@@ -67,6 +67,8 @@ class NeuXtalViz(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self._topaz_path = "/SNS/TOPAZ"
+
         icon = os.path.join(os.path.dirname(__file__), "icons/NeuXtalViz.png")
         self.setWindowIcon(QIcon(icon))
         self.setWindowTitle("NeuXtalViz {}".format(__version__))
@@ -148,12 +150,12 @@ class NeuXtalViz(QMainWindow):
         # self.showMaximized()
 
     def topaz_reduction_GUI(self):
-        topaz_path = "/SNS/TOPAZ"
         directory = QFileDialog.getExistingDirectory(
-            self, "Select Directory", topaz_path
+            self, "Select Directory", self._topaz_path
         )
 
         if directory:
+            self._topaz_path = directory
             main_py_path = os.path.join(directory, "main.py")
             if os.path.isfile(main_py_path):
                 try:
