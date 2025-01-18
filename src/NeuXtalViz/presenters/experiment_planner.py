@@ -199,8 +199,9 @@ class Experiment(NeuXtalVizPresenter):
 
         if len(rows) > 0:
             self.model.delete_angles(rows)
-            self.visualize()
-            self.update_peaks()
+
+        self.visualize()
+        self.update_peaks()
 
     def add_orientation(self):
         worker = self.view.worker(self.add_orientation_process)
@@ -253,7 +254,7 @@ class Experiment(NeuXtalVizPresenter):
             point_group, lattice_centering, use, d_min
         )
 
-        if stats is not None:
+        if stats is not None and self.model.has_UB():
             self.view.plot_statistics(*stats)
 
             peak_dict = self.model.get_coverage_info(

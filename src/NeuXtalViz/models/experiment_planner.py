@@ -908,6 +908,7 @@ class ExperimentModel(NeuXtalVizModel):
         return np.array([h, k, l, d, lamda]).T.tolist()
 
     def calculate_statistics(self, point_group, lattice_centering, use, d_min):
+        shel, comp, mult, refl = [], [], [], []
         if mtd.doesExist("combined"):
             CloneWorkspace(
                 InputWorkspace="combined", OutputWorkspace="filtered"
@@ -966,7 +967,7 @@ class ExperimentModel(NeuXtalVizModel):
                     mult.append(redundancy)
                     refl.append(unique)
 
-                return shel, comp, mult, refl
+        return shel, comp, mult, refl
 
     def hsl_to_rgb(self, hue, saturation, lightness):
         h = np.array(hue)
@@ -1016,6 +1017,7 @@ class ExperimentModel(NeuXtalVizModel):
         hkls = np.array([h, k, l]).T.astype(int).tolist()
 
         hkl_dict = {}
+        hkl_dict[(0, 0, 0)] = 0
         for hkl in hkls:
             if centering_conditions[lattice_centering](*hkl):
                 equiv_hkls = pg.getEquivalents(hkl)
@@ -1038,10 +1040,6 @@ class ExperimentModel(NeuXtalVizModel):
         hue = phi * 180 / np.pi + 180
         saturation = np.ones_like(hue)
         lightness = theta / np.pi
-
-        # hue = (phi / (2 * np.pi)) * 360
-        # saturation = np.sin(theta)
-        # lightness = 0.5 * (1 + np.cos(theta))
 
         rgb = self.hsl_to_rgb(hue, saturation, lightness)
         coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
@@ -1123,7 +1121,7 @@ class CrystalPlan:
         self.d_max = 1.1 * np.max(
             [ol.d(1, 0, 0), ol.d(0, 1, 0), ol.d(0, 0, 1)]
         )
-        self.offset = len(use) + 1
+        self.offset = len(use)
 
         self.point_group = point_group
         self.lattice_centering = lattice_centering
