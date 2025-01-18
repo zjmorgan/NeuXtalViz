@@ -1,6 +1,7 @@
 import os
 import sys
 import traceback
+import subprocess
 
 os.environ["QT_API"] = "pyqt5"
 
@@ -12,6 +13,7 @@ from qtpy.QtWidgets import (
     QStackedWidget,
     QVBoxLayout,
     QMessageBox,
+    QFileDialog,
 )
 
 from qtpy.QtGui import QIcon
@@ -137,7 +139,35 @@ class NeuXtalViz(QMainWindow):
 
         layout.addWidget(app_stack)
 
+        app_menu = self.menuBar().addMenu("External")
+
+        topaz_action = QAction("TOPAZ", self)
+        topaz_action.triggered.connect(self.topaz_reduction_GUI)
+        app_menu.addAction(topaz_action)
+
         # self.showMaximized()
+
+    def topaz_reduction_GUI(self):
+        topaz_path = "/SNS/TOPAZ"
+        directory = QFileDialog.getExistingDirectory(
+            self, "Select Directory", topaz_path
+        )
+
+        if directory:
+            main_py_path = os.path.join(directory, "main.py")
+            if os.path.isfile(main_py_path):
+                try:
+                    subprocess.run(["mantidpython", main_py_path], check=True)
+                except subprocess.CalledProcessError as e:
+                    QMessageBox.critical(
+                        self, "Error", f"Failed to execute main.py:\n{e}"
+                    )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Warning",
+                    "The selected directory does not contain main.py.",
+                )
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
