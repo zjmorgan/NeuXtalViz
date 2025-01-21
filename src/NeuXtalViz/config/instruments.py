@@ -6,6 +6,7 @@ beamlines = {
         "Wavelength": [1, 4],
         "Grouping": "4x4",
         "BankPixels": [256, 256],
+        "MaskEdges": [32, 32],
         "Goniometers": ["BL3:Mot:omega,0,1,0,1"],
         "Goniometer": {"Goniometer": {"BL3:Mot:omega": [0, 1, 0, 1, 0, 360]}},
         "Motor": {
@@ -23,6 +24,7 @@ beamlines = {
         "Wavelength": [0.6, 2.5],
         "Grouping": "1x4",
         "BankPixels": [16, 256],
+        "MaskEdges": [2, 32],
         "Goniometers": [
             "BL9:Mot:Sample:Axis1,0,1,0,1",
             "BL9:Mot:Sample:Axis2,0,1,0,1",
@@ -44,6 +46,7 @@ beamlines = {
         "Wavelength": [0.4, 3.5],
         "Grouping": "4x4",
         "BankPixels": [256, 256],
+        "MaskEdges": [24, 24],
         "Goniometers": [
             "BL12:Mot:omega,0,1,0,1",
             "BL12:Mot:chi,0,0,1,1",
@@ -70,6 +73,7 @@ beamlines = {
         "Wavelength": [2, 4],
         "Grouping": "4x4",
         "BankPixels": [256, 256],
+        "MaskEdges": [32, 32],
         "Goniometers": [
             "BL11B:Mot:omega,0,1,0,1",
             "BL11B:Mot:chi,0,0,1,1",
@@ -91,6 +95,7 @@ beamlines = {
         "Wavelength": 1.486,
         "Grouping": "4x4",
         "BankPixels": [480, 512],
+        "MaskEdges": [24, 64],
         "Goniometers": ["s1,0,1,0,1"],
         "Goniometer": {
             "Goniometer": {
@@ -112,6 +117,7 @@ beamlines = {
         "Wavelength": 1.546,
         "Grouping": "4x4",
         "BankPixels": [512, 512],
+        "MaskEdges": [64, 64],
         "Goniometers": [
             "omega,0,1,0,-1",
             "chi,0,0,1,-1",

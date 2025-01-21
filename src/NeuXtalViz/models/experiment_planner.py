@@ -20,6 +20,7 @@ from mantid.simpleapi import (
     ExtractMonitors,
     PreprocessDetectorsToMD,
     GroupDetectors,
+    MaskBTP,
     AddSampleLog,
     CreateSampleWorkspace,
     CreateEmptyTableWorkspace,
@@ -229,11 +230,25 @@ class ExperimentModel(NeuXtalVizModel):
                 DetectorWorkspace="instrument",
             )
 
+            cols, rows = beamlines[instrument]["BankPixels"]
+            mask_cols, mask_rows = beamlines[instrument]["MaskEdges"]
+
+            MaskBTP(
+                Workspace="instrument",
+                Instrument=inst,
+                Tube="0-{},{}-{}".format(mask_cols, cols - mask_cols, cols),
+            )
+
+            MaskBTP(
+                Workspace="instrument",
+                Instrument=inst,
+                Pixel="0-{},{}-{}".format(mask_rows, rows - mask_rows, rows),
+            )
+
             PreprocessDetectorsToMD(
                 InputWorkspace="instrument", OutputWorkspace="detectors"
             )
 
-            cols, rows = beamlines[instrument]["BankPixels"]
             grouping = beamlines[instrument]["Grouping"]
 
             c, r = [int(val) for val in grouping.split("x")]
@@ -248,9 +263,11 @@ class ExperimentModel(NeuXtalVizModel):
                 np.arange(shape[2]),
                 indexing="ij",
             )
+            mask = np.array(mtd["detectors"].column(7)) == 0
+
             keys = np.stack((i, j // c, k // r), axis=-1)
             keys_flat = keys.reshape(-1, keys.shape[-1])
-            det_map_flat = det_map.ravel().astype(str)
+            det_map_flat = det_map.ravel()[mask].astype(str)
             grouped_ids = defaultdict(list)
 
             for key, detector_id in zip(map(tuple, keys_flat), det_map_flat):
@@ -287,14 +304,16 @@ class ExperimentModel(NeuXtalVizModel):
                 OutputWorkspace="combined",
             )
 
-            L2 = np.array(mtd["detectors"].column(1))
-            tt = np.array(mtd["detectors"].column(2))
-            az = np.array(mtd["detectors"].column(3))
+            L2 = np.array(mtd["detectors"].column(1))[mask]
+            tt = np.array(mtd["detectors"].column(2))[mask]
+            az = np.array(mtd["detectors"].column(3))[mask]
+            det_ID = np.array(mtd["detectors"].column(4))[mask]
 
             x = L2 * np.sin(tt) * np.cos(az)
             y = L2 * np.sin(tt) * np.sin(az)
             z = L2 * np.cos(tt)
 
+            self.det_ID = det_ID.copy()
             self.nu = np.rad2deg(np.arcsin(y / L2))
             self.gamma = np.rad2deg(np.arctan2(x, z))
 
@@ -654,7 +673,7 @@ class ExperimentModel(NeuXtalVizModel):
             mask = []
             for i in range(len(k)):
                 peak = mtd["peaks"].createPeak(V3D(Qx[i], Qy[i], Qz[i]))
-                mask.append(peak.getDetectorID() > 0)
+                mask.append(peak.getDetectorID() in self.det_ID)
 
             mask = np.array(mask)
 
@@ -756,7 +775,8 @@ class ExperimentModel(NeuXtalVizModel):
                 peak0 = mtd["peaks"].createPeak(V3D(Q0x[i], Q0y[i], Q0z[i]))
                 peak1 = mtd["peaks"].createPeak(V3D(Q1x[i], Q1y[i], Q1z[i]))
                 mask.append(
-                    (peak0.getDetectorID() > 0) & (peak1.getDetectorID() > 0)
+                    (peak0.getDetectorID() in self.det_ID)
+                    & (peak1.getDetectorID() in self.det_ID)
                 )
 
             mask = np.array(mask)
@@ -844,6 +864,10 @@ class ExperimentModel(NeuXtalVizModel):
             if (
                 mtd[ws].getPeak(no).getHKL() - mtd[ws].getPeak(no - 1).getHKL()
             ).norm2() == 0:
+                DeleteTableRows(TableWorkspace=ws, Rows=no)
+
+        for no in range(mtd[ws].getNumberPeaks() - 1, 0, -1):
+            if mtd[ws].getPeak(no).getDetectorID() not in self.det_ID:
                 DeleteTableRows(TableWorkspace=ws, Rows=no)
 
         SortPeaksWorkspace(
