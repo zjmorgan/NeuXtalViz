@@ -154,7 +154,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
             value = self.view.get_slice_value()
 
-            normal = -self.model.get_normal("[uvw]", norm)
+            normal = -self.model.get_normal_plane(norm)
 
             # origin = self.model.get_normal('[hkl]', orig)
 

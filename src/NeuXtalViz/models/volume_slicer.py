@@ -292,15 +292,18 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         return p, t, s
 
-    def get_normal(self, axes_type, ind):
+    def get_normal_plane(self, ind):
         if self.UB is not None:
-            if axes_type == "[hkl]":
-                matrix = self.UB
-            else:
-                matrix = np.cross(
-                    np.dot(self.UB, np.roll(np.eye(3), 2, 1)).T,
-                    np.dot(self.UB, np.roll(np.eye(3), 1, 1)).T,
-                ).T
+            Bp = np.dot(self.UB, self.W)
+
+            Q, R = scipy.linalg.qr(Bp)
+
+            v = scipy.linalg.cholesky(np.dot(R.T, R), lower=False)
+
+            matrix = np.cross(
+                np.dot(v, np.roll(np.eye(3), 2, 1)).T,
+                np.dot(v, np.roll(np.eye(3), 1, 1)).T,
+            ).T
 
             vec = np.dot(matrix, ind)
 
