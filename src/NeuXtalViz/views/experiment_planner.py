@@ -516,14 +516,16 @@ class ExperimentView(NeuXtalVizWidget):
     def set_peak_list(self, rows):
         self.angles_combo.blockSignals(True)
         self.angles_combo.clear()
+        self.angles_combo.addItem("0")
         for row in range(rows):
             self.angles_combo.addItem((str(row + 1)))
         self.angles_combo.blockSignals(False)
 
     def get_peak_list(self):
         val = self.angles_combo.currentText()
-        if len(val) >= 1:
-            return int(val) - 1
+        if val is not None:
+            if val.isdigit():
+                return int(val) - 1
 
     def set_wavelength(self, wavelength):
         self.wl_min_line.blockSignals(True)
@@ -1064,21 +1066,23 @@ class ExperimentView(NeuXtalVizWidget):
             event.inaxes == self.ax_inst
             and self.fig_inst.canvas.toolbar.mode == ""
         ):
-            for line in self.ax_inst.lines:
-                line.remove()
-
             horz, vert = event.xdata, event.ydata
-
-            self.ax_inst.axvline(x=horz, color="k", linestyle="--")
-            self.ax_inst.axhline(y=vert, color="k", linestyle="--")
-
             self.set_horizontal(horz)
             self.set_vertical(vert)
 
             self.roi_ready.emit()
 
-            self.canvas_inst.draw_idle()
-            self.canvas_inst.flush_events()
+    def update_inst(self):
+        for line in self.ax_inst.lines:
+            line.remove()
+
+        horz, vert = self.get_horizontal(), self.get_vertical()
+
+        self.ax_inst.axvline(x=horz, color="k", linestyle="--")
+        self.ax_inst.axhline(y=vert, color="k", linestyle="--")
+
+        self.canvas_inst.draw_idle()
+        self.canvas_inst.flush_events()
 
     def connect_roi_ready(self, lookup):
         self.roi_ready.connect(lookup)

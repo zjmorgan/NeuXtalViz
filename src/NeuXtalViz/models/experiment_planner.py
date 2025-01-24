@@ -797,13 +797,14 @@ class ExperimentModel(NeuXtalVizModel):
         return (gamma0, nu0, lamda0), (gamma1, nu1, lamda1)
 
     def get_angles(self, gamma, nu):
-        d2 = (self.angles_gamma - gamma) ** 2 + (self.angles_nu - nu) ** 2
+        if len(self.angles_gamma) > 0:
+            d2 = (self.angles_gamma - gamma) ** 2 + (self.angles_nu - nu) ** 2
 
-        i = np.argmin(d2)
+            i = np.argmin(d2)
 
-        angles = self.angles[i]
+            angles = self.angles[i]
 
-        return angles
+            return angles, self.angles_gamma[i], self.angles_nu[i]
 
     def add_orientation(self, angles, wavelength, d_min, rows):
         if np.isclose(wavelength[0], wavelength[1]):
@@ -890,13 +891,16 @@ class ExperimentModel(NeuXtalVizModel):
         )
 
     def generate_table(self, row):
-        FilterPeaks(
-            InputWorkspace="combined",
-            FilterVariable="RunNumber",
-            FilterValue=str(row),
-            Operator="!=",
-            OutputWorkspace="table",
-        )
+        if row == -1 and mtd.doesExist("missing"):
+            CloneWorkspace(InputWorkspace="missing", OutputWorkspace="table")
+        else:
+            FilterPeaks(
+                InputWorkspace="combined",
+                FilterVariable="RunNumber",
+                FilterValue=str(row),
+                Operator="=",
+                OutputWorkspace="table",
+            )
 
         SortPeaksWorkspace(
             InputWorkspace="table",
@@ -964,10 +968,10 @@ class ExperimentModel(NeuXtalVizModel):
                     LatticeCentering=lc,
                     MinDSpacing=d_min,
                     MaxDSpacing=d_max,
-                    MissingReflectionsWorkspace="",
+                    MissingReflectionsWorkspace="missing",
                 )
 
-                unique, completeness, redundancy, multiple = output
+                unique, completeness, redundancy, multiple, _ = output
 
                 shel = ["Overall"]
                 comp = [completeness * 100]

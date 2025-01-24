@@ -191,8 +191,13 @@ class Experiment(NeuXtalVizPresenter):
         gamma = self.view.get_horizontal()
         nu = self.view.get_vertical()
 
-        angles = self.model.get_angles(gamma, nu)
-        self.view.set_angles(angles)
+        vals = self.model.get_angles(gamma, nu)
+        if vals is not None:
+            angles, gamma, nu = vals
+            self.view.set_angles(angles)
+            self.view.set_horizontal(gamma)
+            self.view.set_vertical(nu)
+            self.view.update_inst()
 
     def delete_angles(self):
         rows = self.view.delete_angles()
@@ -233,7 +238,7 @@ class Experiment(NeuXtalVizPresenter):
         rows = self.view.get_number_of_orientations()
 
         if len(angles) > 0:
-            progress("Calculation reflections", 5)
+            progress("Calculating reflections", 5)
 
             self.model.add_orientation(angles, wavelength, d_min, rows)
 
