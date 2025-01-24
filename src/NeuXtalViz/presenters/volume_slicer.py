@@ -54,34 +54,32 @@ class VolumeSlicer(NeuXtalVizPresenter):
             self.cut_data()
 
     def load_NXS(self):
-        worker = self.view.worker(self.load_NXS_process)
-        worker.connect_result(self.load_NXS_complete)
-        worker.connect_finished(self.redraw_data)
-        worker.connect_progress(self.update_processing)
+        filename = self.view.load_NXS_file_dialog()
 
-        self.view.start_worker_pool(worker)
+        if filename:
+            self.nxs_file = filename
+            worker = self.view.worker(self.load_NXS_process)
+            worker.connect_result(self.load_NXS_complete)
+            worker.connect_finished(self.redraw_data)
+            worker.connect_progress(self.update_processing)
+
+            self.view.start_worker_pool(worker)
 
     def load_NXS_complete(self, result):
         self.update_oriented_lattice()
 
     def load_NXS_process(self, progress):
-        filename = self.view.load_NXS_file_dialog()
+        progress("Processing...", 1)
 
-        if filename:
-            progress("Processing...", 1)
+        progress("Loading NeXus file...", 10)
 
-            progress("Loading NeXus file...", 10)
+        self.model.load_md_histo_workspace(self.nxs_file)
 
-            self.model.load_md_histo_workspace(filename)
+        progress("Loading NeXus file...", 50)
 
-            progress("Loading NeXus file...", 50)
+        progress("Loading NeXus file...", 80)
 
-            progress("Loading NeXus file...", 80)
-
-            progress("NeXus file loaded!", 100)
-
-        else:
-            progress("Invalid parameters.", 0)
+        progress("NeXus file loaded!", 100)
 
     def get_normal(self):
         slice_plane = self.view.get_slice()
