@@ -706,7 +706,7 @@ class UBView(NeuXtalVizWidget):
         calculate_params_layout.addWidget(self.max_scalar_error_line, 0, 3)
 
         self.conventional_button = QPushButton("Conventional", self)
-        self.niggli_button = QPushButton("Niggli", self)
+        self.niggli_button = QPushButton("Primitive", self)
         self.select_button = QPushButton("Select", self)
 
         self.form_line = QLineEdit("")

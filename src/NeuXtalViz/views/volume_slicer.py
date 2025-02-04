@@ -24,12 +24,16 @@ from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
 
 from NeuXtalViz.views.base_view import NeuXtalVizWidget
+from NeuXtalViz.config import colormap
+
+colormap.add_modified()
 
 cmaps = {
     "Sequential": "viridis",
     "Binary": "binary",
     "Diverging": "bwr",
     "Rainbow": "turbo",
+    "Modified": "modified",
 }
 
 opacities = {
@@ -92,6 +96,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.cbar_combo.addItem("Rainbow")
         self.cbar_combo.addItem("Binary")
         self.cbar_combo.addItem("Diverging")
+        self.cbar_combo.addItem("Modified")
 
         self.load_NXS_button = QPushButton("Load NXS", self)
 
