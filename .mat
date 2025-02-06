@@ -1,0 +1,11 @@
+-0.08166635 -0.00507339 -0.01694887 
+ 0.00176961 -0.08216752  0.01591682 
+-0.01765252  0.01523346  0.08040588 
+    11.9673     11.9455     11.9448     89.9744     90.0126     90.0211   1707.5775 
+     0.0026      0.0026      0.0044      0.0248      0.0247      0.0178      0.8267 
+
+
+The above matrix is the Transpose of the UB Matrix. The UB matrix maps the column
+vector (h,k,l ) to the column vector (q'x,q'y,q'z).
+|Q'|=1/dspacing and its coordinates are a right-hand coordinate system where
+ x is the beam direction and z is vertically upward.(IPNS convention)

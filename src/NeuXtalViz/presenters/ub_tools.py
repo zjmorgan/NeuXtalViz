@@ -584,6 +584,17 @@ class UB(NeuXtalVizPresenter):
         return mod_vec_1, mod_vec_2, mod_vec_3, max_order, cross_terms
 
     def index_peaks(self):
+        worker = self.view.worker(self.index_peaks_process)
+        worker.connect_result(self.index_peaks_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
+
+        self.view.start_worker_pool(worker)
+
+    def index_peaks_complete(self, result):
+        self.view.clear_niggli_info()
+
+    def index_peaks_process(self, progress):
         mod_info = self.get_modulation_info()
 
         mod_vec_1, mod_vec_2, mod_vec_3, max_order, cross_terms = mod_info
@@ -599,6 +610,10 @@ class UB(NeuXtalVizPresenter):
                 if sat == False:
                     max_order = 0
 
+                progress("Processing...", 1)
+
+                progress("Indexing peaks...", 50)
+
                 self.model.index_peaks(
                     tol,
                     sat_tol,
@@ -610,9 +625,25 @@ class UB(NeuXtalVizPresenter):
                     round_hkl=round_hkl,
                 )
 
-                self.visualize()
+                progress("Peaks indexed...", 99)
+
+                progress("Peaks indexed!", 100)
+
+            else:
+                progress("Invalid parameters.", 0)
 
     def predict_peaks(self):
+        worker = self.view.worker(self.predict_peaks_process)
+        worker.connect_result(self.predict_peaks_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
+
+        self.view.start_worker_pool(worker)
+
+    def predict_peaks_complete(self, result):
+        self.view.clear_niggli_info()
+
+    def predict_peaks_process(self, progress):
         mod_info = self.get_modulation_info()
 
         mod_vec_1, mod_vec_2, mod_vec_3, max_order, cross_terms = mod_info
@@ -639,13 +670,33 @@ class UB(NeuXtalVizPresenter):
                 if np.isclose(lamda_min, lamda_max):
                     lamda_min, lamda_max = 0.97 * lamda_min, 1.03 * lamda_max
 
+                progress("Processing...", 1)
+
+                progress("Predicting peaks...", 50)
+
                 self.model.predict_peaks(
                     centering, d_min, lamda_min, lamda_max, edge
                 )
 
-                self.visualize()
+                progress("Peaks predicted...", 99)
+
+                progress("Peaks predicted!", 100)
+
+            else:
+                progress("Invalid parameters.", 0)
 
     def integrate_peaks(self):
+        worker = self.view.worker(self.integrate_peaks_process)
+        worker.connect_result(self.integrate_peaks_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
+
+        self.view.start_worker_pool(worker)
+
+    def integrate_peaks_complete(self, result):
+        self.view.clear_niggli_info()
+
+    def integrate_peaks_process(self, progress):
         params = self.view.get_integrate_peaks_parameters()
 
         ellipsoid = self.view.get_ellipsoid()
@@ -663,6 +714,10 @@ class UB(NeuXtalVizPresenter):
                 if outer_factor < inner_factor:
                     outer_factor = inner_factor
 
+                progress("Processing...", 1)
+
+                progress("Integrating peaks...", 50)
+
                 self.model.integrate_peaks(
                     rad,
                     inner_factor,
@@ -671,17 +726,42 @@ class UB(NeuXtalVizPresenter):
                     centroid=centroid,
                 )
 
-                self.visualize()
+                progress("Peaks integrated...", 99)
+
+                progress("Peaks integrated!", 100)
+
+        else:
+            progress("Invalid parameters.", 0)
 
     def filter_peaks(self):
+        worker = self.view.worker(self.filter_peaks_process)
+        worker.connect_result(self.filter_peaks_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
+
+        self.view.start_worker_pool(worker)
+
+    def filter_peaks_complete(self, result):
+        self.view.clear_niggli_info()
+
+    def filter_peaks_process(self, progress):
         name = self.view.get_filter_variable()
         operator = self.view.get_filter_comparison()
         value = self.view.get_filter_value()
 
         if self.model.has_peaks() and value is not None:
+            progress("Processing...", 1)
+
+            progress("Filtering peaks...", 50)
+
             self.model.filter_peaks(name, operator, value)
 
-            self.visualize()
+            progress("Peaks filtered...", 99)
+
+            progress("Peaks filtered!", 100)
+
+        else:
+            progress("Invalid parameters.", 0)
 
     def load_detector_calibration(self):
         inst = self.view.get_instrument()
