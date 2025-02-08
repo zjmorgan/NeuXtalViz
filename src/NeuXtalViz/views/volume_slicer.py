@@ -66,6 +66,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         plots_layout = QVBoxLayout()
         slice_params_layout = QHBoxLayout()
+        view_params_layout = QHBoxLayout()
         cut_params_layout = QHBoxLayout()
         draw_layout = QHBoxLayout()
 
@@ -90,6 +91,12 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.clim_combo.addItem("μ±3×σ")
         self.clim_combo.addItem("Q₃/Q₁±1.5×IQR")
         self.clim_combo.setCurrentIndex(2)
+
+        self.vlim_combo = QComboBox(self)
+        self.vlim_combo.addItem("Min/Max")
+        self.vlim_combo.addItem("μ±3×σ")
+        self.vlim_combo.addItem("Q₃/Q₁±1.5×IQR")
+        self.vlim_combo.setCurrentIndex(2)
 
         self.cbar_combo = QComboBox(self)
         self.cbar_combo.addItem("Sequential")
@@ -161,6 +168,35 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.min_slider.setTracking(False)
         self.max_slider.setTracking(False)
 
+        self.vmin_line = QLineEdit("")
+        self.vmax_line = QLineEdit("")
+
+        self.xmin_line = QLineEdit("")
+        self.xmax_line = QLineEdit("")
+
+        self.ymin_line = QLineEdit("")
+        self.ymax_line = QLineEdit("")
+
+        validator = QDoubleValidator(-1e32, 1e32, 6, notation=notation)
+
+        self.vmin_line.setValidator(validator)
+        self.vmax_line.setValidator(validator)
+
+        self.xmin_line.setValidator(validator)
+        self.xmax_line.setValidator(validator)
+
+        self.ymin_line.setValidator(validator)
+        self.ymax_line.setValidator(validator)
+
+        xmin_label = QLabel("X Min:", self)
+        xmax_label = QLabel("X Max:", self)
+
+        ymin_label = QLabel("Y Min:", self)
+        ymax_label = QLabel("Y Max:", self)
+
+        vmin_label = QLabel("Min:", self)
+        vmax_label = QLabel("Max:", self)
+
         bar_layout.addWidget(self.min_slider)
         bar_layout.addWidget(self.max_slider)
 
@@ -176,6 +212,20 @@ class VolumeSlicerView(NeuXtalVizWidget):
         slice_params_layout.addWidget(self.slice_thickness_line)
         slice_params_layout.addWidget(self.save_slice_button)
         slice_params_layout.addWidget(self.slice_scale_combo)
+
+        view_params_layout.addWidget(xmin_label)
+        view_params_layout.addWidget(self.xmin_line)
+        view_params_layout.addWidget(xmax_label)
+        view_params_layout.addWidget(self.xmax_line)
+        view_params_layout.addWidget(ymin_label)
+        view_params_layout.addWidget(self.ymin_line)
+        view_params_layout.addWidget(ymax_label)
+        view_params_layout.addWidget(self.ymax_line)
+        view_params_layout.addWidget(self.vlim_combo)
+        view_params_layout.addWidget(vmin_label)
+        view_params_layout.addWidget(self.vmin_line)
+        view_params_layout.addWidget(vmax_label)
+        view_params_layout.addWidget(self.vmax_line)
 
         cut_params_layout.addWidget(self.cut_combo)
         cut_params_layout.addWidget(cut_label)
@@ -211,6 +261,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         plots_layout.addLayout(image_layout)
         plots_layout.addLayout(slice_params_layout)
+        plots_layout.addLayout(view_params_layout)
         plots_layout.addLayout(line_layout)
         plots_layout.addLayout(cut_params_layout)
 
@@ -241,6 +292,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def connect_clim_combo(self, update_clim):
         self.clim_combo.currentIndexChanged.connect(update_clim)
+
+    def connect_vlim_combo(self, update_clim):
+        self.vlim_combo.currentIndexChanged.connect(update_clim)
 
     def connect_cbar_combo(self, update_cbar):
         self.cbar_combo.currentIndexChanged.connect(update_cbar)
@@ -274,6 +328,12 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def connect_max_slider(self, update_colorbar):
         self.max_slider.valueChanged.connect(update_colorbar)
+
+    def connect_vmin_line(self, update_vals):
+        self.vmin_line.editingFinished.connect(update_vals)
+
+    def connect_vmax_line(self, update_vals):
+        self.vmax_line.editingFinished.connect(update_vals)
 
     def save_file_dialog(self):
         options = QFileDialog.Options()
@@ -316,6 +376,13 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
             vmin = self.vmin + (self.vmax - self.vmin) * min_slider / 100
             vmax = self.vmin + (self.vmax - self.vmin) * max_slider / 100
+
+            self.update_colorbar_vlims(vmin, vmax)
+
+    def update_colorbar_vlims(self, vmin, vmax):
+        if self.cb is not None:
+            self.set_vmin_value(vmin)
+            self.set_vmax_value(vmax)
 
             self.im.set_clim(vmin=vmin, vmax=vmax)
             self.cb.update_normal(self.im)
@@ -534,6 +601,15 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.im = im
         self.vmin, self.vmax = self.im.norm.vmin, self.im.norm.vmax
 
+        self.set_vmin_value(self.vmin)
+        self.set_vmax_value(self.vmax)
+
+        self.set_xmin_value(self.xlim[0])
+        self.set_xmax_value(self.xlim[1])
+
+        self.set_ymin_value(self.ylim[0])
+        self.set_ymax_value(self.ylim[1])
+
         self.ax_slice.set_aspect(aspect)
         self.ax_slice.set_xlabel(labels[0])
         self.ax_slice.set_ylabel(labels[1])
@@ -709,6 +785,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def get_clim_clip_type(self):
         return self.clim_combo.currentText()
 
+    def get_vlim_clip_type(self):
+        return self.vlim_combo.currentText()
+
     def get_slice(self):
         return self.slice_combo.currentText()
 
@@ -720,3 +799,45 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def get_cut_scale(self):
         return self.cut_scale_combo.currentText().lower()
+
+    def get_vmin_value(self):
+        if self.vmin_line.hasAcceptableInput():
+            return float(self.vmin_line.text())
+
+    def get_vmax_value(self):
+        if self.vmax_line.hasAcceptableInput():
+            return float(self.vmax_line.text())
+
+    def set_vmin_value(self, val):
+        self.vmin_line.setText(str(round(val, 5)))
+
+    def set_vmax_value(self, val):
+        self.vmax_line.setText(str(round(val, 5)))
+
+    def get_xmin_value(self):
+        if self.xmin_line.hasAcceptableInput():
+            return float(self.xmin_line.text())
+
+    def get_xmax_value(self):
+        if self.xmax_line.hasAcceptableInput():
+            return float(self.xmax_line.text())
+
+    def set_xmin_value(self, val):
+        self.xmin_line.setText(str(round(val, 4)))
+
+    def set_xmax_value(self, val):
+        self.xmax_line.setText(str(round(val, 4)))
+
+    def get_ymin_value(self):
+        if self.ymin_line.hasAcceptableInput():
+            return float(self.ymin_line.text())
+
+    def get_ymax_value(self):
+        if self.ymax_line.hasAcceptableInput():
+            return float(self.ymax_line.text())
+
+    def set_ymin_value(self, val):
+        self.ymin_line.setText(str(round(val, 4)))
+
+    def set_ymax_value(self, val):
+        self.ymax_line.setText(str(round(val, 4)))

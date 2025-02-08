@@ -19,6 +19,8 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_min_slider(self.view.update_colorbar_min)
         self.view.connect_max_slider(self.view.update_colorbar_max)
 
+        self.view.connect_vlim_combo(self.update_slice)
+
         self.view.connect_slice_scale_combo(self.update_slice)
         self.view.connect_cut_scale_combo(self.update_cut)
 
@@ -28,12 +30,24 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_slice_ready(self.update_slice)
         self.view.connect_cut_ready(self.update_cut)
 
+        self.view.connect_vmin_line(self.update_cvals)
+        self.view.connect_vmax_line(self.update_cvals)
+
         self.view.connect_vol_scale_combo(self.redraw_data)
         self.view.connect_opacity_combo(self.redraw_data)
         self.view.connect_range_comboo(self.redraw_data)
 
         self.view.connect_save_slice(self.save_slice)
         self.view.connect_save_cut(self.save_cut)
+
+    def update_cvals(self):
+        vmin = self.view.get_vmin_value()
+        vmax = self.view.get_vmax_value()
+        if vmin is not None and vmax is not None:
+            if vmin < vmax:
+                if vmin <= 0 and self.view.get_slice_scale() == "log":
+                    vmin = vmax / 10
+                self.view.update_colorbar_vlims(vmin, vmax)
 
     def update_slice_value(self):
         self.view.update_slice_value()
@@ -108,6 +122,18 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
     def get_clim_method(self):
         ctype = self.view.get_clim_clip_type()
+
+        if ctype == "μ±3×σ":
+            method = "normal"
+        elif ctype == "Q₃/Q₁±1.5×IQR":
+            method = "boxplot"
+        else:
+            method = None
+
+        return method
+
+    def get_vlim_method(self):
+        ctype = self.view.get_vlim_clip_type()
 
         if ctype == "μ±3×σ":
             method = "normal"
@@ -194,7 +220,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
                 data = slice_histo["signal"]
 
-                data = self.model.calculate_clim(data, self.get_clim_method())
+                data = self.model.calculate_clim(data, self.get_vlim_method())
 
                 slice_histo["signal"] = data
 
