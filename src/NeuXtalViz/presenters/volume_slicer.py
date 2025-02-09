@@ -33,12 +33,38 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_vmin_line(self.update_cvals)
         self.view.connect_vmax_line(self.update_cvals)
 
+        self.view.connect_xmin_line(self.update_lims)
+        self.view.connect_xmax_line(self.update_lims)
+
+        self.view.connect_ymin_line(self.update_lims)
+        self.view.connect_ymax_line(self.update_lims)
+
         self.view.connect_vol_scale_combo(self.redraw_data)
         self.view.connect_opacity_combo(self.redraw_data)
         self.view.connect_range_comboo(self.redraw_data)
 
         self.view.connect_save_slice(self.save_slice)
         self.view.connect_save_cut(self.save_cut)
+
+    def update_lims(self):
+        xmin = self.view.get_xmin_value()
+        xmax = self.view.get_xmax_value()
+        ymin = self.view.get_ymin_value()
+        ymax = self.view.get_ymax_value()
+
+        if (
+            xmin is not None
+            and xmax is not None
+            and ymin is not None
+            and ymax is not None
+        ):
+            if xmin < xmax and ymin < ymax:
+                xlim = [xmin, xmax]
+                ylim = [ymin, ymax]
+                self.view.set_slice_lim(xlim, ylim)
+                line_cut = self.view.get_cut()
+                lim = xlim if line_cut == "Axis 1" else ylim
+                self.view.set_cut_lim(lim)
 
     def update_cvals(self):
         vmin = self.view.get_vmin_value()

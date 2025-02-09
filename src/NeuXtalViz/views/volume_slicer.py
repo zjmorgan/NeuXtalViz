@@ -335,6 +335,18 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def connect_vmax_line(self, update_vals):
         self.vmax_line.editingFinished.connect(update_vals)
 
+    def connect_xmin_line(self, update_vals):
+        self.xmin_line.editingFinished.connect(update_vals)
+
+    def connect_xmax_line(self, update_vals):
+        self.xmax_line.editingFinished.connect(update_vals)
+
+    def connect_ymin_line(self, update_vals):
+        self.ymin_line.editingFinished.connect(update_vals)
+
+    def connect_ymax_line(self, update_vals):
+        self.ymax_line.editingFinished.connect(update_vals)
+
     def save_file_dialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -841,3 +853,21 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def set_ymax_value(self, val):
         self.ymax_line.setText(str(round(val, 4)))
+
+    def set_slice_lim(self, xlim, ylim):
+        if self.cb is not None:
+            xmin, xmax = xlim
+            ymin, ymax = ylim
+            T = np.linalg.inv(self.T_inv)
+            xmin, ymin, _ = np.dot(T, [xmin, ymin, 1])
+            xmax, ymax, _ = np.dot(T, [xmax, ymax, 1])
+            self.ax_slice.set_xlim(xmin, xmax)
+            self.ax_slice.set_ylim(ymin, ymax)
+            self.canvas_slice.draw_idle()
+            self.canvas_slice.flush_events()
+
+    def set_cut_lim(self, lim):
+        if self.cb is not None:
+            self.ax_cut.set_xlim(*lim)
+            self.canvas_cut.draw_idle()
+            self.canvas_cut.flush_events()
