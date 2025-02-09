@@ -287,7 +287,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def connect_opacity_combo(self, update_opacity):
         self.opacity_combo.currentIndexChanged.connect(update_opacity)
 
-    def connect_range_comboo(self, update_range):
+    def connect_range_combo(self, update_range):
         self.range_combo.currentIndexChanged.connect(update_range)
 
     def connect_clim_combo(self, update_clim):

@@ -11,6 +11,7 @@ from qtpy.QtWidgets import (
     QLineEdit,
     QLabel,
     QComboBox,
+    QSlider,
     QPushButton,
     QCheckBox,
     QHBoxLayout,
@@ -1220,6 +1221,26 @@ class UBView(NeuXtalVizWidget):
         self.slice_combo.addItem("Axis 2/3")
         self.slice_combo.setCurrentIndex(0)
 
+        bar_layout = QHBoxLayout()
+
+        self.min_slider = QSlider(Qt.Vertical)
+        self.max_slider = QSlider(Qt.Vertical)
+
+        self.min_slider.setRange(0, 100)
+        self.max_slider.setRange(0, 100)
+
+        self.min_slider.setValue(0)
+        self.max_slider.setValue(100)
+
+        self.min_slider.setTracking(False)
+        self.max_slider.setTracking(False)
+
+        bar_layout.addWidget(self.min_slider)
+        bar_layout.addWidget(self.max_slider)
+
+        self.save_slice_button = QPushButton("Save Slice", self)
+        self.save_cut_button = QPushButton("Save Cut", self)
+
         slice_label = QLabel("Slice:", self)
 
         self.slice_line = QLineEdit("0.0")
@@ -1274,11 +1295,15 @@ class UBView(NeuXtalVizWidget):
         self.ax_slice = self.fig_slice.subplots(1, 1)
 
         slice_layout = QVBoxLayout()
+        slider_layout = QHBoxLayout()
 
         slice_layout.addWidget(NavigationToolbar2QT(self.canvas_slice, self))
         slice_layout.addWidget(self.canvas_slice)
 
-        convert_to_hkl_tab_layout.addLayout(slice_layout)
+        slider_layout.addLayout(slice_layout)
+        slider_layout.addLayout(bar_layout)
+
+        convert_to_hkl_tab_layout.addLayout(slider_layout)
         convert_to_hkl_tab_layout.addLayout(convert_to_hkl_view_layout)
 
         convert_to_hkl_tab.setLayout(convert_to_hkl_tab_layout)
@@ -1528,6 +1553,79 @@ class UBView(NeuXtalVizWidget):
 
     def connect_select_cell(self, select_cell):
         self.select_button.clicked.connect(select_cell)
+
+    def connect_min_slider(self, update_colorbar):
+        self.min_slider.valueChanged.connect(update_colorbar)
+
+    def connect_max_slider(self, update_colorbar):
+        self.max_slider.valueChanged.connect(update_colorbar)
+
+    def connect_clim_combo(self, update_clim):
+        self.clim_combo.currentIndexChanged.connect(update_clim)
+
+    def connect_cbar_combo(self, update_cbar):
+        self.cbar_combo.currentIndexChanged.connect(update_cbar)
+
+    def connect_slice_width_line(self, update_slice):
+        self.slice_width_line.editingFinished.connect(update_slice)
+
+    def connect_slice_thickness_line(self, update_slice):
+        self.slice_thickness_line.editingFinished.connect(update_slice)
+
+    def connect_slice_line(self, update_slice):
+        self.slice_line.editingFinished.connect(update_slice)
+
+    def connect_slice_scale_combo(self, update_slice):
+        self.slice_scale_combo.currentIndexChanged.connect(update_slice)
+
+    def connect_slice_combo(self, update_slice):
+        self.slice_combo.currentIndexChanged.connect(update_slice)
+
+    def update_colorbar_min(self):
+        min_val = self.min_slider.value()
+        max_val = self.max_slider.value()
+
+        if min_val >= max_val:
+            self.min_slider.blockSignals(True)
+            self.min_slider.setValue(max_val - 1)
+            self.min_slider.blockSignals(False)
+
+        self.update_slice_color()
+
+    def update_colorbar_max(self):
+        min_val = self.min_slider.value()
+        max_val = self.max_slider.value()
+
+        if min_val >= max_val:
+            self.max_slider.blockSignals(True)
+            self.max_slider.setValue(min_val + 1)
+            self.max_slider.blockSignals(False)
+
+        self.update_slice_color()
+
+    def update_slice_color(self):
+        if self.cb_slice is not None:
+            min_slider, max_slider = self.get_color_bar_values()
+
+            vmin = self.vmin + (self.vmax - self.vmin) * min_slider / 100
+            vmax = self.vmin + (self.vmax - self.vmin) * max_slider / 100
+
+            self.update_colorbar_vlims(vmin, vmax)
+
+    def update_colorbar_vlims(self, vmin, vmax):
+        if self.cb_slice is not None:
+            # self.set_vmin_value(vmin)
+            # self.set_vmax_value(vmax)
+
+            self.im.set_clim(vmin=vmin, vmax=vmax)
+            self.cb_slice.update_normal(self.im)
+            self.cb_slice.minorticks_on()
+
+            self.canvas_slice.draw_idle()
+            self.canvas_slice.flush_events()
+
+    def get_color_bar_values(self):
+        return self.min_slider.value(), self.max_slider.value()
 
     def load_detector_cal_dialog(self, path=""):
         options = QFileDialog.Options()

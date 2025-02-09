@@ -680,6 +680,9 @@ class UBModel(NeuXtalVizModel):
 
         self.roi_view = roi_view
 
+    def is_sliced(self):
+        return mtd.doesExist("slice")
+
     def get_slice_info(self, U, V, W, normal, value, thickness, width):
         UB = self.get_UB()
 
@@ -819,6 +822,9 @@ class UBModel(NeuXtalVizModel):
             cmin, cmax = Q1 - spread, Q3 + spread
 
         else:
+            cmin, cmax = vmin, vmax
+
+        if np.isclose(cmin, cmax) or cmax < cmin:
             cmin, cmax = vmin, vmax
 
         clim = [cmin if cmin > vmin else vmin, cmax if cmax < vmax else vmax]

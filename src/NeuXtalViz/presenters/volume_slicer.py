@@ -41,7 +41,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
         self.view.connect_vol_scale_combo(self.redraw_data)
         self.view.connect_opacity_combo(self.redraw_data)
-        self.view.connect_range_comboo(self.redraw_data)
+        self.view.connect_range_combo(self.redraw_data)
 
         self.view.connect_save_slice(self.save_slice)
         self.view.connect_save_cut(self.save_cut)

@@ -66,6 +66,19 @@ class UB(NeuXtalVizPresenter):
         self.view.connect_integer_n_index(self.hand_index_integer)
         self.view.connect_integer_p_index(self.hand_index_integer)
 
+        self.view.connect_min_slider(self.view.update_colorbar_min)
+        self.view.connect_max_slider(self.view.update_colorbar_max)
+
+        self.view.connect_slice_combo(self.reslice)
+        self.view.connect_slice_thickness_line(self.reslice)
+        self.view.connect_slice_width_line(self.reslice)
+
+        self.view.connect_clim_combo(self.reslice)
+        self.view.connect_cbar_combo(self.reslice)
+
+        self.view.connect_slice_scale_combo(self.reslice)
+        self.view.connect_slice_line(self.reslice)
+
     def hand_index_fractional(self):
         mod_info = self.get_modulation_info()
         hkl_info = self.view.get_indices()
@@ -895,7 +908,23 @@ class UB(NeuXtalVizPresenter):
 
         return method
 
+    def reslice(self):
+        if self.model.is_sliced():
+            self.convert_to_hkl()
+
     def convert_to_hkl(self):
+        worker = self.view.worker(self.convert_to_hkl_process)
+        worker.connect_result(self.convert_to_hkl_complete)
+        worker.connect_finished(self.update_complete)
+        worker.connect_progress(self.update_processing)
+
+        self.view.start_worker_pool(worker)
+
+    def convert_to_hkl_complete(self, result):
+        if result is not None:
+            self.view.update_slice(result)
+
+    def convert_to_hkl_process(self, progress):
         proj = self.view.get_projection_matrix()
 
         value = self.view.get_slice_value()
@@ -914,9 +943,13 @@ class UB(NeuXtalVizPresenter):
 
                 norm = self.get_normal()
 
+                progress("Processing...", 1)
+
                 slice_histo = self.model.get_slice_info(
                     U, V, W, norm, value, thickness, width
                 )
+
+                progress("Updating slice...", 50)
 
                 if slice_histo is not None:
                     signal = slice_histo["signal"]
@@ -927,4 +960,12 @@ class UB(NeuXtalVizPresenter):
 
                     slice_histo["clip"] = clip
 
-                    self.view.update_slice(slice_histo)
+                    progress("Slice drawn!", 100)
+
+                    return slice_histo
+
+                else:
+                    progress("Invalid parameters.", 0)
+
+        else:
+            progress("Invalid parameters.", 0)
