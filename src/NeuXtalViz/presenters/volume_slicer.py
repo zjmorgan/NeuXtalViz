@@ -228,6 +228,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
     def slice_data_complete(self, result):
         if result is not None:
+            self.view.reset_slider()
             self.view.add_slice(result)
 
     def slice_data_process(self, progress):

@@ -922,6 +922,7 @@ class UB(NeuXtalVizPresenter):
 
     def convert_to_hkl_complete(self, result):
         if result is not None:
+            self.view.reset_slider()
             self.view.update_slice(result)
 
     def convert_to_hkl_process(self, progress):

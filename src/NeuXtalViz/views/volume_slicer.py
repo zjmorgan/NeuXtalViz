@@ -406,6 +406,14 @@ class VolumeSlicerView(NeuXtalVizWidget):
     def get_color_bar_values(self):
         return self.min_slider.value(), self.max_slider.value()
 
+    def reset_slider(self):
+        self.min_slider.blockSignals(True)
+        self.max_slider.blockSignals(True)
+        self.min_slider.setValue(0)
+        self.max_slider.setValue(100)
+        self.min_slider.blockSignals(False)
+        self.max_slider.blockSignals(False)
+
     def connect_load_NXS(self, load_NXS):
         self.load_NXS_button.clicked.connect(load_NXS)
 

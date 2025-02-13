@@ -1238,9 +1238,6 @@ class UBView(NeuXtalVizWidget):
         bar_layout.addWidget(self.min_slider)
         bar_layout.addWidget(self.max_slider)
 
-        self.save_slice_button = QPushButton("Save Slice", self)
-        self.save_cut_button = QPushButton("Save Cut", self)
-
         slice_label = QLabel("Slice:", self)
 
         self.slice_line = QLineEdit("0.0")
@@ -1626,6 +1623,14 @@ class UBView(NeuXtalVizWidget):
 
     def get_color_bar_values(self):
         return self.min_slider.value(), self.max_slider.value()
+
+    def reset_slider(self):
+        self.min_slider.blockSignals(True)
+        self.max_slider.blockSignals(True)
+        self.min_slider.setValue(0)
+        self.max_slider.setValue(100)
+        self.min_slider.blockSignals(False)
+        self.max_slider.blockSignals(False)
 
     def load_detector_cal_dialog(self, path=""):
         options = QFileDialog.Options()
@@ -2748,11 +2753,11 @@ class UBView(NeuXtalVizWidget):
 
         self.ax_slice.format_coord = self.__format_axis_coord
 
+        self.ax_slice.remove()
+
         if self.cb_slice is not None:
             self.cb_slice.remove()
             self.cb_slice = None
-
-        self.ax_slice.remove()
 
         # if self.ax_xint:
         #     self.ax_xint.remove()
