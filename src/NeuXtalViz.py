@@ -28,6 +28,8 @@ import qdarktheme
 
 qdarktheme.enable_hi_dpi()
 
+from nova.mvvm.pyqt5_binding import PyQt5Binding
+
 # import qdarkstyle
 # from qdarkstyle.light.palette import LightPalette
 
@@ -47,9 +49,9 @@ from NeuXtalViz.views.modulation_tools import ModulationView
 from NeuXtalViz.models.modulation_tools import ModulationModel
 from NeuXtalViz.presenters.modulation_tools import Modulation
 
-from NeuXtalViz.views.volume_slicer import VolumeSlicerView
 from NeuXtalViz.models.volume_slicer import VolumeSlicerModel
-from NeuXtalViz.presenters.volume_slicer import VolumeSlicer
+from NeuXtalViz.view_models.volume_slicer import VolumeSlicerViewModel
+from NeuXtalViz.new_views.volume_slicer import VolumeSlicerView
 
 from NeuXtalViz.views.experiment_planner import ExperimentView
 from NeuXtalViz.models.experiment_planner import ExperimentModel
@@ -114,9 +116,10 @@ class NeuXtalViz(QMainWindow):
         self.m = Modulation(m_view, m_model)
         app_stack.addWidget(m_view)
 
-        vs_view = VolumeSlicerView(self)
+        binding = PyQt5Binding()
         vs_model = VolumeSlicerModel()
-        self.vs = VolumeSlicer(vs_view, vs_model)
+        vs_view_model = VolumeSlicerViewModel(vs_model, binding)
+        vs_view = VolumeSlicerView(vs_view_model, self)
         app_stack.addWidget(vs_view)
 
         layout.addWidget(app_stack)

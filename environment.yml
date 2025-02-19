@@ -22,3 +22,4 @@ dependencies:
   - black
   - pip:
     - pyqtdarktheme
+    - nova-mvvm
