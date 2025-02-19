@@ -777,7 +777,7 @@ class ExperimentView(NeuXtalVizWidget):
 
     def set_motors(self, values):
         for row, value in enumerate(values):
-            self.motor_table.setItem(row, 1, QTableWidgetItem(str(value)))
+            self.motor_table.setItem(row, 1, self.set_item_value(str(value)))
 
     def get_goniometer_limits(self):
         limits = []
@@ -791,8 +791,8 @@ class ExperimentView(NeuXtalVizWidget):
     def set_goniometer_limits(self, limits):
         for row, limit in enumerate(limits):
             amin, amax = str(limit[0]), str(limit[1])
-            self.goniometer_table.setItem(row, 1, QTableWidgetItem(amin))
-            self.goniometer_table.setItem(row, 2, QTableWidgetItem(amax))
+            self.goniometer_table.setItem(row, 1, self.set_item_value(amin))
+            self.goniometer_table.setItem(row, 2, self.set_item_value(amax))
 
     def add_peaks(self, peak_dict):
         self.plotter.clear_actors()
@@ -875,11 +875,16 @@ class ExperimentView(NeuXtalVizWidget):
         l = "{:.3f}".format(l)
         d = "{:.4f}".format(d)
         lamda = "{:.4f}".format(lamda)
-        self.peaks_table.setItem(row, 0, QTableWidgetItem(h))
-        self.peaks_table.setItem(row, 1, QTableWidgetItem(k))
-        self.peaks_table.setItem(row, 2, QTableWidgetItem(l))
-        self.peaks_table.setItem(row, 3, QTableWidgetItem(d))
-        self.peaks_table.setItem(row, 4, QTableWidgetItem(lamda))
+        self.peaks_table.setItem(row, 0, self.set_item_value(h))
+        self.peaks_table.setItem(row, 1, self.set_item_value(k))
+        self.peaks_table.setItem(row, 2, self.set_item_value(l))
+        self.peaks_table.setItem(row, 3, self.set_item_value(d))
+        self.peaks_table.setItem(row, 4, self.set_item_value(lamda))
+
+    def set_item_value(self, value):
+        item = QTableWidgetItem()
+        item.setData(Qt.DisplayRole, value)
+        return item
 
     def get_input_hkls(self):
         params_1 = self.h1_line, self.k1_line, self.l1_line

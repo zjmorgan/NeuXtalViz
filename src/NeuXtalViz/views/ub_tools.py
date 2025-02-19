@@ -2321,14 +2321,19 @@ class UBView(NeuXtalVizWidget):
         intens = "{:.2e}".format(intens)
         signal_to_noise = "{:.2f}".format(signal_to_noise)
         peak_no = str(peak_no + 1)
-        self.peaks_table.setItem(row, 0, QTableWidgetItem(h))
-        self.peaks_table.setItem(row, 1, QTableWidgetItem(k))
-        self.peaks_table.setItem(row, 2, QTableWidgetItem(l))
-        self.peaks_table.setItem(row, 3, QTableWidgetItem(d))
-        self.peaks_table.setItem(row, 4, QTableWidgetItem(lamda))
-        self.peaks_table.setItem(row, 5, QTableWidgetItem(intens))
-        self.peaks_table.setItem(row, 6, QTableWidgetItem(signal_to_noise))
-        self.peaks_table.setItem(row, 7, QTableWidgetItem(peak_no))
+        self.peaks_table.setItem(row, 0, self.set_item_value(h))
+        self.peaks_table.setItem(row, 1, self.set_item_value(k))
+        self.peaks_table.setItem(row, 2, self.set_item_value(l))
+        self.peaks_table.setItem(row, 3, self.set_item_value(d))
+        self.peaks_table.setItem(row, 4, self.set_item_value(lamda))
+        self.peaks_table.setItem(row, 5, self.set_item_value(intens))
+        self.peaks_table.setItem(row, 6, self.set_item_value(signal_to_noise))
+        self.peaks_table.setItem(row, 7, self.set_item_value(peak_no))
+
+    def set_item_value(self, value):
+        item = QTableWidgetItem()
+        item.setData(Qt.DisplayRole, value)
+        return item
 
     def clear_niggli_info(self):
         self.cell_table.clearSelection()

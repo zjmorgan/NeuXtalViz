@@ -43,7 +43,7 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         self.spacing = np.array([dim.getBinWidth() for dim in dims])
 
-        scale = 0.25 / self.spacing
+        scale = 0.125 / self.spacing
         scale[scale <= 1] = 1
         scale = scale.round().astype(int)
 
@@ -299,6 +299,11 @@ class VolumeSlicerModel(NeuXtalVizModel):
         trans[~np.isfinite(trans)] = np.nan
 
         vmin, vmax = np.nanmin(trans), np.nanmax(trans)
+
+        if np.isclose(vmin, vmax) or not np.isfinite(vmin):
+            vmin = vmax / 100
+        elif not np.isfinite([vmin, vmax]).all():
+            vmin, vmax = 1e-3, 1 + 3
 
         if method == "normal":
             mu, sigma = np.nanmean(trans), np.nanstd(trans)
