@@ -25,7 +25,7 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
 
-from NeuXtalViz.new_views.base_view import NeuXtalVizWidget
+from NeuXtalViz.qt.new_views.base_view import NeuXtalVizWidget
 from NeuXtalViz.config import colormap
 
 colormap.add_modified()

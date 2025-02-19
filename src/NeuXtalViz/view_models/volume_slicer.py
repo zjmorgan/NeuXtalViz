@@ -1,6 +1,5 @@
 from typing import Optional
 
-from nova.mvvm.pyqt5_binding import PyQt5Binding
 from pydantic import BaseModel, Field
 
 from NeuXtalViz.view_models.base_view_model import NeuXtalVizViewModel

@@ -24,7 +24,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
 
-from NeuXtalViz.views.base_view import NeuXtalVizWidget
+from NeuXtalViz.qt.views.base_view import NeuXtalVizWidget
 
 
 class ModulationView(NeuXtalVizWidget):

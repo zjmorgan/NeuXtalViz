@@ -24,8 +24,8 @@ import pyvista as pv
 import matplotlib.colors
 
 from NeuXtalViz.config.atoms import colors, radii
-from NeuXtalViz.views.periodic_table import PeriodicTableView
-from NeuXtalViz.views.base_view import NeuXtalVizWidget
+from NeuXtalViz.qt.views.periodic_table import PeriodicTableView
+from NeuXtalViz.qt.views.base_view import NeuXtalVizWidget
 
 
 class CrystalStructureView(NeuXtalVizWidget):
