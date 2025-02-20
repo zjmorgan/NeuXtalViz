@@ -2,12 +2,19 @@ from pydantic import BaseModel, Field
 
 
 class Controls(BaseModel):
+    progress: int = Field(default=0)
+    status: str = Field(default="")
+    view_tab: int = Field(default=0)
+
     reciprocal_lattice: bool = Field(default=True, title="Reciprocal Lattice")
-    manual_axis_type: str = Field(default="[hkl]", title="Manual Axis Type")
+    show_axes: bool = Field(default=True, title="Show Axes")
+    parallel_projection: bool = Field(default=True, title="Parallel Projection")
+
+    manual_axis_type: str = Field(default="[hkl]")
     manual_axes: list[float] = Field(
         default=[0.0, 0.0, 0.0], title="Manual Axis Indices"
     )
-    manual_up_axis_type: str = Field(default="[hkl]", title="Manual Up Axis Type")
+    manual_up_axis_type: str = Field(default="[hkl]")
     manual_up_axes: list[float] = Field(
         default=[0.0, 0.0, 0.0], title="Manual Up Axis Indices"
     )
@@ -19,6 +26,7 @@ class NeuXtalVizViewModel:
 
         self.controls = Controls()
 
+        self.controls_bind = binding.new_bind(self.controls)
         self.lattice_parameters_bind = binding.new_bind()
         self.progress_bind = binding.new_bind()
         self.status_bind = binding.new_bind()
@@ -38,6 +46,8 @@ class NeuXtalVizViewModel:
 
         """
 
+        self.controls.status = status
+        self.controls_bind.update_in_view(self.controls)
         self.status_bind.update_in_view(status)
 
     def update_progress(self, progress):
@@ -51,6 +61,8 @@ class NeuXtalVizViewModel:
 
         """
 
+        self.controls.progress = progress
+        self.controls_bind.update_in_view(self.controls)
         self.progress_bind.update_in_view(progress)
 
     def update_invalid(self):

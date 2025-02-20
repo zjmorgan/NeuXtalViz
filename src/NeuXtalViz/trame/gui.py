@@ -5,7 +5,7 @@ from typing import Any
 
 from trame_server.core import Server
 
-from NeuXtalViz.trame.views.base_view import NeuXtalViz
+from NeuXtalViz.trame.views.main_view import NeuXtalViz
 
 
 def trame(server: Server = None, *args: Any, **kwargs: Any) -> None:

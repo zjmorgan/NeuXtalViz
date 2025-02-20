@@ -7,6 +7,10 @@ from trame.widgets import vuetify3 as vuetify
 from trame_server.core import Server
 from trame_server.state import State
 
+from NeuXtalViz.models.volume_slicer import VolumeSlicerModel
+from NeuXtalViz.trame.views.volume_slicer import VolumeSlicerView
+from NeuXtalViz.view_models.volume_slicer import VolumeSlicerViewModel
+
 
 class NeuXtalViz(ThemedApp):
     """Main view for NeuXtalViz."""
@@ -16,10 +20,8 @@ class NeuXtalViz(ThemedApp):
         super().__init__(server=server)
 
         binding = TrameBinding(self.server.state)
-        # self.vm = create_viewmodels(binding)
-        # self.vm["volume_slicer"].config_bind.connect("config")
 
-        # self.vm.update_view()
+        self.view_model = VolumeSlicerViewModel(VolumeSlicerModel(), binding)
 
         self.create_ui()
 
@@ -39,5 +41,4 @@ class NeuXtalViz(ThemedApp):
                     vuetify.VTab("Volume Slicer")
 
             with layout.content:
-                with HBoxLayout(classes="pa-2"):
-                    pass
+                VolumeSlicerView(self.view_model)
