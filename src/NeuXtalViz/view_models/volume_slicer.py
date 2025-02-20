@@ -35,6 +35,9 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         super().__init__(model, binding)
 
         self.vs_controls = VolumeSlicerControls()
+        self.draw_idle = True
+        self.slice_idle = True
+        self.cut_idle = True
 
         self.slice_lim_bind = binding.new_bind()
         self.colorbar_lim_bind = binding.new_bind()
@@ -202,8 +205,12 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
 
             self.transform_bind.update_in_view(trans)
 
+        self.draw_idle = True
+
     def redraw_data_process(self, progress):
-        if self.model.is_histo_loaded():
+        if self.draw_idle and self.model.is_histo_loaded():
+            self.draw_idle = False
+
             progress("Processing...", 1)
 
             progress("Updating volume...", 20)
@@ -238,8 +245,12 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         if result is not None:
             self.add_slice_bind.update_in_view(result)
 
+        self.slice_idle = True
+
     def slice_data_process(self, progress):
-        if self.model.is_histo_loaded():
+        if self.slice_idle and self.model.is_histo_loaded():
+            self.slice_idle = False
+
             norm = self.get_normal()
 
             thick = self.vs_controls.slice_thickness
@@ -266,8 +277,12 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         if result is not None:
             self.add_cut_bind.update_in_view(result)
 
+        self.cut_idle = True
+
     def cut_data_process(self, progress):
-        if self.model.is_sliced():
+        if self.cut_idle and self.model.is_sliced():
+            self.cut_idle = False
+
             value = self.vs_controls.cut_value
             thick = self.vs_controls.cut_thickness
 
