@@ -46,6 +46,10 @@ class VolumeSlicer(NeuXtalVizPresenter):
         self.view.connect_save_slice(self.save_slice)
         self.view.connect_save_cut(self.save_cut)
 
+        self.draw_idle = True
+        self.slice_idle = True
+        self.cut_idle = True
+
     def update_lims(self):
         xmin = self.view.get_xmin_value()
         xmax = self.view.get_xmax_value()
@@ -171,12 +175,15 @@ class VolumeSlicer(NeuXtalVizPresenter):
         return method
 
     def redraw_data(self):
-        worker = self.view.worker(self.redraw_data_process)
-        worker.connect_result(self.redraw_data_complete)
-        worker.connect_finished(self.slice_data)
-        worker.connect_progress(self.update_processing)
+        if self.draw_idle:
+            self.draw_idle = False
 
-        self.view.start_worker_pool(worker)
+            worker = self.view.worker(self.redraw_data_process)
+            worker.connect_result(self.redraw_data_complete)
+            worker.connect_finished(self.slice_data)
+            worker.connect_progress(self.update_processing)
+
+            self.view.start_worker_pool(worker)
 
     def redraw_data_complete(self, result):
         if result is not None:
@@ -185,6 +192,8 @@ class VolumeSlicer(NeuXtalVizPresenter):
             self.view.add_histo(histo, normal, norm, value)
 
             self.view.set_transform(trans)
+
+            self.draw_idle = True
 
     def redraw_data_process(self, progress):
         if self.model.is_histo_loaded():
@@ -219,17 +228,21 @@ class VolumeSlicer(NeuXtalVizPresenter):
                 progress("Invalid parameters.", 0)
 
     def slice_data(self):
-        worker = self.view.worker(self.slice_data_process)
-        worker.connect_result(self.slice_data_complete)
-        worker.connect_finished(self.cut_data)
-        worker.connect_progress(self.update_processing)
+        if self.slice_idle:
+            self.slice_idle = False
 
-        self.view.start_worker_pool(worker)
+            worker = self.view.worker(self.slice_data_process)
+            worker.connect_result(self.slice_data_complete)
+            worker.connect_finished(self.cut_data)
+            worker.connect_progress(self.update_processing)
+
+            self.view.start_worker_pool(worker)
 
     def slice_data_complete(self, result):
         if result is not None:
             self.view.reset_slider()
             self.view.add_slice(result)
+            self.slice_idle = True
 
     def slice_data_process(self, progress):
         if self.model.is_histo_loaded():
@@ -256,16 +269,20 @@ class VolumeSlicer(NeuXtalVizPresenter):
                 return slice_histo
 
     def cut_data(self):
-        worker = self.view.worker(self.cut_data_process)
-        worker.connect_result(self.cut_data_complete)
-        worker.connect_finished(self.update_complete)
-        worker.connect_progress(self.update_processing)
+        if self.cut_idle:
+            self.cut_idle = False
 
-        self.view.start_worker_pool(worker)
+            worker = self.view.worker(self.cut_data_process)
+            worker.connect_result(self.cut_data_complete)
+            worker.connect_finished(self.update_complete)
+            worker.connect_progress(self.update_processing)
+
+            self.view.start_worker_pool(worker)
 
     def cut_data_complete(self, result):
         if result is not None:
             self.view.add_cut(result)
+            self.cut_idle = True
 
     def cut_data_process(self, progress):
         if self.model.is_sliced():

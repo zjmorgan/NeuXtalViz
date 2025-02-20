@@ -482,6 +482,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         clim = [np.nanmin(signal), np.nanmax(signal)]
 
+        if not np.all(np.isfinite(clim)):
+            clim = [0.1, 10]
+
         self.clip = self.plotter.add_volume_clip_plane(
             grid,
             opacity=opacity,

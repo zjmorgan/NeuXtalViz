@@ -3,6 +3,7 @@ from mantid.simpleapi import (
     CloneMDWorkspace,
     IntegrateMDHistoWorkspace,
     DivideMD,
+    CompactMD,
     mtd,
 )
 
@@ -25,9 +26,22 @@ class VolumeSlicerModel(NeuXtalVizModel):
         signal = mtd["histo"].getSignalArray().copy()
         signal_var = mtd["histo"].getErrorSquaredArray().copy()
 
+        mask = np.isfinite(signal) & np.isfinite(signal_var)
+
+        signal[~mask] = 0
+        signal_var[~mask] = 0
+
+        mtd["histo"].setSignalArray(signal)
+        mtd["histo"].setErrorSquaredArray(signal_var)
+
+        CompactMD(InputWorkspace="histo", OutputWorkspace="crop")
+
+        signal = mtd["crop"].getSignalArray().copy()
+        signal_var = mtd["crop"].getErrorSquaredArray().copy()
+
         self.shape = signal.shape
 
-        dims = [mtd["histo"].getDimension(i) for i in range(3)]
+        dims = [mtd["crop"].getDimension(i) for i in range(3)]
 
         self.min_lim = np.array(
             [dim.getMinimum() + dim.getBinWidth() * 0.5 for dim in dims]
@@ -62,8 +76,8 @@ class VolumeSlicerModel(NeuXtalVizModel):
         self.set_B()
         self.set_W()
 
-        CloneMDWorkspace(InputWorkspace="histo", OutputWorkspace="data")
-        CloneMDWorkspace(InputWorkspace="histo", OutputWorkspace="norm")
+        CloneMDWorkspace(InputWorkspace="crop", OutputWorkspace="data")
+        CloneMDWorkspace(InputWorkspace="crop", OutputWorkspace="norm")
 
         data = signal**2 / signal_var
         norm = signal / signal_var
