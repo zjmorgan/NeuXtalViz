@@ -691,6 +691,18 @@ class UB(NeuXtalVizPresenter):
                     centering, d_min, lamda_min, lamda_max, edge
                 )
 
+                if self.view.get_predict_satellite_peaks():
+                    self.model.predict_modulated_peaks(
+                        sat_d_min,
+                        lamda_min,
+                        lamda_max,
+                        mod_vec_1,
+                        mod_vec_2,
+                        mod_vec_3,
+                        max_order,
+                        cross_terms,
+                    )
+
                 progress("Peaks predicted...", 99)
 
                 progress("Peaks predicted!", 100)
