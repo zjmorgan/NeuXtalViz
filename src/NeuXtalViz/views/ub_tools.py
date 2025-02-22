@@ -1957,7 +1957,7 @@ class UBView(NeuXtalVizWidget):
                 scalars="scalars",
                 color=None,
                 log_scale=False,
-                style="surface",
+                style="wireframe",
                 cmap=cmap,
                 clim=clim,
                 n_colors=n_colors,
@@ -2332,7 +2332,7 @@ class UBView(NeuXtalVizWidget):
 
     def set_item_value(self, value):
         item = QTableWidgetItem()
-        item.setData(Qt.DisplayRole, value)
+        item.setData(Qt.DisplayRole, float(value))
         return item
 
     def clear_niggli_info(self):

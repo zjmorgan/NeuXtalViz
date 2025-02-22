@@ -883,7 +883,7 @@ class ExperimentView(NeuXtalVizWidget):
 
     def set_item_value(self, value):
         item = QTableWidgetItem()
-        item.setData(Qt.DisplayRole, value)
+        item.setData(Qt.DisplayRole, float(value))
         return item
 
     def get_input_hkls(self):
