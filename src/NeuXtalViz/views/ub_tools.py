@@ -1250,7 +1250,7 @@ class UBView(NeuXtalVizWidget):
         self.slice_thickness_line = QLineEdit("0.1")
         self.slice_thickness_line.setValidator(validator)
 
-        validator = QDoubleValidator(0.01, 0.5, 5, notation=notation)
+        validator = QDoubleValidator(0.005, 0.5, 5, notation=notation)
 
         slice_width_label = QLabel("Width:", self)
 
@@ -1866,21 +1866,26 @@ class UBView(NeuXtalVizWidget):
 
         """
 
-        pattern = r"^(\d+(:\d+)?)(,\d+(:\d+)?)*$"
-
+        pattern = r"^(\d+(?::\d+(?:;\d+)?)?)(,\d+(?::\d+(?:;\d+)?)?)*$"
         if not re.match(pattern, runs_str):
             return None
 
-        ranges = runs_str.split(",")
         runs = []
+        ranges = runs_str.split(",")
+
         for part in ranges:
             if ":" in part:
-                start, end = map(int, part.split(":"))
-                if start > end:
+                range_part, *skip_part = part.split(";")
+                start, end = map(int, range_part.split(":"))
+                skip = int(skip_part[0]) if skip_part else 1
+
+                if start > end or skip <= 0:
                     return None
-                runs.extend(range(start, end + 1))
+
+                runs.extend(range(start, end + 1, skip))
             else:
                 runs.append(int(part))
+
         return runs
 
     def get_runs(self):

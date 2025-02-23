@@ -378,7 +378,7 @@ class UBModel(NeuXtalVizModel):
 
                 Q_max = (
                     4 * np.pi / wavelength[0] * np.sin(0.5 * max(two_theta))
-                )
+                ) / 2
 
                 ConvertHFIRSCDtoMDE(
                     InputWorkspace="data",
@@ -426,7 +426,7 @@ class UBModel(NeuXtalVizModel):
 
                 Q_max = (
                     4 * np.pi / min(wavelength) * np.sin(0.5 * max(two_theta))
-                )
+                ) / 2
 
                 ConvertToMD(
                     InputWorkspace="data",
@@ -802,6 +802,7 @@ class UBModel(NeuXtalVizModel):
     def calculate_clim(self, data, method="normal"):
         trans = data.copy()
         trans[~np.isfinite(trans)] = np.nan
+        trans[np.isclose(trans, 0)] = np.nan
 
         vmin, vmax = np.nanmin(trans), np.nanmax(trans)
 

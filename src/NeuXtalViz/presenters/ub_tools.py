@@ -79,6 +79,8 @@ class UB(NeuXtalVizPresenter):
         self.view.connect_slice_scale_combo(self.reslice)
         self.view.connect_slice_line(self.reslice)
 
+        self.slice_idle = True
+
     def hand_index_fractional(self):
         mod_info = self.get_modulation_info()
         hkl_info = self.view.get_indices()
@@ -927,17 +929,21 @@ class UB(NeuXtalVizPresenter):
             self.convert_to_hkl()
 
     def convert_to_hkl(self):
-        worker = self.view.worker(self.convert_to_hkl_process)
-        worker.connect_result(self.convert_to_hkl_complete)
-        worker.connect_finished(self.update_complete)
-        worker.connect_progress(self.update_processing)
+        if self.slice_idle:
+            self.slice_idle = False
 
-        self.view.start_worker_pool(worker)
+            worker = self.view.worker(self.convert_to_hkl_process)
+            worker.connect_result(self.convert_to_hkl_complete)
+            worker.connect_finished(self.update_complete)
+            worker.connect_progress(self.update_processing)
+
+            self.view.start_worker_pool(worker)
 
     def convert_to_hkl_complete(self, result):
         if result is not None:
             self.view.reset_slider()
             self.view.update_slice(result)
+            self.slice_idle = True
 
     def convert_to_hkl_process(self, progress):
         proj = self.view.get_projection_matrix()
