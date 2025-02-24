@@ -401,21 +401,18 @@ class NeuXtalVizWidget(QWidget):
         alpha, beta, gamma : float
             Lattice angles.
         """
-
-        a, b, c, alpha, beta, gamma, u, v = ol
-
-        self.ub_a_line.setText("{:.5f}".format(a))
-        self.ub_b_line.setText("{:.5f}".format(b))
-        self.ub_c_line.setText("{:.5f}".format(c))
-        self.ub_alpha_line.setText("{:.3f}".format(alpha))
-        self.ub_beta_line.setText("{:.3f}".format(beta))
-        self.ub_gamma_line.setText("{:.3f}".format(gamma))
-        self.ub_u1_line.setText("{:.4f}".format(u[0]))
-        self.ub_u2_line.setText("{:.4f}".format(u[1]))
-        self.ub_u3_line.setText("{:.4f}".format(u[2]))
-        self.ub_v1_line.setText("{:.4f}".format(v[0]))
-        self.ub_v2_line.setText("{:.4f}".format(v[1]))
-        self.ub_v3_line.setText("{:.4f}".format(v[2]))
+        self.ub_a_line.setText("{:.5f}".format(ol.a))
+        self.ub_b_line.setText("{:.5f}".format(ol.b))
+        self.ub_c_line.setText("{:.5f}".format(ol.c))
+        self.ub_alpha_line.setText("{:.3f}".format(ol.alpha))
+        self.ub_beta_line.setText("{:.3f}".format(ol.beta))
+        self.ub_gamma_line.setText("{:.3f}".format(ol.gamma))
+        self.ub_u1_line.setText("{:.4f}".format(ol.u[0]))
+        self.ub_u2_line.setText("{:.4f}".format(ol.u[1]))
+        self.ub_u3_line.setText("{:.4f}".format(ol.u[2]))
+        self.ub_v1_line.setText("{:.4f}".format(ol.v[0]))
+        self.ub_v2_line.setText("{:.4f}".format(ol.v[1]))
+        self.ub_v3_line.setText("{:.4f}".format(ol.v[2]))
 
     def change_projection(self):
         """

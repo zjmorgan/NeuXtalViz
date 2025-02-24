@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 class Controls(BaseModel):
     camera_tab: int = Field(default=0)
+    oriented_lattice_tab: int = Field(default=0)
 
     reciprocal_lattice: bool = Field(default=True, title="Reciprocal Lattice")
     show_axes: bool = Field(default=True, title="Show Axes")
@@ -18,19 +19,31 @@ class Controls(BaseModel):
     )
 
 
+class LatticeParameters(BaseModel):
+    a: float = Field(default=0.0)
+    b: float = Field(default=0.0)
+    c: float = Field(default=0.0)
+    alpha: float = Field(default=0.0)
+    beta: float = Field(default=0.0)
+    gamma: float = Field(default=0.0)
+    u: list[float] = Field(default=[0.0, 0.0, 0.0])
+    v: list[float] = Field(default=[0.0, 0.0, 0.0])
+
+
 class NeuXtalVizViewModel:
     def __init__(self, model, binding):
         self.model = model
 
         self.controls = Controls()
+        self.lattice_parameters = LatticeParameters()
 
         self.controls_bind = binding.new_bind(
             self.controls, callback_after_update=self.process_updates
         )
+        self.lattice_parameters_bind = binding.new_bind(self.lattice_parameters)
         self.show_axes_bind = binding.new_bind()
         self.parallel_projection_bind = binding.new_bind()
 
-        self.lattice_parameters_bind = binding.new_bind()
         self.progress_bind = binding.new_bind()
         self.status_bind = binding.new_bind()
         self.up_vector_bind = binding.new_bind()
@@ -118,7 +131,17 @@ class NeuXtalVizViewModel:
 
         ol = self.model.get_oriented_lattice_parameters()
         if ol is not None:
-            self.lattice_parameters_bind.update_in_view(ol)
+            a, b, c, alpha, beta, gamma, u, v = ol
+            self.lattice_parameters.a = a
+            self.lattice_parameters.b = b
+            self.lattice_parameters.c = c
+            self.lattice_parameters.alpha = alpha
+            self.lattice_parameters.beta = beta
+            self.lattice_parameters.gamma = gamma
+            self.lattice_parameters.u = u
+            self.lattice_parameters.v = v
+
+            self.lattice_parameters_bind.update_in_view(self.lattice_parameters)
 
     def update_axis_type(self, value):
         """

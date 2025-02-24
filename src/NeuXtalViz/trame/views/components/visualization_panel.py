@@ -2,7 +2,7 @@ import numpy as np
 import pyvista as pv
 from io import BytesIO
 from nova.trame.view.components import InputField
-from nova.trame.view.layouts import GridLayout, VBoxLayout
+from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
 from pyvista.trame.ui import get_viewer
 from trame.widgets import client, html
 from trame.widgets import vuetify3 as vuetify
@@ -13,6 +13,7 @@ class VisualizationPanel:
         self.server = server
         self.view_model = view_model
         self.view_model.controls_bind.connect("controls")
+        self.view_model.lattice_parameters_bind.connect("lattice_parameters")
         self.view_model.show_axes_bind.connect(self.show_axes)
         self.view_model.parallel_projection_bind.connect(self.change_projection)
         self.view_model.progress_bind.connect("progress")
@@ -20,9 +21,6 @@ class VisualizationPanel:
         self.view_model.update_processing("Ready!", 0)
         self.view_model.up_vector_bind.connect(self.view_up_vector)
         self.view_model.vector_bind.connect(self.view_vector)
-
-        # These are just for compatibility with the view model as it communicates with Qt slightly differently
-        self.view_model.lattice_parameters_bind.connect("lattice_parameters")
 
         self.camera_position = None
         self.plotter = self.create_plotter()
@@ -108,6 +106,52 @@ class VisualizationPanel:
             with vuetify.VSheet(classes="mb-2", style="height: 50vh;"):
                 self.view = get_viewer(self.plotter)
                 self.view.ui(add_menu=False, mode="server")
+
+            with vuetify.VTabs(
+                v_model="controls.oriented_lattice_tab",
+                classes="mb-1",
+                update_modelValue="flushState('controls')",
+            ):
+                vuetify.VTab("Lattice Parameters", value=1)
+                vuetify.VTab("Sample Orientation", value=2)
+            with vuetify.VWindow(v_model="controls.oriented_lattice_tab"):
+                with vuetify.VWindowItem(value=1):
+                    with GridLayout(columns=3):
+                        with HBoxLayout():
+                            vuetify.VLabel("a:")
+                            InputField(v_model="lattice_parameters.a", readonly=True)
+                        with HBoxLayout():
+                            vuetify.VLabel("b:")
+                            InputField(v_model="lattice_parameters.b", readonly=True)
+                        with HBoxLayout():
+                            vuetify.VLabel("c:")
+                            InputField(v_model="lattice_parameters.c", readonly=True)
+                            vuetify.VLabel("Å")
+                        with HBoxLayout():
+                            vuetify.VLabel("α:")
+                            InputField(
+                                v_model="lattice_parameters.alpha", readonly=True
+                            )
+                        with HBoxLayout():
+                            vuetify.VLabel("β:")
+                            InputField(v_model="lattice_parameters.beta", readonly=True)
+                        with HBoxLayout():
+                            vuetify.VLabel("ɣ:")
+                            InputField(
+                                v_model="lattice_parameters.gamma", readonly=True
+                            )
+                            vuetify.VLabel("°")
+                with vuetify.VWindowItem(value=2):
+                    with HBoxLayout():
+                        vuetify.VLabel("u:")
+                        InputField(v_model="lattice_parameters.u[0]", readonly=True)
+                        InputField(v_model="lattice_parameters.u[1]", readonly=True)
+                        InputField(v_model="lattice_parameters.u[2]", readonly=True)
+                    with HBoxLayout():
+                        vuetify.VLabel("v:")
+                        InputField(v_model="lattice_parameters.v[0]", readonly=True)
+                        InputField(v_model="lattice_parameters.v[1]", readonly=True)
+                        InputField(v_model="lattice_parameters.v[2]", readonly=True)
 
             with vuetify.VProgressLinear(
                 v_model="progress",
