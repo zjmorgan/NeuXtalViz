@@ -1,4 +1,4 @@
-from asyncio import run, sleep
+from asyncio import create_task, sleep
 from threading import Thread
 
 import numpy as np
@@ -64,8 +64,7 @@ class VolumeSlicerView:
         # TODO: File upload is not working well for me with the nexus file, so I've hardcoded the path for now.
         # We should switch to RemoteFileInput, anyways.
         self.view_model.load_NXS_process(
-            "/home/dugganjw/mvvm_neux/tests/data/Ba3Co2O6_50K_proj_small_6_m.nxs",
-            self.view_model.update_processing,
+            "/home/dugganjw/mvvm_neux/tests/data/Ba3Co2O6_50K_proj_small_6_m.nxs"
         )
         self.view_model.load_NXS_complete()
         self.loading_data = False
@@ -74,10 +73,14 @@ class VolumeSlicerView:
         while self.loading_data:
             await sleep(0.1)
 
+        self.view_model.update_processing("Loading NeXus file...", 50)
+        self.view_model.update_processing("Loading NeXus file...", 80)
+        self.view_model.update_processing("NeXus file loaded!", 100)
         self.redraw_data()
 
     def load_NXS(self):
-        from asyncio import create_task
+        self.view_model.update_processing("Processing...", 1)
+        self.view_model.update_processing("Loading NeXus file...", 10)
 
         self.loading_data = True
         thread = Thread(target=self.load_in_background, daemon=True)
@@ -85,10 +88,38 @@ class VolumeSlicerView:
 
         create_task(self.monitor_load())
 
-    def redraw_data(self):
-        result = self.view_model.redraw_data_process(self.view_model.update_processing)
-        self.view_model.redraw_data_complete(result)
+    def redraw_in_background(self):
+        self.redrawing_result = self.view_model.redraw_data_process()
+        self.view_model.redraw_data_complete(self.redrawing_result)
+        self.redrawing = False
+
+    async def monitor_redraw(self):
+        while self.redrawing_result is None:
+            await sleep(0.1)
+
+        self.view_model.update_processing("Updating volume...", 50)
+
+        while self.redrawing:
+            await sleep(0.1)
+
+        if self.redrawing_result is not None:
+            self.view_model.update_processing("Volume drawn!", 100)
+        else:
+            self.view_model.update_processing("Invalid parameters.", 0)
+
+        self.base_view.reset_view()
         # self.slice_data()
+
+    def redraw_data(self):
+        self.view_model.update_processing("Processing...", 1)
+        self.view_model.update_processing("Updating volume...", 20)
+
+        self.redrawing = True
+        self.redrawing_result = None
+        thread = Thread(target=self.redraw_in_background, daemon=True)
+        thread.start()
+
+        create_task(self.monitor_redraw())
 
     def add_histo(self, result):
         histo_dict, normal, norm, value = result
@@ -161,6 +192,7 @@ class VolumeSlicerView:
             normal_rotation=False,
             cmap=cmap,
             user_matrix=b,
+            render=False,
         )
 
         prop = self.clip.GetOutlineProperty()
@@ -198,7 +230,7 @@ class VolumeSlicerView:
         actor.SetAxisLabels(1, axis1_label)
         actor.SetAxisLabels(2, axis2_label)
 
-        self.base_view.reset_view()
+        # self.base_view.reset_view()
 
         self.clip.AddObserver("InteractionEvent", self.interaction_callback)
 

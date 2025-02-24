@@ -147,7 +147,6 @@ class VisualizationPanel:
             else:
                 actor = self.plotter.add_axes(xlabel="a", ylabel="b", zlabel="c")
             actor.SetUserMatrix(t)
-        self.view.update()
 
     def change_projection(self, parallel_projection):
         """
@@ -159,4 +158,3 @@ class VisualizationPanel:
             self.plotter.enable_parallel_projection()
         else:
             self.plotter.disable_parallel_projection()
-        self.view.update()

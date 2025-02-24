@@ -148,7 +148,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
     def load_NXS_complete(self, result=None):
         self.update_oriented_lattice()
 
-    def load_NXS_process(self, filename, progress):
+    def load_NXS_process(self, filename, progress=lambda status, progress: None):
         progress("Processing...", 1)
 
         progress("Loading NeXus file...", 10)
@@ -224,7 +224,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
 
         self.draw_idle = True
 
-    def redraw_data_process(self, progress):
+    def redraw_data_process(self, progress=lambda status, progress: None):
         if self.draw_idle and self.model.is_histo_loaded():
             self.draw_idle = False
 

@@ -2,7 +2,6 @@
 
 from nova.mvvm.trame_binding import TrameBinding
 from nova.trame import ThemedApp
-from nova.trame.view.layouts import HBoxLayout
 from trame.widgets import vuetify3 as vuetify
 from trame_server.core import Server
 from trame_server.state import State
