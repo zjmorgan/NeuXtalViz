@@ -2,9 +2,7 @@ from pydantic import BaseModel, Field
 
 
 class Controls(BaseModel):
-    progress: int = Field(default=0)
-    status: str = Field(default="")
-    view_tab: int = Field(default=0)
+    camera_tab: int = Field(default=0)
 
     reciprocal_lattice: bool = Field(default=True, title="Reciprocal Lattice")
     show_axes: bool = Field(default=True, title="Show Axes")
@@ -26,14 +24,26 @@ class NeuXtalVizViewModel:
 
         self.controls = Controls()
 
-        self.controls_bind = binding.new_bind(self.controls)
+        self.controls_bind = binding.new_bind(
+            self.controls, callback_after_update=self.process_updates
+        )
+        self.show_axes_bind = binding.new_bind()
+        self.parallel_projection_bind = binding.new_bind()
+
         self.lattice_parameters_bind = binding.new_bind()
         self.progress_bind = binding.new_bind()
         self.status_bind = binding.new_bind()
-        self.transform_bind = binding.new_bind()
         self.up_vector_bind = binding.new_bind()
         self.update_labels_bind = binding.new_bind()
         self.vector_bind = binding.new_bind()
+
+    def process_updates(self, results):
+        for update in results.get("updated", []):
+            match update:
+                case "reciprocal_lattice" | "show_axes":
+                    self.update_axes()
+                case "parallel_projection":
+                    self.update_projection()
 
     def update_status(self, status):
         """
@@ -46,8 +56,6 @@ class NeuXtalVizViewModel:
 
         """
 
-        self.controls.status = status
-        self.controls_bind.update_in_view(self.controls)
         self.status_bind.update_in_view(status)
 
     def update_progress(self, progress):
@@ -61,8 +69,6 @@ class NeuXtalVizViewModel:
 
         """
 
-        self.controls.progress = progress
-        self.controls_bind.update_in_view(self.controls)
         self.progress_bind.update_in_view(progress)
 
     def update_invalid(self):
@@ -148,6 +154,16 @@ class NeuXtalVizViewModel:
 
         self.controls.manual_up_axes[index] = float(value)
 
+    def update_axes(self):
+        T = self.model.get_transform(self.controls.reciprocal_lattice)
+        self.show_axes_bind.update_in_view(
+            (T, self.controls.reciprocal_lattice, self.controls.show_axes)
+        )
+
+    def update_projection(self):
+        self.parallel_projection_bind.update_in_view(self.controls.parallel_projection)
+        self.update_axes()
+
     def change_lattice(self):
         """
         Enable or disable reciprocal lattice.
@@ -155,10 +171,15 @@ class NeuXtalVizViewModel:
         """
 
         self.controls.reciprocal_lattice = not self.controls.reciprocal_lattice
+        self.update_axes()
 
-        T = self.model.get_transform(self.controls.reciprocal_lattice)
+    def change_axes(self):
+        self.controls.show_axes = not self.controls.show_axes
+        self.update_axes()
 
-        self.transform_bind.update_in_view(T)
+    def change_projection(self):
+        self.controls.parallel_projection = not self.controls.parallel_projection
+        self.update_projection()
 
     def view_manual(self):
         """

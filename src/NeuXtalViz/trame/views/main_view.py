@@ -41,4 +41,4 @@ class NeuXtalViz(ThemedApp):
                     vuetify.VTab("Volume Slicer")
 
             with layout.content:
-                VolumeSlicerView(self.view_model)
+                VolumeSlicerView(self.server, self.view_model)

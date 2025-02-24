@@ -34,8 +34,6 @@ from NeuXtalViz.qt.views.utilities import Worker, ThreadPool
 
 
 class NeuXtalVizWidget(QWidget):
-    id = 0  # TODO: Remove, the app currently keeps several instances of this class and we need to creating bindings with unique names for each one due to how nova-mvvm works
-
     def __init__(self, view_model, parent=None):
         super().__init__(parent)
 
@@ -43,7 +41,6 @@ class NeuXtalVizWidget(QWidget):
 
         self.proj_box = QCheckBox("Parallel Projection", self)
         self.proj_box.setChecked(True)
-        self.proj_box.clicked.connect(self.change_projection)
 
         self.reset_button = QPushButton("Reset View", self)
         self.reset_button.clicked.connect(self.reset_view)
@@ -56,7 +53,6 @@ class NeuXtalVizWidget(QWidget):
 
         self.axes_box = QCheckBox("Show Axes", self)
         self.axes_box.setChecked(True)
-        self.axes_box.clicked.connect(self.show_axes)
 
         self.save_button = QPushButton("Save Screenshot", self)
 
@@ -310,19 +306,19 @@ class NeuXtalVizWidget(QWidget):
         return info_tab
 
     def connect_bindings(self):
-        id = NeuXtalVizWidget.id
+        self.view_model.show_axes_bind.connect("show_axes", self.show_axes)
+        self.view_model.parallel_projection_bind.connect(
+            "parallel_projection", self.change_projection
+        )
 
         self.view_model.lattice_parameters_bind.connect(
-            f"oriented_lattice{id}", self.set_oriented_lattice_parameters
+            "oriented_lattice", self.set_oriented_lattice_parameters
         )
-        self.view_model.progress_bind.connect(f"progress{id}", self.set_step)
-        self.view_model.status_bind.connect(f"status{id}", self.set_info)
-        self.view_model.transform_bind.connect(f"transform{id}", self.set_transform)
-        self.view_model.up_vector_bind.connect(f"up_vector{id}", self.view_up_vector)
-        self.view_model.update_labels_bind.connect(f"update_labels{id}", self.update_labels)
-        self.view_model.vector_bind.connect(f"vector{id}", self.view_vector)
-
-        NeuXtalVizWidget.id += 1
+        self.view_model.progress_bind.connect("progress", self.set_step)
+        self.view_model.status_bind.connect("status", self.set_info)
+        self.view_model.up_vector_bind.connect("up_vector", self.view_up_vector)
+        self.view_model.update_labels_bind.connect("update_labels", self.update_labels)
+        self.view_model.vector_bind.connect("vector", self.view_vector)
 
     def connect_widgets(self):
         self.view_combo.currentIndexChanged.connect(self.view_model.update_axis_type)
@@ -349,6 +345,8 @@ class NeuXtalVizWidget(QWidget):
         self.c_button.clicked.connect(self.view_model.view_ab)
         self.save_button.clicked.connect(self.save_screenshot)
         self.recip_box.clicked.connect(self.view_model.change_lattice)
+        self.axes_box.clicked.connect(self.view_model.change_axes)
+        self.proj_box.clicked.connect(self.view_model.change_projection)
 
     def start_worker_pool(self, worker):
         """
@@ -490,33 +488,18 @@ class NeuXtalVizWidget(QWidget):
 
         return filename
 
-    def set_transform(self, T):
-        """
-        Apply a transform to the axes.
+    def show_axes(self, data):
+        T, reciprocal_lattice, show_axes = data
 
-        Parameters
-        ----------
-        T : 3x3 2d array
-            Trasformation matrix.
-
-        """
-
-        if self.axes_box.isChecked():
-            if T is not None:
-                self.T = T
-                self.show_axes()
-
-    def show_axes(self):
-        if not self.axes_box.isChecked():
+        if not show_axes:
             self.plotter.hide_axes()
-        elif self.T is not None:
+        elif T is not None:
             t = pv._vtk.vtkMatrix4x4()
             for i in range(3):
                 for j in range(3):
-                    t.SetElement(i, j, self.T[i, j])
-            if self.recip_box.isChecked():
+                    t.SetElement(i, j, T[i, j])
+            if reciprocal_lattice:
                 actor = self.plotter.add_axes(xlabel="a*", ylabel="b*", zlabel="c*")
-
             else:
                 actor = self.plotter.add_axes(xlabel="a", ylabel="b", zlabel="c")
             actor.SetUserMatrix(t)

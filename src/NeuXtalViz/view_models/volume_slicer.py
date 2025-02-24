@@ -6,7 +6,7 @@ from NeuXtalViz.view_models.base_view_model import NeuXtalVizViewModel
 
 
 class VolumeSlicerControls(BaseModel):
-    vol_scale: str = Field(default="linear")
+    vol_scale: str = Field(default="Linear")
     opacity: str = Field(default="Linear")
     opacity_range: str = Field("Low->High")
     clim_clip_type: str = Field(default="Q₃/Q₁±1.5×IQR")
@@ -39,6 +39,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         self.slice_idle = True
         self.cut_idle = True
 
+        self.vs_controls_bind = binding.new_bind(self.vs_controls)
         self.slice_lim_bind = binding.new_bind()
         self.colorbar_lim_bind = binding.new_bind()
         self.cut_lim_bind = binding.new_bind()
@@ -55,13 +56,25 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         except Exception:
             setattr(self.vs_controls, key, None)
 
+    def get_colormap(self):
+        return self.vs_controls.cbar
+
+    def get_vol_scale(self):
+        return self.vs_controls.vol_scale.lower()
+
     def set_vol_scale(self, value):
-        self.vs_controls.vol_scale = value.lower()
+        self.vs_controls.vol_scale = value
         self.redraw_data_bind.update_in_view(None)
+
+    def get_opacity(self):
+        return self.vs_controls.opacity
 
     def set_opacity(self, value):
         self.vs_controls.opacity = value
         self.redraw_data_bind.update_in_view(None)
+
+    def get_opacity_range(self):
+        return self.vs_controls.opacity_range
 
     def set_opacity_range(self, value):
         self.vs_controls.opacity_range = value
@@ -132,7 +145,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         if self.model.is_histo_loaded():
             self.cut_data_bind.update_in_view(None)
 
-    def load_NXS_complete(self, result):
+    def load_NXS_complete(self, result=None):
         self.update_oriented_lattice()
 
     def load_NXS_process(self, filename, progress):
@@ -202,8 +215,12 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
             histo, normal, norm, value, trans = result
 
             self.add_histo_bind.update_in_view((histo, normal, norm, value))
-
-            self.transform_bind.update_in_view(trans)
+            self.show_axes_bind.update_in_view(
+                (trans, self.controls.reciprocal_lattice, self.controls.show_axes)
+            )
+            self.parallel_projection_bind.update_in_view(
+                self.controls.parallel_projection
+            )
 
         self.draw_idle = True
 
