@@ -21,8 +21,8 @@ from qtpy.QtWidgets import (
     QFileDialog,
 )
 
-from qtpy.QtGui import QDoubleValidator, QIntValidator
-from qtpy.QtCore import Qt, Signal
+from qtpy.QtGui import QDoubleValidator, QIntValidator, QRegExpValidator
+from qtpy.QtCore import Qt, Signal, QRegExp
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
@@ -133,9 +133,9 @@ class UBView(NeuXtalVizWidget):
         self.beta_line = QLineEdit()
         self.gamma_line = QLineEdit()
 
-        notation = QDoubleValidator.StandardNotation
-
-        validator = QDoubleValidator(0.1, 1000, 4, notation=notation)
+        pattern = r"^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?\(\d+\)$"
+        regex = QRegExp(pattern)
+        validator = QRegExpValidator(regex)
 
         self.a_line.setValidator(validator)
         self.b_line.setValidator(validator)
@@ -2029,14 +2029,30 @@ class UBView(NeuXtalVizWidget):
         self.wk_line.setText("{}".format(w[1]))
         self.wl_line.setText("{}".format(w[2]))
 
-    def set_lattice_constants(self, params):
-        self.a_line.setText("{:.4f}".format(params[0]))
-        self.b_line.setText("{:.4f}".format(params[1]))
-        self.c_line.setText("{:.4f}".format(params[2]))
+    def format_with_error(self, value, error):
+        if error <= 0:
+            return f"{value}"
 
-        self.alpha_line.setText("{:.4f}".format(params[3]))
-        self.beta_line.setText("{:.4f}".format(params[4]))
-        self.gamma_line.setText("{:.4f}".format(params[5]))
+        error_order = int(np.floor(np.log10(error)))
+
+        decimal_places = max(0, -error_order)
+
+        rounded_value = round(value, decimal_places)
+        rounded_error = round(error, decimal_places)
+
+        error_digits = int(round(rounded_error * (10**decimal_places)))
+
+        formatted_str = f"{rounded_value:.{decimal_places}f}({error_digits})"
+        return formatted_str
+
+    def set_lattice_constants(self, params, errors):
+        self.a_line.setText(self.format_with_error(params[0], errors[0]))
+        self.b_line.setText(self.format_with_error(params[1], errors[1]))
+        self.c_line.setText(self.format_with_error(params[2], errors[2]))
+
+        self.alpha_line.setText(self.format_with_error(params[3], errors[3]))
+        self.beta_line.setText(self.format_with_error(params[4], errors[4]))
+        self.gamma_line.setText(self.format_with_error(params[5], errors[5]))
 
     def get_lattice_constants(self):
         params = (
@@ -2051,7 +2067,7 @@ class UBView(NeuXtalVizWidget):
         valid_params = all([param.hasAcceptableInput() for param in params])
 
         if valid_params:
-            return [float(param.text()) for param in params]
+            return [float(param.text().split("(")[0]) for param in params]
 
     def get_min_max_constants(self):
         params = self.min_const_line, self.max_const_line

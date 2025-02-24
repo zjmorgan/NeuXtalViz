@@ -917,7 +917,22 @@ class UBModel(NeuXtalVizModel):
 
             params = ol.a(), ol.b(), ol.c(), ol.alpha(), ol.beta(), ol.gamma()
 
-            return params
+            return np.array(params).round(8).tolist()
+
+    def get_lattice_constant_errors(self):
+        if self.has_UB():
+            ol = mtd[self.table].sample().getOrientedLattice()
+
+            params = (
+                ol.errora(),
+                ol.errorb(),
+                ol.errorc(),
+                ol.erroralpha(),
+                ol.errorbeta(),
+                ol.errorgamma(),
+            )
+
+            return np.array(params).round(8).tolist()
 
     def simplify_vector(self, vec):
         vec = vec / np.linalg.norm(vec)

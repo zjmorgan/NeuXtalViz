@@ -314,9 +314,10 @@ class UB(NeuXtalVizPresenter):
 
     def update_lattice_info(self):
         params = self.model.get_lattice_constants()
+        errors = self.model.get_lattice_constant_errors()
 
         if params is not None:
-            self.view.set_lattice_constants(params)
+            self.view.set_lattice_constants(params, errors)
 
         params = self.model.get_sample_directions()
 
