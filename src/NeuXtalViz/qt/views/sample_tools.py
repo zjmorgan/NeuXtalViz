@@ -23,7 +23,7 @@ from PyQt5.QtCore import Qt, QRegExp
 
 import pyvista as pv
 
-from NeuXtalViz.views.base_view import NeuXtalVizWidget
+from NeuXtalViz.qt.views.base_view import NeuXtalVizWidget
 
 
 class SampleView(NeuXtalVizWidget):
