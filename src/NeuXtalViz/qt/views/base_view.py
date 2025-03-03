@@ -23,7 +23,7 @@ import pyvista as pv
 
 from pyvistaqt import QtInteractor
 
-from NeuXtalViz.views.utilities import Worker, ThreadPool
+from NeuXtalViz.qt.views.utilities import Worker, ThreadPool
 
 # themes = {'Default': pv.themes.Theme(),
 #           'Document': pv.themes.DocumentTheme(),
