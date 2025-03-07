@@ -141,10 +141,6 @@ class UBView(NeuXtalVizWidget):
         self.b_line.setValidator(validator)
         self.c_line.setValidator(validator)
 
-        notation = QDoubleValidator.StandardNotation
-
-        validator = QDoubleValidator(10, 170, 4, notation=notation)
-
         self.alpha_line.setValidator(validator)
         self.beta_line.setValidator(validator)
         self.gamma_line.setValidator(validator)

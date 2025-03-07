@@ -147,6 +147,24 @@ class NeuXtalViz(QMainWindow):
         topaz_action.triggered.connect(self.topaz_reduction_GUI)
         app_menu.addAction(topaz_action)
 
+        crystalplan_action = QAction("CrystalPlan", self)
+        crystalplan_action.triggered.connect(self.crystalplan_reduction_GUI)
+        app_menu.addAction(crystalplan_action)
+
+        app_menu = self.menuBar().addMenu("Analysis")
+
+        shelxle_action = QAction("ShelXle", self)
+        shelxle_action.triggered.connect(self.shelxle_GUI)
+        app_menu.addAction(shelxle_action)
+
+        olex2_action = QAction("Olex2", self)
+        olex2_action.triggered.connect(self.olex2_reduction_GUI)
+        app_menu.addAction(olex2_action)
+
+        fullprof_action = QAction("Olex2", self)
+        fullprof_action.triggered.connect(self.fullprof_reduction_GUI)
+        app_menu.addAction(fullprof_action)
+
         # self.showMaximized()
 
     def topaz_reduction_GUI(self):
@@ -170,6 +188,38 @@ class NeuXtalViz(QMainWindow):
                     "Warning",
                     "The selected directory does not contain main.py.",
                 )
+
+    def shelxle_GUI(self):
+        try:
+            subprocess.Popen(["shelxle"])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(
+                self, "Error", f"Failed to execute shelxle:\n{e}"
+            )
+
+    def crystalplan_reduction_GUI(self):
+        try:
+            subprocess.Popen(["crystalplan"])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(
+                self, "Error", f"Failed to execute crystalplan:\n{e}"
+            )
+
+    def olex2_reduction_GUI(self):
+        try:
+            subprocess.Popen(["olex2"])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(
+                self, "Error", f"Failed to execute olex2:\n{e}"
+            )
+
+    def fullprof_reduction_GUI(self):
+        try:
+            subprocess.Popen(["fullprof"])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(
+                self, "Error", f"Failed to execute fullprof:\n{e}"
+            )
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
