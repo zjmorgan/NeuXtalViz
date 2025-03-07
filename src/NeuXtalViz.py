@@ -161,7 +161,7 @@ class NeuXtalViz(QMainWindow):
         olex2_action.triggered.connect(self.olex2_reduction_GUI)
         app_menu.addAction(olex2_action)
 
-        fullprof_action = QAction("Olex2", self)
+        fullprof_action = QAction("FullProf", self)
         fullprof_action.triggered.connect(self.fullprof_reduction_GUI)
         app_menu.addAction(fullprof_action)
 
