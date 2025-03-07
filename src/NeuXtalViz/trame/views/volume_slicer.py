@@ -1,10 +1,13 @@
 from asyncio import create_task, sleep
+from functools import partial
+from tempfile import NamedTemporaryFile
 from threading import Thread
 
 import numpy as np
 import pyvista as pv
 from nova.trame.view.components import InputField
 from nova.trame.view.layouts import GridLayout, HBoxLayout
+from trame.app.file_upload import ClientFile
 from trame.widgets import html
 from trame.widgets import vuetify3 as vuetify
 
@@ -50,22 +53,17 @@ class VolumeSlicerView:
                 InputField(v_model="vs_controls.clim_clip_type", type="select")
                 InputField(v_model="vs_controls.cbar", type="select")
                 with html.Div():
-                    # InputField(
-                    #     ref="fread",
-                    #     classes="d-none",
-                    #     type="file",
-                    #     __events=["change"],
-                    #     change=(self.load_NXS, "[$event.target.files]"),
-                    # )
-                    # vuetify.VBtn("Load NXS", click="trame.refs.fread.click()")
-                    vuetify.VBtn("Load NXS", click=self.load_NXS)
+                    InputField(
+                        ref="fread",
+                        classes="d-none",
+                        type="file",
+                        __events=["change"],
+                        change=(self.load_NXS, "[$event.target.files]"),
+                    )
+                    vuetify.VBtn("Load NXS", click="trame.refs.fread.click()")
 
-    def load_in_background(self):
-        # TODO: File upload is not working well for me with the nexus file, so I've hardcoded the path for now.
-        # We should switch to RemoteFileInput, anyways.
-        self.view_model.load_NXS_process(
-            "/home/dugganjw/mvvm_neux/tests/data/Ba3Co2O6_50K_proj_small_6_m.nxs"
-        )
+    def load_in_background(self, filename):
+        self.view_model.load_NXS_process(filename)
         self.view_model.load_NXS_complete()
         self.loading_data = False
 
@@ -78,12 +76,22 @@ class VolumeSlicerView:
         self.view_model.update_processing("NeXus file loaded!", 100)
         self.redraw_data()
 
-    def load_NXS(self):
+    def load_NXS(self, files):
+        if len(files) < 1:
+            return
+
+        nxs_file = ClientFile(files[0])
+        with NamedTemporaryFile(suffix=".nxs", delete=False) as _file:
+            _file.write(nxs_file.content)
+            nxs_filename = _file.name
+
         self.view_model.update_processing("Processing...", 1)
         self.view_model.update_processing("Loading NeXus file...", 10)
 
         self.loading_data = True
-        thread = Thread(target=self.load_in_background, daemon=True)
+        thread = Thread(
+            target=partial(self.load_in_background, nxs_filename), daemon=True
+        )
         thread.start()
 
         create_task(self.monitor_load())
