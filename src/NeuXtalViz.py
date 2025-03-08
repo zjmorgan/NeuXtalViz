@@ -43,10 +43,6 @@ from NeuXtalViz.views.sample_tools import SampleView
 from NeuXtalViz.models.sample_tools import SampleModel
 from NeuXtalViz.presenters.sample_tools import Sample
 
-from NeuXtalViz.views.modulation_tools import ModulationView
-from NeuXtalViz.models.modulation_tools import ModulationModel
-from NeuXtalViz.presenters.modulation_tools import Modulation
-
 from NeuXtalViz.views.volume_slicer import VolumeSlicerView
 from NeuXtalViz.models.volume_slicer import VolumeSlicerModel
 from NeuXtalViz.presenters.volume_slicer import VolumeSlicer
@@ -91,12 +87,8 @@ class NeuXtalViz(QMainWindow):
         s_action.triggered.connect(lambda: app_stack.setCurrentIndex(1))
         app_menu.addAction(s_action)
 
-        m_action = QAction("Modulation", self)
-        m_action.triggered.connect(lambda: app_stack.setCurrentIndex(2))
-        app_menu.addAction(m_action)
-
         vs_action = QAction("Volume Slicer", self)
-        vs_action.triggered.connect(lambda: app_stack.setCurrentIndex(3))
+        vs_action.triggered.connect(lambda: app_stack.setCurrentIndex(2))
         app_menu.addAction(vs_action)
 
         cs_view = CrystalStructureView(self)
@@ -109,11 +101,6 @@ class NeuXtalViz(QMainWindow):
         self.s = Sample(s_view, s_model)
         app_stack.addWidget(s_view)
 
-        m_view = ModulationView(self)
-        m_model = ModulationModel()
-        self.m = Modulation(m_view, m_model)
-        app_stack.addWidget(m_view)
-
         vs_view = VolumeSlicerView(self)
         vs_model = VolumeSlicerModel()
         self.vs = VolumeSlicer(vs_view, vs_model)
@@ -122,7 +109,7 @@ class NeuXtalViz(QMainWindow):
         layout.addWidget(app_stack)
 
         ub_action = QAction("UB", self)
-        ub_action.triggered.connect(lambda: app_stack.setCurrentIndex(4))
+        ub_action.triggered.connect(lambda: app_stack.setCurrentIndex(3))
         app_menu.addAction(ub_action)
 
         ub_view = UBView(self)
@@ -131,7 +118,7 @@ class NeuXtalViz(QMainWindow):
         app_stack.addWidget(ub_view)
 
         ep_action = QAction("Planner", self)
-        ep_action.triggered.connect(lambda: app_stack.setCurrentIndex(5))
+        ep_action.triggered.connect(lambda: app_stack.setCurrentIndex(4))
         app_menu.addAction(ep_action)
 
         ep_view = ExperimentView(self)

@@ -1,6 +1,7 @@
 import re
 
 import numpy as np
+import matplotlib.pyplot as plt
 import pyvista as pv
 
 from qtpy.QtWidgets import (
@@ -49,6 +50,7 @@ cmaps = {
 
 class UBView(NeuXtalVizWidget):
     roi_ready = Signal()
+    scan_ready = Signal()
     index_ready = Signal()
 
     def __init__(self, parent=None):
@@ -59,6 +61,7 @@ class UBView(NeuXtalVizWidget):
         self.parameters_tab()
         self.table_tab()
         self.verify_tab()
+        self.modulation_tab()
 
         self.layout().addWidget(self.tab_widget, stretch=1)
 
@@ -1322,8 +1325,26 @@ class UBView(NeuXtalVizWidget):
         self.d_max_line = QLineEdit("inf")
         self.d_max_line.setValidator(validator)
 
+        self.check_h_line = QLineEdit()
+        self.check_k_line = QLineEdit()
+        self.check_l_line = QLineEdit()
+
+        self.check_hkl_button = QPushButton("Check hkl", self)
+
+        notation = QDoubleValidator.StandardNotation
+
+        validator = QDoubleValidator(-100, 100, 5, notation=notation)
+
+        self.check_h_line.setValidator(validator)
+        self.check_k_line.setValidator(validator)
+        self.check_l_line.setValidator(validator)
+
         data_layout = QHBoxLayout()
         data_layout.addWidget(self.data_combo)
+        data_layout.addWidget(self.check_hkl_button)
+        data_layout.addWidget(self.check_h_line)
+        data_layout.addWidget(self.check_k_line)
+        data_layout.addWidget(self.check_l_line)
         data_layout.addStretch(1)
         data_layout.addWidget(d_min_label)
         data_layout.addWidget(self.d_min_line)
@@ -1406,6 +1427,86 @@ class UBView(NeuXtalVizWidget):
 
         return instrument_tab
 
+    def modulation_tab(self):
+        mod_tab = QWidget()
+        self.tab_widget.addTab(mod_tab, "Modulation")
+
+        modulation_layout = QVBoxLayout()
+
+        self.cluster_button = QPushButton("Cluster", self)
+
+        self.param_eps_line = QLineEdit("0.025")
+        self.param_min_line = QLineEdit("15")
+
+        notation = QDoubleValidator.StandardNotation
+
+        validator = QDoubleValidator(0.0001, 10, 5, notation=notation)
+
+        self.param_eps_line.setValidator(validator)
+
+        validator = QIntValidator(1, 1000)
+
+        self.param_min_line.setValidator(validator)
+
+        self.cluster_table = QTableWidget()
+
+        self.cluster_table.setRowCount(0)
+        self.cluster_table.setColumnCount(3)
+
+        self.cluster_table.horizontalHeader().setStretchLastSection(True)
+        self.cluster_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.Stretch
+        )
+        self.cluster_table.setHorizontalHeaderLabels(["h", "k", "l"])
+
+        generate_layout = QHBoxLayout()
+        generate_layout.addWidget(self.cluster_button)
+        generate_layout.addStretch(1)
+
+        cluster_layout = QVBoxLayout()
+        params_layout = QHBoxLayout()
+
+        dist_label = QLabel("Maximum distance:", self)
+        samp_label = QLabel("Minimum samples:", self)
+
+        params_layout.addWidget(dist_label)
+        params_layout.addWidget(self.param_eps_line)
+        params_layout.addWidget(samp_label)
+        params_layout.addWidget(self.param_min_line)
+
+        cluster_layout.addLayout(params_layout)
+        cluster_layout.addWidget(self.cluster_table)
+
+        plot_layout = QVBoxLayout()
+
+        self.canvas_clust = FigureCanvas(Figure(tight_layout=True))
+
+        plot_layout.addWidget(NavigationToolbar2QT(self.canvas_clust, self))
+        plot_layout.addWidget(self.canvas_clust)
+
+        fig = self.canvas_clust.figure
+
+        self.ax_clust = fig.subplots(3, 1, sharex=True, sharey=True)
+
+        for i in range(3):
+            self.ax_clust[i].set_xlim(-1, 1)
+            self.ax_clust[i].set_ylim(1, 100)
+            self.ax_clust[i].minorticks_on()
+            self.ax_clust[i].set_yscale("log")
+
+        self.ax_clust[0].set_xlabel("$[h00]$")
+        self.ax_clust[1].set_xlabel("$[0k0]$")
+        self.ax_clust[2].set_xlabel("$[00l]$")
+
+        modulation_layout.addLayout(generate_layout)
+        modulation_layout.addLayout(cluster_layout)
+        modulation_layout.addLayout(plot_layout)
+
+        mod_tab.setLayout(modulation_layout)
+
+    def connect_cluster(self, cluster):
+        self.cluster_button.clicked.connect(cluster)
+
     def connect_h_index(self, update_index):
         self.h_line.editingFinished.connect(update_index)
 
@@ -1438,6 +1539,9 @@ class UBView(NeuXtalVizWidget):
 
     def connect_add_peak(self, add_peak):
         self.add_peak_button.clicked.connect(add_peak)
+
+    def connect_check_hkl(self, check_hkl):
+        self.check_hkl_button.clicked.connect(check_hkl)
 
     def connect_diffraction(self, update_inst_data):
         self.diffraction_line.editingFinished.connect(update_inst_data)
@@ -2579,6 +2683,20 @@ class UBView(NeuXtalVizWidget):
         if self.vertical_roi_line.hasAcceptableInput():
             return float(self.vertical_roi_line.text())
 
+    def get_check_hkl(self):
+        params = self.check_h_line, self.check_k_line, self.check_l_line
+
+        valid_params = all([param.hasAcceptableInput() for param in params])
+
+        if valid_params:
+            hkl = [float(param.text()) for param in params]
+            return hkl
+
+    def set_check_hkl(self, h, k, l):
+        self.check_h_line.setText(str(round(h, 4)))
+        self.check_k_line.setText(str(round(k, 4)))
+        self.check_l_line.setText(str(round(l, 4)))
+
     def update_instrument_view(self, inst_view, norm="log"):
         gamma = inst_view["gamma"]
         nu = inst_view["nu"]
@@ -2681,6 +2799,8 @@ class UBView(NeuXtalVizWidget):
             self.canvas_scan.draw_idle()
             self.canvas_scan.flush_events()
 
+            self.scan_ready.emit()
+
     def on_press_inst(self, event):
         if (
             event.inaxes == self.ax_inst
@@ -2715,6 +2835,9 @@ class UBView(NeuXtalVizWidget):
 
     def connect_roi_ready(self, replot):
         self.roi_ready.connect(replot)
+
+    def connect_scan_ready(self, replot):
+        self.scan_ready.connect(replot)
 
     def get_slice_value(self):
         if self.slice_line.hasAcceptableInput():
@@ -2922,3 +3045,165 @@ class UBView(NeuXtalVizWidget):
 
         self.canvas_slice.draw_idle()
         self.canvas_slice.flush_events()
+
+    def update_cluster_table(self, peak_info):
+        centroids = peak_info["satellites"].round(3).astype(str)
+
+        self.cluster_table.setRowCount(0)
+        self.cluster_table.setRowCount(len(centroids))
+
+        for row, centroid in enumerate(centroids):
+            self.cluster_table.setItem(row, 0, QTableWidgetItem(centroid[0]))
+            self.cluster_table.setItem(row, 1, QTableWidgetItem(centroid[1]))
+            self.cluster_table.setItem(row, 2, QTableWidgetItem(centroid[2]))
+
+    def get_cluster_parameters(self):
+        params = [self.param_eps_line, self.param_min_line]
+        valid_params = all([param.hasAcceptableInput() for param in params])
+
+        if valid_params:
+            return float(self.param_eps_line.text()), int(
+                self.param_min_line.text()
+            )
+
+    def add_cluster_peaks(self, peak_dict):
+        self.plotter.clear_actors()
+
+        for i in range(3):
+            self.ax_clust[i].clear()
+
+        bins = np.linspace(-1.025, 1.025, 42)
+
+        coordinates = np.array(peak_dict["coordinates"])
+        clusters = np.array(peak_dict["clusters"])
+
+        vectors = peak_dict["translation"]
+        T = peak_dict["transform"]
+        T_inv = peak_dict["inverse"]
+
+        translations = np.array(
+            np.meshgrid([-1, 0, 1], [-1, 0, 1], [-1, 0, 1])
+        ).T.reshape(-1, 3)
+
+        offsets = np.dot(translations, vectors)
+
+        multiblock = pv.MultiBlock()
+
+        for uni in np.unique(clusters):
+            coords = coordinates[clusters == uni]
+            coords = (coords[:, np.newaxis, :] + offsets).reshape(-1, 3)
+            delta = (T_inv @ coords.T).T
+            mask = (np.abs(delta) < 1).all(axis=1)
+            coords = coords[mask]
+            delta = delta[mask]
+            points = pv.PolyData(coords)
+            if uni >= 0:
+                color = "C{}".format(uni)
+                multiblock[color] = points
+                if uni > 0:
+                    h, _ = np.histogram(delta[:, 0], bins=bins)
+                    k, _ = np.histogram(delta[:, 1], bins=bins)
+                    l, _ = np.histogram(delta[:, 2], bins=bins)
+                    self.ax_clust[0].stairs(h, bins, color=color)
+                    self.ax_clust[1].stairs(k, bins, color=color)
+                    self.ax_clust[2].stairs(l, bins, color=color)
+            else:
+                self.plotter.add_mesh(
+                    points,
+                    color="k",
+                    smooth_shading=True,
+                    point_size=5,
+                    render_points_as_spheres=True,
+                )
+
+        for i in range(3):
+            self.ax_clust[i].minorticks_on()
+            self.ax_clust[i].set_yscale("log")
+
+        self.ax_clust[0].set_xlabel("$[h00]$")
+        self.ax_clust[1].set_xlabel("$[0k0]$")
+        self.ax_clust[2].set_xlabel("$[00l]$")
+
+        self.canvas_clust.draw_idle()
+        self.canvas_clust.flush_events()
+
+        _, mapper = self.plotter.add_composite(
+            multiblock,
+            multi_colors=True,
+            smooth_shading=True,
+            point_size=10,
+            render_points_as_spheres=True,
+        )
+
+        prop_cycle = plt.rcParams["axes.prop_cycle"]
+
+        cmap = prop_cycle.by_key()["color"]
+
+        colors = []
+        for i in range(1, len(mapper.block_attr)):
+            colors.append(cmap[i - 1])
+            mapper.block_attr[i].color = cmap[i - 1]
+
+        legend = [["C{}".format(i), color] for i, color in enumerate(colors)]
+
+        A = np.eye(4)
+        A[:3, :3] = T
+
+        mesh = pv.Box(bounds=(-1, 1, -1, 1, -1, 1), level=0, quads=True)
+        mesh.transform(A, inplace=True)
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
+
+        for point in [(1, 0, 0), (0, 1, 0), (0, 0, 1)]:
+            mesh = pv.Line(pointa=-np.array(point), pointb=point, resolution=1)
+            mesh.transform(A, inplace=True)
+
+            self.plotter.add_mesh(
+                mesh, color="k", style="wireframe", render_lines_as_tubes=True
+            )
+
+        pointsa = [(-1, -1), (-1, 1), (1, 1), (1, -1)]
+        pointsb = [(-1, 1), (1, 1), (1, -1), (-1, -1)]
+
+        for i in range(4):
+            a, b = pointsa[i], pointsb[i]
+
+            mesh = pv.Line(
+                pointa=(a[0], a[1], 0), pointb=(b[0], b[1], 0), resolution=1
+            )
+
+            mesh.transform(A, inplace=True)
+
+            self.plotter.add_mesh(
+                mesh, color="k", style="wireframe", render_lines_as_tubes=True
+            )
+
+            mesh = pv.Line(
+                pointa=(a[0], 0, a[1]), pointb=(b[0], 0, b[1]), resolution=1
+            )
+
+            mesh.transform(A, inplace=True)
+
+            self.plotter.add_mesh(
+                mesh, color="k", style="wireframe", render_lines_as_tubes=True
+            )
+
+            mesh = pv.Line(
+                pointa=(0, a[0], a[1]), pointb=(0, b[0], b[1]), resolution=1
+            )
+
+            mesh.transform(A, inplace=True)
+
+            self.plotter.add_mesh(
+                mesh, color="k", style="wireframe", render_lines_as_tubes=True
+            )
+
+        self.plotter.add_legend(
+            legend, loc="lower right", bcolor="w", face=None
+        )
+
+        self.plotter.enable_depth_peeling()
+
+        self.reset_view()

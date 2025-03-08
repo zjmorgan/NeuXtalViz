@@ -574,6 +574,62 @@ class UBModel(NeuXtalVizModel):
         peak.setRunNumber(self.runs[ind])
         mtd["ub_peaks"].addPeak(peak)
 
+    def calculate_hkl_position(self, ind, h, k, l):
+        if self.has_UB():
+            UB = self.get_UB()
+            Q = 2 * np.pi * UB @ np.array([h, k, l])
+
+            R = self.Rs[ind]
+
+            if type(self.lamda) is float:
+                wl = self.lamda
+                Q = np.einsum("kij,j->ki", R, Q)
+                lamda = (
+                    4 * np.pi * np.abs(Q[2]) / np.linalg.norm(Q, axis=0) ** 2
+                )
+                R = R[np.argmin(np.abs(lamda - wl))]
+                Q = np.einsum("ij,j->i", R, Q)
+                x = np.rad2deg(np.arccos(0.5 * (np.trace(R) - 1)))
+            else:
+                Q = np.einsum("ij,j->i", R, Q)
+                wl = 4 * np.pi * np.abs(Q[2]) / np.linalg.norm(Q) ** 2
+                x = wl
+
+            az_phi = np.arctan2(Q[1], Q[0])
+            two_theta = 2 * np.abs(np.arcsin(Q[2] / np.linalg.norm(Q)))
+
+            kf_x = np.sin(two_theta) * np.cos(az_phi)
+            kf_y = np.sin(two_theta) * np.sin(az_phi)
+            kf_z = np.cos(two_theta)
+
+            nu = np.rad2deg(np.arcsin(kf_y))
+            gamma = np.rad2deg(np.arctan2(kf_x, kf_z))
+
+            return x, gamma, nu
+
+    def roi_scan_to_hkl(self, ind, val, horz, vert):
+        if self.has_UB():
+            R = self.Rs[ind]
+
+            if type(self.lamda) is float:
+                wl = self.lamda
+                x = np.rad2deg(np.arccos([0.5 * (np.trace(r) - 1) for r in R]))
+                R = R[np.argmin(np.abs(x - val))]
+            else:
+                wl = self.lamda[np.argmin(np.abs(self.lamda - val))]
+
+            k = 2 * np.pi / wl
+
+            Qx = k * np.cos(np.deg2rad(vert)) * np.sin(np.deg2rad(horz))
+            Qy = k * np.sin(np.deg2rad(vert))
+            Qz = k * (np.cos(np.deg2rad(vert)) * np.cos(np.deg2rad(horz)) - 1)
+
+            UB = self.get_UB()
+
+            hkl = np.dot(np.linalg.inv(2 * np.pi * (R @ UB)), [Qx, Qy, Qz])
+
+            return hkl
+
     def calculate_instrument_view(self, ind, d_min, d_max):
         inst_view = {}
 
@@ -1892,3 +1948,111 @@ class UBModel(NeuXtalVizModel):
             phi_12 = uc.recAngle(*hkl_1, *hkl_2)
 
         return d_1, d_2, phi_12
+
+    def cluster_peaks(self, peak_info, eps=0.025, min_samples=15):
+        T_inv = peak_info["inverse"]
+
+        points = np.array(peak_info["coordinates"])
+
+        clustering = DBSCAN(eps=eps, min_samples=min_samples)
+
+        labels = clustering.fit_predict(points)
+
+        uni_labels, inverse = np.unique(labels, return_inverse=True)
+
+        centroids = []
+        for label in uni_labels:
+            if label >= 0:
+                center = points[labels == label].mean(axis=0)
+                centroids.append(np.dot(T_inv, center))
+        centroids = np.array(centroids)
+
+        success = False
+
+        if centroids.shape[0] >= 0 and len(centroids.shape) == 2:
+            null = np.argmin(np.linalg.norm(centroids, axis=1))
+
+            mask = np.ones_like(centroids[:, 0], dtype=bool)
+            mask[null] = False
+
+            peaks = np.arange(mask.size)[mask]
+
+            satellites = centroids[mask]
+            nuclear = centroids[null]
+
+            dist = scipy.spatial.distance_matrix(satellites, -satellites)
+
+            n = dist.shape[0]
+
+            if n > 2:
+                success = True
+
+                indices = np.column_stack(
+                    [np.arange(n), np.argmin(dist, axis=0)]
+                )
+                indices = np.sort(indices, axis=1)
+                indices = np.unique(indices, axis=0)
+
+                clusters = labels.copy()
+                clusters[labels == null] = 0
+
+                mod = 1
+                satellites = []
+                for inds in indices:
+                    i, j = peaks[inds[0]], peaks[inds[1]]
+                    clusters[labels == i] = mod
+                    clusters[labels == j] = mod
+                    satellites.append(centroids[i])
+                    mod += 1
+                satellites = np.array(satellites)
+
+                peak_info["clusters"] = clusters
+                peak_info["nuclear"] = nuclear
+                peak_info["satellites"] = satellites
+
+        return success
+
+    def get_cluster_info(self):
+        if self.has_UB() and self.has_peaks():
+            UB = self.get_UB()
+            peak_dict = {}
+
+            Qs, HKLs, pk_nos = [], [], []
+
+            for j, peak in enumerate(mtd[self.table]):
+                pk_no = j + 1
+
+                diff_HKL = peak.getHKL() - np.round(peak.getHKL())
+
+                Q = 2 * np.pi * np.dot(UB, diff_HKL)
+
+                Qs.append(Q)
+                HKLs.append(diff_HKL)
+                pk_nos.append(pk_no)
+
+                diff_HKL = peak.getHKL() - np.round(peak.getHKL())
+
+                Q = 2 * np.pi * np.dot(UB, -diff_HKL)
+
+                Qs.append(Q)
+                HKLs.append(diff_HKL)
+                pk_nos.append(-pk_no)
+
+            peak_dict["coordinates"] = Qs
+            peak_dict["points"] = HKLs
+            peak_dict["numbers"] = pk_nos
+
+            translation = (
+                2 * np.pi * UB[:, 0],
+                2 * np.pi * UB[:, 1],
+                2 * np.pi * UB[:, 2],
+            )
+
+            peak_dict["translation"] = translation
+
+            T = np.column_stack(translation)
+
+            peak_dict["transform"] = T
+            peak_dict["inverse"] = np.linalg.inv(T)
+
+            return peak_dict
