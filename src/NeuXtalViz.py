@@ -128,7 +128,7 @@ class NeuXtalViz(QMainWindow):
 
         layout.addWidget(app_stack)
 
-        app_menu = self.menuBar().addMenu("External")
+        app_menu = self.menuBar().addMenu("Reduction")
 
         topaz_action = QAction("TOPAZ", self)
         topaz_action.triggered.connect(self.topaz_reduction_GUI)
@@ -151,6 +151,12 @@ class NeuXtalViz(QMainWindow):
         fullprof_action = QAction("FullProf", self)
         fullprof_action.triggered.connect(self.fullprof_reduction_GUI)
         app_menu.addAction(fullprof_action)
+
+        app_menu = self.menuBar().addMenu("Interface")
+
+        structdiff_action = QAction("Structure/Diffuse", self)
+        structdiff_action.triggered.connect(self.structdiff_GUI)
+        app_menu.addAction(structdiff_action)
 
         # self.showMaximized()
 
@@ -206,6 +212,16 @@ class NeuXtalViz(QMainWindow):
         except subprocess.CalledProcessError as e:
             QMessageBox.critical(
                 self, "Error", f"Failed to execute fullprof:\n{e}"
+            )
+
+    def structdiff_GUI(self):
+        path = os.path.dirname(__file__)
+        file = os.path.join(path, "NeuXtalViz/views/command_browser.py")
+        try:
+            subprocess.Popen(["python", file])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(
+                self, "Error", f"Failed to execute structdiff:\n{e}"
             )
 
 
