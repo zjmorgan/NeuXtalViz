@@ -55,6 +55,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
             setattr(self.vs_controls, key, float(value))
         except Exception:
             setattr(self.vs_controls, key, None)
+        self.vs_controls_bind.update_in_view(self.vs_controls)
 
     def get_colormap(self):
         return self.vs_controls.cbar
@@ -104,9 +105,24 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         self.vs_controls.cut_line = value
         self.update_cut()
 
+    def get_cut_scale(self):
+        return self.vs_controls.cut_scale
+
     def set_cut_scale(self, value):
         self.vs_controls.cut_scale = value.lower()
         self.update_cut()
+
+    def get_cut_value(self):
+        return self.vs_controls.cut_value
+
+    def get_cut_thickness(self):
+        return self.vs_controls.cut_thickness
+
+    def get_xlim(self):
+        return [self.vs_controls.xmin, self.vs_controls.xmax]
+
+    def get_ylim(self):
+        return [self.vs_controls.ymin, self.vs_controls.ymax]
 
     def update_limits(self):
         xmin = self.vs_controls.xmin
@@ -186,6 +202,12 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
 
         return axis
 
+    def get_slice_scale(self):
+        return self.vs_controls.slice_scale
+
+    def get_cbar(self):
+        return self.vs_controls.cbar
+
     def get_clim_method(self):
         ctype = self.vs_controls.clim_clip_type
 
@@ -264,7 +286,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
 
         self.slice_idle = True
 
-    def slice_data_process(self, progress):
+    def slice_data_process(self, progress=lambda status, progress: None):
         if self.slice_idle and self.model.is_histo_loaded():
             self.slice_idle = False
 
@@ -296,7 +318,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
 
         self.cut_idle = True
 
-    def cut_data_process(self, progress):
+    def cut_data_process(self, progress=lambda status, progress: None):
         if self.cut_idle and self.model.is_sliced():
             self.cut_idle = False
 

@@ -113,12 +113,12 @@ class NeuXtalVizWidget(QWidget):
         view_tab = QTabWidget()
 
         self.view_combo = QComboBox(self)
-        self.view_combo.addItem("[hkl]")
-        self.view_combo.addItem("[uvw]")
+        self.view_combo.addItem("hkl")
+        self.view_combo.addItem("uvw")
 
         self.viewup_combo = QComboBox(self)
-        self.viewup_combo.addItem("[hkl]")
-        self.viewup_combo.addItem("[uvw]")
+        self.viewup_combo.addItem("hkl")
+        self.viewup_combo.addItem("uvw")
 
         notation = QDoubleValidator.StandardNotation
 
@@ -539,7 +539,7 @@ class NeuXtalVizWidget(QWidget):
 
         axes_type = self.view_combo.currentText()
 
-        if axes_type == "[hkl]":
+        if axes_type == "hkl":
             self.axis1_label.setText("h")
             self.axis2_label.setText("k")
             self.axis3_label.setText("l")
@@ -550,7 +550,7 @@ class NeuXtalVizWidget(QWidget):
 
         axesup_type = self.viewup_combo.currentText()
 
-        if axesup_type == "[hkl]":
+        if axesup_type == "hkl":
             self.axisup1_label.setText("h")
             self.axisup2_label.setText("k")
             self.axisup3_label.setText("l")
@@ -565,7 +565,7 @@ class NeuXtalVizWidget(QWidget):
 
         Returns
         -------
-        axes_type : str, [hkl] or [uvw]
+        axes_type : str, 'hkl' or 'uvw'
             Miller index or fractional coordinate.
         ind : 3-element 1d array-like
             Indices.

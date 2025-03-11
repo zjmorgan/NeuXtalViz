@@ -5,10 +5,12 @@ from threading import Thread
 
 import numpy as np
 import pyvista as pv
+from matplotlib.figure import Figure
+from matplotlib.transforms import Affine2D
 from nova.trame.view.components import InputField
-from nova.trame.view.layouts import GridLayout, HBoxLayout
+from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
 from trame.app.file_upload import ClientFile
-from trame.widgets import html
+from trame.widgets import html, matplotlib
 from trame.widgets import vuetify3 as vuetify
 
 from NeuXtalViz.trame.views.components.visualization_panel import VisualizationPanel
@@ -35,6 +37,8 @@ class VolumeSlicerView:
         self.view_model = view_model
         self.view_model.vs_controls_bind.connect("vs_controls")
         self.view_model.add_histo_bind.connect(self.add_histo)
+        self.view_model.add_slice_bind.connect(self.add_slice)
+        self.view_model.add_cut_bind.connect(self.add_cut)
 
         self.create_ui()
 
@@ -46,21 +50,64 @@ class VolumeSlicerView:
         with GridLayout(classes="pa-2", columns=2):
             self.base_view = VisualizationPanel(self.server, self.view_model)
 
-            with HBoxLayout(valign="start"):
-                InputField(v_model="vs_controls.vol_scale", type="select")
-                InputField(v_model="vs_controls.opacity", type="select")
-                InputField(v_model="vs_controls.opacity_range", type="select")
-                InputField(v_model="vs_controls.clim_clip_type", type="select")
-                InputField(v_model="vs_controls.cbar", type="select")
-                with html.Div():
+            with VBoxLayout():
+                with HBoxLayout():
+                    InputField(v_model="vs_controls.vol_scale", type="select")
+                    InputField(v_model="vs_controls.opacity", type="select")
+                    InputField(v_model="vs_controls.opacity_range", type="select")
+                    InputField(v_model="vs_controls.clim_clip_type", type="select")
+                    InputField(v_model="vs_controls.cbar", type="select")
+                    with html.Div():
+                        InputField(
+                            ref="fread",
+                            classes="d-none",
+                            type="file",
+                            __events=["change"],
+                            change=(self.load_NXS, "[$event.target.files]"),
+                        )
+                        vuetify.VBtn("Load NXS", click="trame.refs.fread.click()")
+
+                with HBoxLayout():
+                    self.fig_slice = Figure(layout="constrained")
+                    self.ax_slice = self.fig_slice.subplots(1, 1)
+                    self.cb = None
+
+                    self.slice_view = matplotlib.Figure(self.fig_slice)
                     InputField(
-                        ref="fread",
-                        classes="d-none",
-                        type="file",
-                        __events=["change"],
-                        change=(self.load_NXS, "[$event.target.files]"),
+                        v_model="vs_controls.vmin", direction="vertical", type="slider"
                     )
-                    vuetify.VBtn("Load NXS", click="trame.refs.fread.click()")
+                    InputField(
+                        v_model="vs_controls.vmax", direction="vertical", type="slider"
+                    )
+
+                with HBoxLayout():
+                    InputField(v_model="vs_controls.slice_plane", type="select")
+                    InputField(v_model="vs_controls.slice_value")
+                    InputField(v_model="vs_controls.slice_thickness")
+                    vuetify.VBtn("Save Slice")
+                    InputField(v_model="vs_controls.slice_scale", type="select")
+
+                with HBoxLayout():
+                    InputField(v_model="vs_controls.xmin")
+                    InputField(v_model="vs_controls.xmax")
+                    InputField(v_model="vs_controls.ymin")
+                    InputField(v_model="vs_controls.ymax")
+                    InputField(v_model="vs_controls.vlim_clip_type", type="select")
+                    InputField(v_model="vs_controls.vmin")
+                    InputField(v_model="vs_controls.vmax")
+
+                with HBoxLayout():
+                    self.fig_cut = Figure(layout="constrained")
+                    self.ax_cut = self.fig_cut.subplots(1, 1)
+
+                    self.cut_view = matplotlib.Figure(self.fig_cut)
+
+                with HBoxLayout():
+                    InputField(v_model="vs_controls.cut_line", type="select")
+                    InputField(v_model="vs_controls.cut_value")
+                    InputField(v_model="vs_controls.cut_thickness")
+                    vuetify.VBtn("Save Cut")
+                    InputField(v_model="vs_controls.cut_scale", type="select")
 
     def load_in_background(self, filename):
         self.view_model.load_NXS_process(filename)
@@ -116,7 +163,7 @@ class VolumeSlicerView:
             self.view_model.update_processing("Invalid parameters.", 0)
 
         self.base_view.reset_view()
-        # self.slice_data()
+        self.slice_data()
 
     def redraw_data(self):
         self.view_model.update_processing("Processing...", 1)
@@ -238,18 +285,12 @@ class VolumeSlicerView:
         actor.SetAxisLabels(1, axis1_label)
         actor.SetAxisLabels(2, axis2_label)
 
-        # self.base_view.reset_view()
-
         self.clip.AddObserver("InteractionEvent", self.interaction_callback)
 
         self.P_inv = np.linalg.inv(P)
 
     def interaction_callback(self, caller, event):
         orig = caller.GetOrigin()
-        # norm = caller.GetNormal()
-
-        # norm /= np.linalg.norm(norm)
-        # norm = self.norm
 
         ind = np.array(self.norm).tolist().index(1)
 
@@ -257,4 +298,172 @@ class VolumeSlicerView:
 
         self.view_model.set_number("slice_value", value)
 
-        # self.slice_data()
+        self.slice_data()
+
+    def slice_in_background(self):
+        self.slicing_result = self.view_model.slice_data_process()
+        self.view_model.slice_data_complete(self.slicing_result)
+        self.slicing = False
+
+    async def monitor_slice(self):
+        while self.slicing:
+            await sleep(0.1)
+
+        self.view_model.update_processing("Data sliced!", 100)
+
+        self.cut_data()
+
+    def slice_data(self):
+        self.view_model.update_processing("Processing...", 1)
+        self.view_model.update_processing("Updating slice...", 50)
+
+        self.slicing = True
+        thread = Thread(target=self.slice_in_background, daemon=True)
+        thread.start()
+
+        create_task(self.monitor_slice())
+
+    def __format_axis_coord(self, x, y):
+        x, y, _ = np.dot(self.T_inv, [x, y, 1])
+        return "x={:.3f}, y={:.3f}".format(x, y)
+
+    def add_slice(self, slice_dict):
+        cmap = cmaps[self.view_model.get_cbar()]
+
+        x = slice_dict["x"]
+        y = slice_dict["y"]
+
+        labels = slice_dict["labels"]
+        title = slice_dict["title"]
+        signal = slice_dict["signal"]
+
+        scale = self.view_model.get_slice_scale()
+
+        vmin = np.nanmin(signal)
+        vmax = np.nanmax(signal)
+
+        if np.isclose(vmax, vmin) or not np.isfinite([vmin, vmax]).all():
+            vmin, vmax = (0.1, 1) if scale == "log" else (0, 1)
+
+        T = slice_dict["transform"]
+        aspect = slice_dict["aspect"]
+
+        self.T_inv = np.linalg.inv(T)
+
+        self.ax_slice.format_coord = self.__format_axis_coord
+
+        transform = Affine2D(T) + self.ax_slice.transData
+        self.transform = transform
+
+        xlim = np.array([x.min(), x.max()])
+        ylim = np.array([y.min(), y.max()])
+
+        if self.cb is not None:
+            self.cb.remove()
+
+        self.ax_slice.clear()
+
+        im = self.ax_slice.pcolormesh(
+            x,
+            y,
+            signal,
+            norm=scale,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            shading="flat",
+            rasterized=True,
+            transform=transform,
+        )
+
+        self.im = im
+        vmin, self.vmax = self.im.norm.vmin, self.im.norm.vmax
+
+        self.view_model.set_number("vmin", self.im.norm.vmin)
+        self.view_model.set_number("vmax", self.im.norm.vmax)
+        self.view_model.set_number("xmin", xlim[0])
+        self.view_model.set_number("xmax", xlim[1])
+        self.view_model.set_number("ymin", ylim[0])
+        self.view_model.set_number("ymax", ylim[1])
+
+        self.ax_slice.set_aspect(aspect)
+        self.ax_slice.set_xlabel(labels[0])
+        self.ax_slice.set_ylabel(labels[1])
+        self.ax_slice.set_title(title)
+        self.ax_slice.minorticks_on()
+
+        self.ax_slice.xaxis.get_major_locator().set_params(integer=True)
+        self.ax_slice.yaxis.get_major_locator().set_params(integer=True)
+
+        self.cb = self.fig_slice.colorbar(self.im, ax=self.ax_slice)
+        self.cb.minorticks_on()
+
+        self.slice_view.update(self.fig_slice)
+
+    def cut_in_background(self):
+        self.cut_result = self.view_model.cut_data_process()
+        self.view_model.cut_data_complete(self.cut_result)
+        self.cutting = False
+
+    async def monitor_cut(self):
+        while self.cutting:
+            await sleep(0.1)
+
+        self.view_model.update_processing("Data cut!", 100)
+
+    def cut_data(self):
+        self.view_model.update_processing("Processing...", 1)
+        self.view_model.update_processing("Updating cut...", 50)
+
+        self.cutting = True
+        thread = Thread(target=self.cut_in_background, daemon=True)
+        thread.start()
+
+        create_task(self.monitor_cut())
+
+    def add_cut(self, cut_dict):
+        x = cut_dict["x"]
+        y = cut_dict["y"]
+        e = cut_dict["e"]
+
+        val = cut_dict["value"]
+
+        label = cut_dict["label"]
+        title = cut_dict["title"]
+
+        scale = self.view_model.get_cut_scale()
+
+        line_cut = self.view_model.get_cut_value()
+
+        lines = self.ax_slice.get_lines()
+        for line in lines:
+            line.remove()
+
+        xlim = self.view_model.get_xlim()
+        ylim = self.view_model.get_ylim()
+
+        thick = self.view_model.get_cut_thickness()
+
+        delta = 0 if thick is None else thick / 2
+
+        if line_cut == "Axis 2":
+            l0 = [val - delta, val - delta], ylim
+            l1 = [val + delta, val + delta], ylim
+        else:
+            l0 = xlim, [val - delta, val - delta]
+            l1 = xlim, [val + delta, val + delta]
+
+        self.ax_slice.plot(*l0, "w--", linewidth=1, transform=self.transform)
+        self.ax_slice.plot(*l1, "w--", linewidth=1, transform=self.transform)
+
+        self.ax_cut.clear()
+
+        self.ax_cut.errorbar(x, y, e)
+        self.ax_cut.set_xlabel(label)
+        self.ax_cut.set_yscale(scale)
+        self.ax_cut.set_title(title)
+        self.ax_cut.minorticks_on()
+
+        self.ax_cut.xaxis.get_major_locator().set_params(integer=True)
+
+        self.cut_view.update(self.fig_cut)

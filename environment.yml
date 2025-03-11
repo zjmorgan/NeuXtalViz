@@ -24,3 +24,5 @@ dependencies:
     - pyqtdarktheme
     - nova-mvvm
     - nova-trame
+    - trame-matplotlib
+    - trame-vtk

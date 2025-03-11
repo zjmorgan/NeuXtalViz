@@ -18,9 +18,11 @@ class VisualizationPanel:
         self.view_model.parallel_projection_bind.connect(self.change_projection)
         self.view_model.progress_bind.connect("progress")
         self.view_model.status_bind.connect("status")
-        self.view_model.update_processing("Ready!", 0)
         self.view_model.up_vector_bind.connect(self.view_up_vector)
+        self.view_model.update_view_bind.connect(self.update_view)
         self.view_model.vector_bind.connect(self.view_vector)
+
+        self.view_model.update_processing("Ready!", 0)
 
         self.camera_position = None
         self.plotter = self.create_plotter()
@@ -73,14 +75,24 @@ class VisualizationPanel:
                                 vuetify.VBtn("c", click=self.view_model.view_ab)
                         with vuetify.VWindowItem(value=2):
                             with GridLayout(columns=10, halign="center"):
-                                vuetify.VLabel("h")
-                                vuetify.VLabel("k")
-                                vuetify.VLabel("l")
-                                InputField(v_model="controls.manual_axis_type", column_span=2, type="select")
-                                vuetify.VLabel("h")
-                                vuetify.VLabel("k")
-                                vuetify.VLabel("l")
-                                InputField(v_model="controls.manual_up_axis_type", column_span=2, type="select")
+                                vuetify.VLabel("{{ controls.manual_axis_type[0] }}")
+                                vuetify.VLabel("{{ controls.manual_axis_type[1] }}")
+                                vuetify.VLabel("{{ controls.manual_axis_type[2] }}")
+                                InputField(
+                                    v_model="controls.manual_axis_type",
+                                    column_span=2,
+                                    items="controls.axis_types",
+                                    type="select",
+                                )
+                                vuetify.VLabel("{{ controls.manual_up_axis_type[0] }}")
+                                vuetify.VLabel("{{ controls.manual_up_axis_type[1] }}")
+                                vuetify.VLabel("{{ controls.manual_up_axis_type[2] }}")
+                                InputField(
+                                    v_model="controls.manual_up_axis_type",
+                                    column_span=2,
+                                    items="controls.axis_types",
+                                    type="select",
+                                )
                                 InputField(v_model="controls.manual_axes[0]")
                                 InputField(v_model="controls.manual_axes[1]")
                                 InputField(v_model="controls.manual_axes[2]")
@@ -117,26 +129,14 @@ class VisualizationPanel:
             with vuetify.VWindow(v_model="controls.oriented_lattice_tab"):
                 with vuetify.VWindowItem(value=1):
                     with GridLayout(columns=3):
+                        InputField(v_model="lattice_parameters.a", readonly=True)
+                        InputField(v_model="lattice_parameters.b", readonly=True)
                         with HBoxLayout():
-                            vuetify.VLabel("a:")
-                            InputField(v_model="lattice_parameters.a", readonly=True)
-                        with HBoxLayout():
-                            vuetify.VLabel("b:")
-                            InputField(v_model="lattice_parameters.b", readonly=True)
-                        with HBoxLayout():
-                            vuetify.VLabel("c:")
                             InputField(v_model="lattice_parameters.c", readonly=True)
                             vuetify.VLabel("Å")
+                        InputField(v_model="lattice_parameters.alpha", readonly=True)
+                        InputField(v_model="lattice_parameters.beta", readonly=True)
                         with HBoxLayout():
-                            vuetify.VLabel("α:")
-                            InputField(
-                                v_model="lattice_parameters.alpha", readonly=True
-                            )
-                        with HBoxLayout():
-                            vuetify.VLabel("β:")
-                            InputField(v_model="lattice_parameters.beta", readonly=True)
-                        with HBoxLayout():
-                            vuetify.VLabel("ɣ:")
                             InputField(
                                 v_model="lattice_parameters.gamma", readonly=True
                             )
@@ -159,6 +159,9 @@ class VisualizationPanel:
                 striped=("progress < 100",),
             ):
                 html.Span("{{ status }}")
+
+    def update_view(self, _):
+        self.view.update()
 
     def save_screenshot(self):
         data = BytesIO()

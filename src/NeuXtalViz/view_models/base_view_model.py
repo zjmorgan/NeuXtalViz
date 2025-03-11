@@ -9,23 +9,25 @@ class Controls(BaseModel):
     show_axes: bool = Field(default=True, title="Show Axes")
     parallel_projection: bool = Field(default=True, title="Parallel Projection")
 
-    manual_axis_type: str = Field(default="[hkl]")
+    axis_types: list[str] = ["hkl", "uvw"]
+
+    manual_axis_type: str = Field(default="hkl")
     manual_axes: list[float] = Field(
         default=[0.0, 0.0, 0.0], title="Manual Axis Indices"
     )
-    manual_up_axis_type: str = Field(default="[hkl]")
+    manual_up_axis_type: str = Field(default="hkl")
     manual_up_axes: list[float] = Field(
         default=[0.0, 0.0, 0.0], title="Manual Up Axis Indices"
     )
 
 
 class LatticeParameters(BaseModel):
-    a: float = Field(default=0.0)
-    b: float = Field(default=0.0)
-    c: float = Field(default=0.0)
-    alpha: float = Field(default=0.0)
-    beta: float = Field(default=0.0)
-    gamma: float = Field(default=0.0)
+    a: float = Field(default=0.0, title="a")
+    b: float = Field(default=0.0, title="b")
+    c: float = Field(default=0.0, title="c")
+    alpha: float = Field(default=0.0, title="α")
+    beta: float = Field(default=0.0, title="β")
+    gamma: float = Field(default=0.0, title="ɣ")
     u: list[float] = Field(default=[0.0, 0.0, 0.0])
     v: list[float] = Field(default=[0.0, 0.0, 0.0])
 
@@ -48,6 +50,7 @@ class NeuXtalVizViewModel:
         self.status_bind = binding.new_bind()
         self.up_vector_bind = binding.new_bind()
         self.update_labels_bind = binding.new_bind()
+        self.update_view_bind = binding.new_bind()
         self.vector_bind = binding.new_bind()
 
     def process_updates(self, results):
@@ -57,6 +60,11 @@ class NeuXtalVizViewModel:
                     self.update_axes()
                 case "parallel_projection":
                     self.update_projection()
+
+        self.update_view()
+
+    def update_view(self):
+        self.update_view_bind.update_in_view(None)
 
     def update_status(self, status):
         """
