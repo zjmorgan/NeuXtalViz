@@ -45,6 +45,7 @@ cmaps = {
     "Binary": "binary",
     "Diverging": "bwr",
     "Rainbow": "turbo",
+    "Modified": "modified",
 }
 
 
@@ -1212,6 +1213,7 @@ class UBView(NeuXtalVizWidget):
         self.cbar_combo.addItem("Rainbow")
         self.cbar_combo.addItem("Binary")
         self.cbar_combo.addItem("Diverging")
+        self.cbar_combo.addItem("Modified")
         self.cbar_combo.setCurrentIndex(2)
 
         self.slice_combo = QComboBox(self)

@@ -373,7 +373,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def find_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def find_peaks_process(self, progress):
         if self.model.has_Q():
@@ -404,7 +404,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def find_conventional_complete(self, result):
-        self.view.clear_niggli_info()
+        pass
 
     def find_conventional_process(self, progress):
         if self.model.has_peaks():
@@ -494,7 +494,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def select_cell_complete(self, result):
-        self.view.clear_niggli_info()
+        pass
 
     def select_cell_process(self, progress):
         if self.model.has_peaks() and self.model.has_UB():
@@ -558,7 +558,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def transform_UB_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def transform_UB_process(self, progress):
         if self.model.has_peaks() and self.model.has_UB():
@@ -588,7 +588,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def refine_UB_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def refine_UB_process(self, progress):
         if self.model.has_peaks():
@@ -648,7 +648,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def index_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def index_peaks_process(self, progress):
         mod_info = self.get_modulation_info()
@@ -697,7 +697,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def predict_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def predict_peaks_process(self, progress):
         mod_info = self.get_modulation_info()
@@ -764,7 +764,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def integrate_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def integrate_peaks_process(self, progress):
         params = self.view.get_integrate_peaks_parameters()
@@ -812,7 +812,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def filter_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def filter_peaks_process(self, progress):
         name = self.view.get_filter_variable()
