@@ -37,6 +37,8 @@ class VolumeSlicerView:
     def __init__(self, server, view_model):
         self.server = server
         self.view_model = view_model
+        self.view_model.slice_lim_bind.connect(self.set_slice_lim)
+        self.view_model.cut_lim_bind.connect(self.set_cut_lim)
         self.view_model.vs_controls_bind.connect("vs_controls")
         self.view_model.redraw_data_bind.connect(self.redraw_data)
         self.view_model.slice_data_bind.connect(self.slice_data)
@@ -473,6 +475,24 @@ class VolumeSlicerView:
         self.ax_cut.xaxis.get_major_locator().set_params(integer=True)
 
         self.cut_view.update(self.fig_cut)
+
+    def set_slice_lim(self, lims):
+        xlim, ylim = lims
+
+        if self.cb is not None:
+            xmin, xmax = xlim
+            ymin, ymax = ylim
+            T = np.linalg.inv(self.T_inv)
+            xmin, ymin, _ = np.dot(T, [xmin, ymin, 1])
+            xmax, ymax, _ = np.dot(T, [xmax, ymax, 1])
+            self.ax_slice.set_xlim(xmin, xmax)
+            self.ax_slice.set_ylim(ymin, ymax)
+            self.slice_view.update(self.fig_slice)
+
+    def set_cut_lim(self, lim):
+        if self.cb is not None:
+            self.ax_cut.set_xlim(*lim)
+            self.cut_view.update(self.fig_cut)
 
     def save_slice(self):
         data = BytesIO()

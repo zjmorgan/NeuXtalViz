@@ -11,6 +11,37 @@ class AxisOptions(str, Enum):
     log = "Log"
 
 
+class OpacityOptions(str, Enum):
+    linear = "Linear"
+    geometric = "Geometric"
+    sigmoid = "Sigmoid"
+
+
+class OpacityRangeOptions(str, Enum):
+    low_to_high = "Low->High"
+    high_to_low = "High->Low"
+
+
+class ClipTypeOptions(str, Enum):
+    minmax = "Min/Max"
+    normal = "μ±3×σ"
+    boxplot = "Q₃/Q₁±1.5×IQR"
+
+
+class ColorbarOptions(str, Enum):
+    sequential = "Sequential"
+    rainbow = "Rainbow"
+    binary = "Binary"
+    diverging = "Diverging"
+    modified = "Modified"
+
+
+class SlicePlaneOptions(str, Enum):
+    one_half = "Axis 1/2"
+    one_third = "Axis 1/3"
+    two_thirds = "Axis 2/3"
+
+
 class CutLineOptions(str, Enum):
     axis_one = "Axis 1"
     axis_two = "Axis 2"
@@ -18,16 +49,16 @@ class CutLineOptions(str, Enum):
 
 class VolumeSlicerControls(BaseModel):
     vol_scale: AxisOptions = Field(default=AxisOptions.linear)
-    opacity: str = Field(default="Linear")
-    opacity_range: str = Field("Low->High")
-    clim_clip_type: str = Field(default="Q₃/Q₁±1.5×IQR")
-    cbar: str = Field(default="Sequential")
+    opacity: OpacityOptions = Field(default=OpacityOptions.linear)
+    opacity_range: OpacityRangeOptions = Field(OpacityRangeOptions.low_to_high)
+    clim_clip_type: ClipTypeOptions = Field(default=ClipTypeOptions.boxplot)
+    cbar: ColorbarOptions = Field(default=ColorbarOptions.sequential)
 
-    slice_plane: str = Field(default="Axis 1/2")
+    slice_plane: SlicePlaneOptions = Field(default=SlicePlaneOptions.one_half)
     slice_value: Optional[float] = Field(default=0.0, title="Slice")
     slice_thickness: Optional[float] = Field(default=0.1, title="Thickness")
     slice_scale: AxisOptions = Field(default=AxisOptions.linear)
-    vlim_clip_type: str = Field(default="Q₃/Q₁±1.5×IQR")
+    vlim_clip_type: ClipTypeOptions = Field(default=ClipTypeOptions.boxplot)
     vmin: Optional[float] = Field(default=0.0, title="Min")
     vmax: Optional[float] = Field(default=0.0, title="Max")
     xmin: Optional[float] = Field(default=0.0, title="X Min")
@@ -66,18 +97,25 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
     def process_vs_updates(self, results):
         for update in results.get("updated", []):
             match update:
-                case "vol_scale":
+                case (
+                    "vol_scale"
+                    | "opacity"
+                    | "opacity_range"
+                    | "clim_clip_type"
+                    | "cbar"
+                    | "slice_plane"
+                ):
                     pass
                     # TODO: self.redraw_data_bind.update_in_view(None)
-                case "slice_scale":
+                case (
+                    "slice_value" | "slice_thickness" | "slice_scale" | "vlim_clip_type"
+                ):
                     self.update_slice()
-                case "cut_line":
-                    self.update_cut()
-                case "cut_value":
-                    self.update_cut()
-                case "cut_thickness":
-                    self.update_cut()
-                case "cut_scale":
+                case "xmin" | "xmax" | "ymin" | "ymax":
+                    self.update_limits()
+                case "vmin" | "vmax":
+                    self.update_cvals()
+                case "cut_line" | "cut_value" | "cut_thickness" | "cut_scale":
                     self.update_cut()
 
     def set_number(self, key, value):
@@ -88,7 +126,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         self.vs_controls_bind.update_in_view(self.vs_controls)
 
     def get_colormap(self):
-        return self.vs_controls.cbar
+        return self.vs_controls.cbar.value
 
     def get_vol_scale(self):
         return self.vs_controls.vol_scale.value.lower()
@@ -98,21 +136,21 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         self.redraw_data_bind.update_in_view(None)
 
     def get_opacity(self):
-        return self.vs_controls.opacity
+        return self.vs_controls.opacity.value
 
     def set_opacity(self, value):
-        self.vs_controls.opacity = value
+        self.vs_controls.opacity = OpacityOptions(value)
         self.redraw_data_bind.update_in_view(None)
 
     def get_opacity_range(self):
-        return self.vs_controls.opacity_range
+        return self.vs_controls.opacity_range.value
 
     def set_opacity_range(self, value):
-        self.vs_controls.opacity_range = value
+        self.vs_controls.opacity_range = OpacityRangeOptions(value)
         self.redraw_data_bind.update_in_view(None)
 
     def set_clim_clip_type(self, value):
-        self.vs_controls.clim_clip_type = value
+        self.vs_controls.clim_clip_type = ClipTypeOptions(value)
         self.redraw_data_bind.update_in_view(None)
 
     def set_cbar(self, value):
@@ -120,7 +158,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         self.redraw_data_bind.update_in_view(None)
 
     def set_slice_plane(self, value):
-        self.vs_controls.slice_plane = value
+        self.vs_controls.slice_plane = SlicePlaneOptions(value)
         self.redraw_data_bind.update_in_view(None)
 
     def set_vlim_clip_type(self, value):
@@ -210,9 +248,9 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
     def get_normal(self):
         slice_plane = self.vs_controls.slice_plane
 
-        if slice_plane == "Axis 1/2":
+        if slice_plane == SlicePlaneOptions.one_half:
             norm = [0, 0, 1]
-        elif slice_plane == "Axis 1/3":
+        elif slice_plane == SlicePlaneOptions.one_third:
             norm = [0, 1, 0]
         else:
             norm = [1, 0, 0]
@@ -239,11 +277,11 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         return self.vs_controls.cbar
 
     def get_clim_method(self):
-        ctype = self.vs_controls.clim_clip_type
+        ctype = self.vs_controls.clim_clip_type.value
 
-        if ctype == "μ±3×σ":
+        if ctype == ClipTypeOptions.normal:
             method = "normal"
-        elif ctype == "Q₃/Q₁±1.5×IQR":
+        elif ctype == ClipTypeOptions.boxplot:
             method = "boxplot"
         else:
             method = None
@@ -253,9 +291,9 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
     def get_vlim_method(self):
         ctype = self.vs_controls.vlim_clip_type
 
-        if ctype == "μ±3×σ":
+        if ctype == ClipTypeOptions.normal:
             method = "normal"
-        elif ctype == "Q₃/Q₁±1.5×IQR":
+        elif ctype == ClipTypeOptions.boxplot:
             method = "boxplot"
         else:
             method = None
