@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -5,8 +6,18 @@ from pydantic import BaseModel, Field
 from NeuXtalViz.view_models.base_view_model import NeuXtalVizViewModel
 
 
+class AxisOptions(str, Enum):
+    linear = "Linear"
+    log = "Log"
+
+
+class CutLineOptions(str, Enum):
+    axis_one = "Axis 1"
+    axis_two = "Axis 2"
+
+
 class VolumeSlicerControls(BaseModel):
-    vol_scale: str = Field(default="Linear")
+    vol_scale: AxisOptions = Field(default=AxisOptions.linear)
     opacity: str = Field(default="Linear")
     opacity_range: str = Field("Low->High")
     clim_clip_type: str = Field(default="Q₃/Q₁±1.5×IQR")
@@ -15,7 +26,7 @@ class VolumeSlicerControls(BaseModel):
     slice_plane: str = Field(default="Axis 1/2")
     slice_value: Optional[float] = Field(default=0.0, title="Slice")
     slice_thickness: Optional[float] = Field(default=0.1, title="Thickness")
-    slice_scale: str = Field(default="linear")
+    slice_scale: AxisOptions = Field(default=AxisOptions.linear)
     vlim_clip_type: str = Field(default="Q₃/Q₁±1.5×IQR")
     vmin: Optional[float] = Field(default=0.0, title="Min")
     vmax: Optional[float] = Field(default=0.0, title="Max")
@@ -24,10 +35,10 @@ class VolumeSlicerControls(BaseModel):
     ymin: Optional[float] = Field(default=0.0, title="Y Min")
     ymax: Optional[float] = Field(default=0.0, title="Y Max")
 
-    cut_line: str = Field(default="Axis 1")
+    cut_line: CutLineOptions = Field(default=CutLineOptions.axis_one)
     cut_value: Optional[float] = Field(default=0.0, title="Cut")
     cut_thickness: Optional[float] = Field(default=0.1, title="Thickness")
-    cut_scale: str = Field(default="linear")
+    cut_scale: AxisOptions = Field(default=AxisOptions.linear)
 
 
 class VolumeSlicerViewModel(NeuXtalVizViewModel):
@@ -39,7 +50,9 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         self.slice_idle = True
         self.cut_idle = True
 
-        self.vs_controls_bind = binding.new_bind(self.vs_controls)
+        self.vs_controls_bind = binding.new_bind(
+            self.vs_controls, callback_after_update=self.process_vs_updates
+        )
         self.slice_lim_bind = binding.new_bind()
         self.colorbar_lim_bind = binding.new_bind()
         self.cut_lim_bind = binding.new_bind()
@@ -49,6 +62,23 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         self.add_histo_bind = binding.new_bind()
         self.add_slice_bind = binding.new_bind()
         self.add_cut_bind = binding.new_bind()
+
+    def process_vs_updates(self, results):
+        for update in results.get("updated", []):
+            match update:
+                case "vol_scale":
+                    pass
+                    # TODO: self.redraw_data_bind.update_in_view(None)
+                case "slice_scale":
+                    self.update_slice()
+                case "cut_line":
+                    self.update_cut()
+                case "cut_value":
+                    self.update_cut()
+                case "cut_thickness":
+                    self.update_cut()
+                case "cut_scale":
+                    self.update_cut()
 
     def set_number(self, key, value):
         try:
@@ -61,10 +91,10 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         return self.vs_controls.cbar
 
     def get_vol_scale(self):
-        return self.vs_controls.vol_scale.lower()
+        return self.vs_controls.vol_scale.value.lower()
 
     def set_vol_scale(self, value):
-        self.vs_controls.vol_scale = value
+        self.vs_controls.vol_scale = AxisOptions(value)
         self.redraw_data_bind.update_in_view(None)
 
     def get_opacity(self):
@@ -98,18 +128,18 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         self.update_slice()
 
     def set_slice_scale(self, value):
-        self.vs_controls.slice_scale = value.lower()
+        self.vs_controls.slice_scale = AxisOptions(value)
         self.update_slice()
 
     def set_cut_line(self, value):
-        self.vs_controls.cut_line = value
+        self.vs_controls.cut_line = CutLineOptions(value)
         self.update_cut()
 
     def get_cut_scale(self):
-        return self.vs_controls.cut_scale
+        return self.vs_controls.cut_scale.value.lower()
 
     def set_cut_scale(self, value):
-        self.vs_controls.cut_scale = value.lower()
+        self.vs_controls.cut_scale = AxisOptions(value)
         self.update_cut()
 
     def get_cut_value(self):
@@ -141,7 +171,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
                 ylim = [ymin, ymax]
                 self.slice_lim_bind.update_in_view((xlim, ylim))
                 line_cut = self.vs_controls.cut_line
-                lim = xlim if line_cut == "Axis 1" else ylim
+                lim = xlim if line_cut == CutLineOptions.axis_one else ylim
                 self.cut_lim_bind.update_in_view(lim)
 
     def update_cvals(self):
@@ -195,7 +225,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
 
         line_cut = self.vs_controls.cut_line
 
-        if line_cut == "Axis 1":
+        if line_cut == CutLineOptions.axis_one:
             axis[ind[0]] = 0
         else:
             axis[ind[1]] = 0
@@ -203,7 +233,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
         return axis
 
     def get_slice_scale(self):
-        return self.vs_controls.slice_scale
+        return self.vs_controls.slice_scale.value.lower()
 
     def get_cbar(self):
         return self.vs_controls.cbar

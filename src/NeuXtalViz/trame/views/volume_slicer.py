@@ -1,5 +1,6 @@
 from asyncio import create_task, sleep
 from functools import partial
+from io import BytesIO
 from tempfile import NamedTemporaryFile
 from threading import Thread
 
@@ -9,6 +10,7 @@ from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
 from nova.trame.view.components import InputField
 from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
+from trame.app import asynchronous
 from trame.app.file_upload import ClientFile
 from trame.widgets import html, matplotlib
 from trame.widgets import vuetify3 as vuetify
@@ -36,6 +38,9 @@ class VolumeSlicerView:
         self.server = server
         self.view_model = view_model
         self.view_model.vs_controls_bind.connect("vs_controls")
+        self.view_model.redraw_data_bind.connect(self.redraw_data)
+        self.view_model.slice_data_bind.connect(self.slice_data)
+        self.view_model.cut_data_bind.connect(self.cut_data)
         self.view_model.add_histo_bind.connect(self.add_histo)
         self.view_model.add_slice_bind.connect(self.add_slice)
         self.view_model.add_cut_bind.connect(self.add_cut)
@@ -84,7 +89,7 @@ class VolumeSlicerView:
                     InputField(v_model="vs_controls.slice_plane", type="select")
                     InputField(v_model="vs_controls.slice_value")
                     InputField(v_model="vs_controls.slice_thickness")
-                    vuetify.VBtn("Save Slice")
+                    vuetify.VBtn("Save Slice", click=self.save_slice)
                     InputField(v_model="vs_controls.slice_scale", type="select")
 
                 with HBoxLayout():
@@ -106,7 +111,7 @@ class VolumeSlicerView:
                     InputField(v_model="vs_controls.cut_line", type="select")
                     InputField(v_model="vs_controls.cut_value")
                     InputField(v_model="vs_controls.cut_thickness")
-                    vuetify.VBtn("Save Cut")
+                    vuetify.VBtn("Save Cut", click=self.save_cut)
                     InputField(v_model="vs_controls.cut_scale", type="select")
 
     def load_in_background(self, filename):
@@ -165,7 +170,8 @@ class VolumeSlicerView:
         self.base_view.reset_view()
         self.slice_data()
 
-    def redraw_data(self):
+    @asynchronous.task
+    async def redraw_data(self, _=None):
         self.view_model.update_processing("Processing...", 1)
         self.view_model.update_processing("Updating volume...", 20)
 
@@ -313,7 +319,7 @@ class VolumeSlicerView:
 
         self.cut_data()
 
-    def slice_data(self):
+    def slice_data(self, _=None):
         self.view_model.update_processing("Processing...", 1)
         self.view_model.update_processing("Updating slice...", 50)
 
@@ -411,7 +417,7 @@ class VolumeSlicerView:
 
         self.view_model.update_processing("Data cut!", 100)
 
-    def cut_data(self):
+    def cut_data(self, _=None):
         self.view_model.update_processing("Processing...", 1)
         self.view_model.update_processing("Updating cut...", 50)
 
@@ -467,3 +473,15 @@ class VolumeSlicerView:
         self.ax_cut.xaxis.get_major_locator().set_params(integer=True)
 
         self.cut_view.update(self.fig_cut)
+
+    def save_slice(self):
+        data = BytesIO()
+        self.fig_slice.savefig(data, format="png")
+        data.seek(0)
+        self.base_view.js_download(("slice.png", data.read()))
+
+    def save_cut(self):
+        data = BytesIO()
+        self.fig_cut.savefig(data, format="png")
+        data.seek(0)
+        self.base_view.js_download(("cut.png", data.read()))

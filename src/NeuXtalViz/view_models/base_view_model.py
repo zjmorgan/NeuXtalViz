@@ -1,4 +1,11 @@
+from enum import Enum
+
 from pydantic import BaseModel, Field
+
+
+class AxisTypeEnum(str, Enum):
+    hkl = "hkl"
+    uvw = "uvw"
 
 
 class Controls(BaseModel):
@@ -9,13 +16,13 @@ class Controls(BaseModel):
     show_axes: bool = Field(default=True, title="Show Axes")
     parallel_projection: bool = Field(default=True, title="Parallel Projection")
 
-    axis_types: list[str] = ["hkl", "uvw"]
-
-    manual_axis_type: str = Field(default="hkl")
+    manual_axis_type: AxisTypeEnum = Field(default=AxisTypeEnum.hkl, title="Axis Type")
     manual_axes: list[float] = Field(
         default=[0.0, 0.0, 0.0], title="Manual Axis Indices"
     )
-    manual_up_axis_type: str = Field(default="hkl")
+    manual_up_axis_type: AxisTypeEnum = Field(
+        default=AxisTypeEnum.hkl, title="Up Axis Type"
+    )
     manual_up_axes: list[float] = Field(
         default=[0.0, 0.0, 0.0], title="Manual Up Axis Indices"
     )

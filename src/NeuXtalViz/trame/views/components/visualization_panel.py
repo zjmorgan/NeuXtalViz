@@ -27,7 +27,7 @@ class VisualizationPanel:
         self.camera_position = None
         self.plotter = self.create_plotter()
         self.js_download = client.JSEval(
-            exec="utils.download('neuxtalviz.png', $event, 'image/png')"
+            exec="utils.download($event[0], $event[1], 'image/png')"
         ).exec
 
         self.create_ui()
@@ -81,7 +81,6 @@ class VisualizationPanel:
                                 InputField(
                                     v_model="controls.manual_axis_type",
                                     column_span=2,
-                                    items="controls.axis_types",
                                     type="select",
                                 )
                                 vuetify.VLabel("{{ controls.manual_up_axis_type[0] }}")
@@ -90,7 +89,6 @@ class VisualizationPanel:
                                 InputField(
                                     v_model="controls.manual_up_axis_type",
                                     column_span=2,
-                                    items="controls.axis_types",
                                     type="select",
                                 )
                                 InputField(v_model="controls.manual_axes[0]")
@@ -167,7 +165,7 @@ class VisualizationPanel:
         data = BytesIO()
         self.plotter.screenshot(data)
         data.seek(0)
-        self.js_download(data.read())
+        self.js_download(("neuxtalviz.png", data.read()))
 
     def clear_scene(self):
         self.plotter.clear_plane_widgets()

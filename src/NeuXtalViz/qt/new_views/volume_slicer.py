@@ -295,9 +295,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.view_model.slice_data_bind.connect(
             "slice_data", self.slice_data
         )
-        self.view_model.redraw_data_bind.connect(
-            "cut_data", self.cut_data
-        )
+        self.view_model.cut_data_bind.connect("cut_data", self.cut_data)
         self.view_model.add_histo_bind.connect(
             "add_histo", self.add_histo
         )
