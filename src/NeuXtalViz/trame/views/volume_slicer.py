@@ -39,6 +39,7 @@ class VolumeSlicerView:
         self.view_model = view_model
         self.view_model.slice_lim_bind.connect(self.set_slice_lim)
         self.view_model.cut_lim_bind.connect(self.set_cut_lim)
+        self.view_model.colorbar_lim_bind.connect(self.update_colorbar_vlims)
         self.view_model.vs_controls_bind.connect("vs_controls")
         self.view_model.redraw_data_bind.connect(self.redraw_data)
         self.view_model.slice_data_bind.connect(self.slice_data)
@@ -81,10 +82,18 @@ class VolumeSlicerView:
 
                     self.slice_view = matplotlib.Figure(self.fig_slice)
                     InputField(
-                        v_model="vs_controls.vmin", direction="vertical", type="slider"
+                        v_model="vs_controls.vmin",
+                        direction="vertical",
+                        max=("vs_controls.vlims[1]",),
+                        min=("vs_controls.vlims[0]",),
+                        type="slider",
                     )
                     InputField(
-                        v_model="vs_controls.vmax", direction="vertical", type="slider"
+                        v_model="vs_controls.vmax",
+                        direction="vertical",
+                        max=("vs_controls.vlims[1]",),
+                        min=("vs_controls.vlims[0]",),
+                        type="slider",
                     )
 
                 with HBoxLayout():
@@ -172,8 +181,7 @@ class VolumeSlicerView:
         self.base_view.reset_view()
         self.slice_data()
 
-    @asynchronous.task
-    async def redraw_data(self, _=None):
+    def redraw_data(self, _=None):
         self.view_model.update_processing("Processing...", 1)
         self.view_model.update_processing("Updating volume...", 20)
 
@@ -350,6 +358,8 @@ class VolumeSlicerView:
         vmin = np.nanmin(signal)
         vmax = np.nanmax(signal)
 
+        self.view_model.set_vlims(vmin, vmax)
+
         if np.isclose(vmax, vmin) or not np.isfinite([vmin, vmax]).all():
             vmin, vmax = (0.1, 1) if scale == "log" else (0, 1)
 
@@ -487,6 +497,16 @@ class VolumeSlicerView:
             xmax, ymax, _ = np.dot(T, [xmax, ymax, 1])
             self.ax_slice.set_xlim(xmin, xmax)
             self.ax_slice.set_ylim(ymin, ymax)
+            self.slice_view.update(self.fig_slice)
+
+    def update_colorbar_vlims(self, vlims):
+        vmin, vmax = vlims
+
+        if self.cb is not None:
+            self.im.set_clim(vmin=vmin, vmax=vmax)
+            self.cb.update_normal(self.im)
+            self.cb.minorticks_on()
+
             self.slice_view.update(self.fig_slice)
 
     def set_cut_lim(self, lim):

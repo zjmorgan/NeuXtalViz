@@ -48,28 +48,39 @@ class CutLineOptions(str, Enum):
 
 
 class VolumeSlicerControls(BaseModel):
-    vol_scale: AxisOptions = Field(default=AxisOptions.linear)
-    opacity: OpacityOptions = Field(default=OpacityOptions.linear)
-    opacity_range: OpacityRangeOptions = Field(OpacityRangeOptions.low_to_high)
-    clim_clip_type: ClipTypeOptions = Field(default=ClipTypeOptions.boxplot)
-    cbar: ColorbarOptions = Field(default=ColorbarOptions.sequential)
+    vol_scale: AxisOptions = Field(default=AxisOptions.linear, title="Scale")
+    opacity: OpacityOptions = Field(default=OpacityOptions.linear, title="Opacity")
+    opacity_range: OpacityRangeOptions = Field(
+        OpacityRangeOptions.low_to_high, title="Opacity Range"
+    )
+    clim_clip_type: ClipTypeOptions = Field(
+        default=ClipTypeOptions.boxplot, title="Clip Type"
+    )
+    cbar: ColorbarOptions = Field(
+        default=ColorbarOptions.sequential, title="Color Scale"
+    )
 
-    slice_plane: SlicePlaneOptions = Field(default=SlicePlaneOptions.one_half)
+    slice_plane: SlicePlaneOptions = Field(
+        default=SlicePlaneOptions.one_half, title="Plane"
+    )
     slice_value: Optional[float] = Field(default=0.0, title="Slice")
     slice_thickness: Optional[float] = Field(default=0.1, title="Thickness")
-    slice_scale: AxisOptions = Field(default=AxisOptions.linear)
-    vlim_clip_type: ClipTypeOptions = Field(default=ClipTypeOptions.boxplot)
-    vmin: Optional[float] = Field(default=0.0, title="Min")
-    vmax: Optional[float] = Field(default=0.0, title="Max")
+    slice_scale: AxisOptions = Field(default=AxisOptions.linear, tilte="Scale")
+    vlim_clip_type: ClipTypeOptions = Field(
+        default=ClipTypeOptions.boxplot, title="Clip Type"
+    )
+    vlims: list[float] = Field(default=[0.0, 0.0])
+    vmin: Optional[float] = Field(default=0.0, title="Color Min")
+    vmax: Optional[float] = Field(default=0.0, title="Color Max")
     xmin: Optional[float] = Field(default=0.0, title="X Min")
     xmax: Optional[float] = Field(default=0.0, title="X Max")
     ymin: Optional[float] = Field(default=0.0, title="Y Min")
     ymax: Optional[float] = Field(default=0.0, title="Y Max")
 
-    cut_line: CutLineOptions = Field(default=CutLineOptions.axis_one)
+    cut_line: CutLineOptions = Field(default=CutLineOptions.axis_one, title="Line")
     cut_value: Optional[float] = Field(default=0.0, title="Cut")
     cut_thickness: Optional[float] = Field(default=0.1, title="Thickness")
-    cut_scale: AxisOptions = Field(default=AxisOptions.linear)
+    cut_scale: AxisOptions = Field(default=AxisOptions.linear, title="Scale")
 
 
 class VolumeSlicerViewModel(NeuXtalVizViewModel):
@@ -114,6 +125,9 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
                 case "xmin" | "xmax" | "ymin" | "ymax":
                     self.update_limits()
                 case "vmin" | "vmax":
+                    if self.vs_controls.vmin > self.vs_controls.vmax:
+                        self.vs_controls.vmin = self.vs_controls.vmax
+                        self.vs_controls_bind.update_in_view(self.vs_controls)
                     self.update_cvals()
                 case "cut_line" | "cut_value" | "cut_thickness" | "cut_scale":
                     self.update_cut()
@@ -160,6 +174,10 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
     def set_slice_plane(self, value):
         self.vs_controls.slice_plane = SlicePlaneOptions(value)
         self.redraw_data_bind.update_in_view(None)
+
+    def set_vlims(self, vmin, vmax):
+        self.vs_controls.vlims[0] = vmin
+        self.vs_controls.vlims[1] = vmax
 
     def set_vlim_clip_type(self, value):
         self.vs_controls.vlim_clip_type = value
