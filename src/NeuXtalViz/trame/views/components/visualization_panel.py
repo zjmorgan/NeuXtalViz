@@ -1,3 +1,5 @@
+from asyncio import ensure_future, sleep
+
 import numpy as np
 import pyvista as pv
 from io import BytesIO
@@ -14,7 +16,7 @@ class VisualizationPanel:
         self.view_model = view_model
         self.view_model.controls_bind.connect("controls")
         self.view_model.lattice_parameters_bind.connect("lattice_parameters")
-        self.view_model.show_axes_bind.connect(self.show_axes)
+        self.view_model.show_axes_bind.connect(self.trigger_show_axes)
         self.view_model.parallel_projection_bind.connect(self.change_projection)
         self.view_model.progress_bind.connect("progress")
         self.view_model.status_bind.connect("status")
@@ -23,6 +25,9 @@ class VisualizationPanel:
         self.view_model.vector_bind.connect(self.view_vector)
 
         self.view_model.update_processing("Ready!", 0)
+
+        self.axis_data = None
+        ensure_future(self.show_axes_loop())
 
         self.camera_position = None
         self.plotter = self.create_plotter()
@@ -213,6 +218,18 @@ class VisualizationPanel:
             else:
                 actor = self.plotter.add_axes(xlabel="a", ylabel="b", zlabel="c")
             actor.SetUserMatrix(t)
+        self.update_view(None)
+
+    async def show_axes_loop(self):
+        while True:
+            if self.axis_data is not None:
+                self.show_axes(self.axis_data)
+                self.axis_data = None
+
+            await sleep(0.1)
+
+    def trigger_show_axes(self, data):
+        self.axis_data = data
 
     def change_projection(self, parallel_projection):
         """

@@ -116,8 +116,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
                     | "cbar"
                     | "slice_plane"
                 ):
-                    pass
-                    # TODO: self.redraw_data_bind.update_in_view(None)
+                    self.redraw_data_bind.update_in_view(None)
                 case (
                     "slice_value" | "slice_thickness" | "slice_scale" | "vlim_clip_type"
                 ):

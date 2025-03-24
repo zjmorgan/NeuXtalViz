@@ -1,4 +1,4 @@
-from asyncio import create_task, sleep
+from asyncio import create_task, ensure_future, sleep
 from functools import partial
 from io import BytesIO
 from tempfile import NamedTemporaryFile
@@ -10,7 +10,6 @@ from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
 from nova.trame.view.components import InputField
 from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
-from trame.app import asynchronous
 from trame.app.file_upload import ClientFile
 from trame.widgets import html, matplotlib
 from trame.widgets import vuetify3 as vuetify
@@ -44,9 +43,12 @@ class VolumeSlicerView:
         self.view_model.redraw_data_bind.connect(self.redraw_data)
         self.view_model.slice_data_bind.connect(self.slice_data)
         self.view_model.cut_data_bind.connect(self.cut_data)
-        self.view_model.add_histo_bind.connect(self.add_histo)
+        self.view_model.add_histo_bind.connect(self.trigger_add_histo)
         self.view_model.add_slice_bind.connect(self.add_slice)
         self.view_model.add_cut_bind.connect(self.add_cut)
+
+        self.histo = None
+        ensure_future(self.add_histo_loop())
 
         self.create_ui()
 
@@ -178,7 +180,6 @@ class VolumeSlicerView:
         else:
             self.view_model.update_processing("Invalid parameters.", 0)
 
-        self.base_view.reset_view()
         self.slice_data()
 
     def redraw_data(self, _=None):
@@ -263,7 +264,6 @@ class VolumeSlicerView:
             normal_rotation=False,
             cmap=cmap,
             user_matrix=b,
-            render=False,
         )
 
         prop = self.clip.GetOutlineProperty()
@@ -304,6 +304,19 @@ class VolumeSlicerView:
         self.clip.AddObserver("InteractionEvent", self.interaction_callback)
 
         self.P_inv = np.linalg.inv(P)
+
+        self.base_view.reset_view()
+
+    async def add_histo_loop(self):
+        while True:
+            if self.histo is not None:
+                self.add_histo(self.histo)
+                self.histo = None
+
+            await sleep(0.1)
+
+    def trigger_add_histo(self, result):
+        self.histo = result
 
     def interaction_callback(self, caller, event):
         orig = caller.GetOrigin()
