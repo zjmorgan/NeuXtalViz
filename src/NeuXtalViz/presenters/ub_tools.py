@@ -51,8 +51,10 @@ class UB(NeuXtalVizPresenter):
         self.view.connect_vertical_roi(self.update_roi)
 
         self.view.connect_add_peak(self.add_peak)
+        self.view.connect_check_hkl(self.calculate_hkl)
 
         self.view.connect_roi_ready(self.update_scan)
+        self.view.connect_scan_ready(self.update_check_hkl)
 
         self.view.connect_h_index(self.hand_index_fractional)
         self.view.connect_k_index(self.hand_index_fractional)
@@ -80,6 +82,8 @@ class UB(NeuXtalVizPresenter):
         self.view.connect_slice_line(self.reslice)
 
         self.slice_idle = True
+
+        self.view.connect_cluster(self.cluster)
 
     def hand_index_fractional(self):
         mod_info = self.get_modulation_info()
@@ -206,8 +210,24 @@ class UB(NeuXtalVizPresenter):
 
             if all(elem is not None for elem in validate):
                 self.model.add_peak(ind, val, horz, vert)
-
                 self.visualize()
+
+    def calculate_hkl(self):
+        if self.model.has_Q():
+            ind = self.view.get_data_list()
+            hkl = self.view.get_check_hkl()
+
+            validate = [ind, hkl]
+
+            if all(elem is not None for elem in validate):
+                vals = self.model.calculate_hkl_position(ind, *hkl)
+
+                if vals is not None:
+                    x, horz, vert = vals
+                    self.view.set_diffraction(x)
+                    self.view.set_horizontal(horz)
+                    self.view.set_vertical(vert)
+                    self.update_instrument_view()
 
     def update_instrument_view(self):
         worker = self.view.worker(self.update_instrument_view_process)
@@ -222,6 +242,8 @@ class UB(NeuXtalVizPresenter):
             self.view.update_instrument_view(result[0])
             self.view.update_roi_view(result[1])
             self.view.update_scan_view(result[1])
+
+            self.update_check_hkl()
 
     def update_instrument_view_process(self, progress):
         if self.model.has_Q():
@@ -271,6 +293,8 @@ class UB(NeuXtalVizPresenter):
 
                 self.view.update_roi_view(self.model.roi_view)
 
+                self.update_check_hkl()
+
     def update_scan(self):
         if self.model.has_Q():
             horz = self.view.get_horizontal()
@@ -285,6 +309,22 @@ class UB(NeuXtalVizPresenter):
                 self.model.extract_roi(horz, vert, horz_roi, vert_roi, val)
 
                 self.view.update_scan_view(self.model.roi_view)
+
+                self.update_check_hkl()
+
+    def update_check_hkl(self):
+        ind = self.view.get_data_list()
+        horz = self.view.get_horizontal()
+        vert = self.view.get_vertical()
+        val = self.view.get_diffraction()
+
+        validate = [horz, vert, val]
+
+        if all(elem is not None for elem in validate):
+            ind = self.view.get_data_list()
+            hkl = self.model.roi_scan_to_hkl(ind, val, horz, vert)
+            if hkl is not None:
+                self.view.set_check_hkl(*hkl)
 
     def visualize(self):
         Q_hist = self.model.get_Q_info()
@@ -333,7 +373,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def find_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def find_peaks_process(self, progress):
         if self.model.has_Q():
@@ -364,7 +404,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def find_conventional_complete(self, result):
-        self.view.clear_niggli_info()
+        pass
 
     def find_conventional_process(self, progress):
         if self.model.has_peaks():
@@ -454,7 +494,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def select_cell_complete(self, result):
-        self.view.clear_niggli_info()
+        pass
 
     def select_cell_process(self, progress):
         if self.model.has_peaks() and self.model.has_UB():
@@ -518,7 +558,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def transform_UB_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def transform_UB_process(self, progress):
         if self.model.has_peaks() and self.model.has_UB():
@@ -548,7 +588,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def refine_UB_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def refine_UB_process(self, progress):
         if self.model.has_peaks():
@@ -608,7 +648,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def index_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def index_peaks_process(self, progress):
         mod_info = self.get_modulation_info()
@@ -657,7 +697,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def predict_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def predict_peaks_process(self, progress):
         mod_info = self.get_modulation_info()
@@ -724,7 +764,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def integrate_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def integrate_peaks_process(self, progress):
         params = self.view.get_integrate_peaks_parameters()
@@ -772,7 +812,7 @@ class UB(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def filter_peaks_complete(self, result):
-        self.view.clear_niggli_info()
+        self.model.copy_UB_from_peaks()
 
     def filter_peaks_process(self, progress):
         name = self.view.get_filter_variable()
@@ -988,6 +1028,43 @@ class UB(NeuXtalVizPresenter):
 
                 else:
                     progress("Invalid parameters.", 0)
+
+        else:
+            progress("Invalid parameters.", 0)
+
+    def cluster(self):
+        worker = self.view.worker(self.cluster_process)
+        worker.connect_result(self.cluster_complete)
+        worker.connect_progress(self.update_processing)
+
+        self.view.start_worker_pool(worker)
+
+    def cluster_complete(self, result):
+        if result is not None:
+            self.update_processing("Adding peaks.", 30)
+            self.view.add_cluster_peaks(result)
+            self.view.update_cluster_table(result)
+            self.update_processing("Peaks added!", 0)
+
+    def cluster_process(self, progress):
+        params = self.view.get_cluster_parameters()
+
+        if params is not None:
+            progress("Invalid parameters.", 0)
+
+            peak_info = self.model.get_cluster_info()
+            if peak_info is not None:
+                progress("Clustering peaks.", 25)
+
+                success = self.model.cluster_peaks(peak_info, *params)
+
+                if success:
+                    progress("Peaks clustered!", 100)
+
+                    return peak_info
+
+                else:
+                    progress("Invalid cluster.", 0)
 
         else:
             progress("Invalid parameters.", 0)

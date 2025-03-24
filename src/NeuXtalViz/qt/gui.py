@@ -3,6 +3,7 @@ import sys
 import traceback
 import subprocess
 
+
 os.environ["QT_API"] = "pyqt5"
 
 from qtpy.QtWidgets import (
@@ -28,10 +29,10 @@ import qdarktheme
 
 qdarktheme.enable_hi_dpi()
 
-from nova.mvvm.pyqt5_binding import PyQt5Binding
-
 # import qdarkstyle
 # from qdarkstyle.light.palette import LightPalette
+
+from nova.mvvm.pyqt5_binding import PyQt5Binding
 
 from NeuXtalViz.qt.views.crystal_structure_tools import CrystalStructureView
 from NeuXtalViz.models.crystal_structure_tools import CrystalStructureModel
@@ -45,13 +46,9 @@ from NeuXtalViz.qt.views.sample_tools import SampleView
 from NeuXtalViz.models.sample_tools import SampleModel
 from NeuXtalViz.presenters.sample_tools import Sample
 
-from NeuXtalViz.qt.views.modulation_tools import ModulationView
-from NeuXtalViz.models.modulation_tools import ModulationModel
-from NeuXtalViz.presenters.modulation_tools import Modulation
-
+from NeuXtalViz.qt.new_views.volume_slicer import VolumeSlicerView
 from NeuXtalViz.models.volume_slicer import VolumeSlicerModel
 from NeuXtalViz.view_models.volume_slicer import VolumeSlicerViewModel
-from NeuXtalViz.qt.new_views.volume_slicer import VolumeSlicerView
 
 from NeuXtalViz.qt.views.experiment_planner import ExperimentView
 from NeuXtalViz.models.experiment_planner import ExperimentModel
@@ -85,6 +82,8 @@ class NeuXtalViz(QMainWindow):
 
         app_menu = self.menuBar().addMenu("Applications")
 
+        binding = PyQt5Binding()
+
         cs_action = QAction("Crystal Structure", self)
         cs_action.triggered.connect(lambda: app_stack.setCurrentIndex(0))
         app_menu.addAction(cs_action)
@@ -93,12 +92,8 @@ class NeuXtalViz(QMainWindow):
         s_action.triggered.connect(lambda: app_stack.setCurrentIndex(1))
         app_menu.addAction(s_action)
 
-        m_action = QAction("Modulation", self)
-        m_action.triggered.connect(lambda: app_stack.setCurrentIndex(2))
-        app_menu.addAction(m_action)
-
         vs_action = QAction("Volume Slicer", self)
-        vs_action.triggered.connect(lambda: app_stack.setCurrentIndex(3))
+        vs_action.triggered.connect(lambda: app_stack.setCurrentIndex(2))
         app_menu.addAction(vs_action)
 
         cs_view = CrystalStructureView(self)
@@ -111,21 +106,15 @@ class NeuXtalViz(QMainWindow):
         self.s = Sample(s_view, s_model)
         app_stack.addWidget(s_view)
 
-        m_view = ModulationView(self)
-        m_model = ModulationModel()
-        self.m = Modulation(m_view, m_model)
-        app_stack.addWidget(m_view)
-
-        binding = PyQt5Binding()
         vs_model = VolumeSlicerModel()
-        vs_view_model = VolumeSlicerViewModel(vs_model, binding)
-        vs_view = VolumeSlicerView(vs_view_model, self)
+        vs_viewmodel = VolumeSlicerViewModel(vs_model, binding)
+        vs_view = VolumeSlicerView(vs_viewmodel, self)
         app_stack.addWidget(vs_view)
 
         layout.addWidget(app_stack)
 
         ub_action = QAction("UB", self)
-        ub_action.triggered.connect(lambda: app_stack.setCurrentIndex(4))
+        ub_action.triggered.connect(lambda: app_stack.setCurrentIndex(3))
         app_menu.addAction(ub_action)
 
         ub_view = UBView(self)
@@ -134,7 +123,7 @@ class NeuXtalViz(QMainWindow):
         app_stack.addWidget(ub_view)
 
         ep_action = QAction("Planner", self)
-        ep_action.triggered.connect(lambda: app_stack.setCurrentIndex(5))
+        ep_action.triggered.connect(lambda: app_stack.setCurrentIndex(4))
         app_menu.addAction(ep_action)
 
         ep_view = ExperimentView(self)
@@ -144,11 +133,35 @@ class NeuXtalViz(QMainWindow):
 
         layout.addWidget(app_stack)
 
-        app_menu = self.menuBar().addMenu("External")
+        app_menu = self.menuBar().addMenu("Reduction")
 
         topaz_action = QAction("TOPAZ", self)
         topaz_action.triggered.connect(self.topaz_reduction_GUI)
         app_menu.addAction(topaz_action)
+
+        crystalplan_action = QAction("CrystalPlan", self)
+        crystalplan_action.triggered.connect(self.crystalplan_reduction_GUI)
+        app_menu.addAction(crystalplan_action)
+
+        app_menu = self.menuBar().addMenu("Analysis")
+
+        shelxle_action = QAction("ShelXle", self)
+        shelxle_action.triggered.connect(self.shelxle_GUI)
+        app_menu.addAction(shelxle_action)
+
+        olex2_action = QAction("Olex2", self)
+        olex2_action.triggered.connect(self.olex2_reduction_GUI)
+        app_menu.addAction(olex2_action)
+
+        fullprof_action = QAction("FullProf", self)
+        fullprof_action.triggered.connect(self.fullprof_reduction_GUI)
+        app_menu.addAction(fullprof_action)
+
+        app_menu = self.menuBar().addMenu("Interface")
+
+        structdiff_action = QAction("Structure/Diffuse", self)
+        structdiff_action.triggered.connect(self.structdiff_GUI)
+        app_menu.addAction(structdiff_action)
 
         # self.showMaximized()
 
@@ -173,6 +186,38 @@ class NeuXtalViz(QMainWindow):
                     "Warning",
                     "The selected directory does not contain main.py.",
                 )
+
+    def shelxle_GUI(self):
+        try:
+            subprocess.Popen(["shelxle"])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(self, "Error", f"Failed to execute shelxle:\n{e}")
+
+    def crystalplan_reduction_GUI(self):
+        try:
+            subprocess.Popen(["crystalplan"])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(self, "Error", f"Failed to execute crystalplan:\n{e}")
+
+    def olex2_reduction_GUI(self):
+        try:
+            subprocess.Popen(["olex2"])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(self, "Error", f"Failed to execute olex2:\n{e}")
+
+    def fullprof_reduction_GUI(self):
+        try:
+            subprocess.Popen(["fullprof"])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(self, "Error", f"Failed to execute fullprof:\n{e}")
+
+    def structdiff_GUI(self):
+        path = os.path.dirname(__file__)
+        file = os.path.join(path, "NeuXtalViz/views/command_browser.py")
+        try:
+            subprocess.Popen(["python", file])
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(self, "Error", f"Failed to execute structdiff:\n{e}")
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):

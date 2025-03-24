@@ -31,12 +31,10 @@ class BashShellWidget(QWidget):
 
         self.setLayout(self.layout)
 
-        # Set up QProcess
         self.process = QProcess(self)
         self.process.readyReadStandardOutput.connect(self.on_ready_read_output)
         self.process.readyReadStandardError.connect(self.on_ready_read_error)
 
-        # Connect button and input field
         self.run_button.clicked.connect(self.run_command)
         self.command_input.returnPressed.connect(self.run_command)
 
