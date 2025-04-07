@@ -9,9 +9,10 @@ import pyvista as pv
 from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
 from nova.trame.view.components import InputField
+from nova.trame.view.components.visualization import MatplotlibFigure
 from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
 from trame.app.file_upload import ClientFile
-from trame.widgets import html, matplotlib
+from trame.widgets import html
 from trame.widgets import vuetify3 as vuetify
 
 from NeuXtalViz.trame.views.components.visualization_panel import VisualizationPanel
@@ -82,7 +83,7 @@ class VolumeSlicerView:
                     self.ax_slice = self.fig_slice.subplots(1, 1)
                     self.cb = None
 
-                    self.slice_view = matplotlib.Figure(self.fig_slice)
+                    self.slice_view = MatplotlibFigure(self.fig_slice, webagg=True)
                     InputField(
                         v_model="vs_controls.vmin",
                         direction="vertical",
@@ -118,7 +119,7 @@ class VolumeSlicerView:
                     self.fig_cut = Figure(layout="constrained")
                     self.ax_cut = self.fig_cut.subplots(1, 1)
 
-                    self.cut_view = matplotlib.Figure(self.fig_cut)
+                    self.cut_view = MatplotlibFigure(self.fig_cut, webagg=True)
 
                 with HBoxLayout():
                     InputField(v_model="vs_controls.cut_line", type="select")
