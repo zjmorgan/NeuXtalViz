@@ -43,18 +43,6 @@ http {
             try_files $uri $uri/ @fallback;
         }
 
-        location / {
-            proxy_pass http://localhost:8080;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "Upgrade";
-            proxy_set_header Host $host;
-            proxy_socket_keepalive on;
-            proxy_connect_timeout 120;
-            proxy_send_timeout 360;
-            proxy_read_timeout 360;
-        }
-
         location @proxy {
             rewrite ^/app/(.*) /$1 break;
             proxy_pass http://localhost:8080;
