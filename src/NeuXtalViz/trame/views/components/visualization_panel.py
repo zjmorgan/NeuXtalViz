@@ -50,15 +50,16 @@ class VisualizationPanel:
     def create_ui(self):
         with vuetify.VContainer(classes="mr-2 pa-0", fluid=True):
             with GridLayout(columns=5):
-                with VBoxLayout(valign="space-between"):
+                with VBoxLayout(valign="start"):
                     vuetify.VBtn("Save Screenshot", click=self.save_screenshot)
-                    vuetify.VBtn("Reset View", click=self.reset_view)
+                    vuetify.VBtn("Reset View", classes="my-1", click=self.reset_view)
                     vuetify.VBtn("Reset Camera", click=self.reset_camera)
 
                 with VBoxLayout(column_span=3):
                     with vuetify.VTabs(
                         v_model="controls.camera_tab",
                         classes="mb-1",
+                        density="compact",
                         update_modelValue="flushState('controls')",
                     ):
                         vuetify.VTab("Direction View", value=1)
@@ -79,13 +80,13 @@ class VisualizationPanel:
                                 vuetify.VBtn("b", click=self.view_model.view_ca)
                                 vuetify.VBtn("c", click=self.view_model.view_ab)
                         with vuetify.VWindowItem(value=2):
-                            with GridLayout(columns=10, halign="center"):
+                            with GridLayout(columns=12, halign="center"):
                                 vuetify.VLabel("{{ controls.manual_axis_type[0] }}")
                                 vuetify.VLabel("{{ controls.manual_axis_type[1] }}")
                                 vuetify.VLabel("{{ controls.manual_axis_type[2] }}")
                                 InputField(
                                     v_model="controls.manual_axis_type",
-                                    column_span=2,
+                                    column_span=3,
                                     type="select",
                                 )
                                 vuetify.VLabel("{{ controls.manual_up_axis_type[0] }}")
@@ -93,7 +94,7 @@ class VisualizationPanel:
                                 vuetify.VLabel("{{ controls.manual_up_axis_type[2] }}")
                                 InputField(
                                     v_model="controls.manual_up_axis_type",
-                                    column_span=2,
+                                    column_span=3,
                                     type="select",
                                 )
                                 InputField(v_model="controls.manual_axes[0]")
@@ -101,7 +102,7 @@ class VisualizationPanel:
                                 InputField(v_model="controls.manual_axes[2]")
                                 vuetify.VBtn(
                                     "View Axis",
-                                    column_span=2,
+                                    column_span=3,
                                     click=self.view_model.view_manual,
                                 )
                                 InputField(v_model="controls.manual_up_axes[0]")
@@ -109,22 +110,33 @@ class VisualizationPanel:
                                 InputField(v_model="controls.manual_up_axes[2]")
                                 vuetify.VBtn(
                                     "View Up Axis",
-                                    column_span=2,
+                                    column_span=3,
                                     click=self.view_model.view_up_manual,
                                 )
 
-                with VBoxLayout(valign="space-between"):
-                    InputField(v_model="controls.reciprocal_lattice", type="checkbox")
-                    InputField(v_model="controls.show_axes", type="checkbox")
-                    InputField(v_model="controls.parallel_projection", type="checkbox")
+                with VBoxLayout(valign="start"):
+                    InputField(
+                        v_model="controls.reciprocal_lattice",
+                        density="compact",
+                        type="checkbox",
+                    )
+                    InputField(
+                        v_model="controls.show_axes", density="compact", type="checkbox"
+                    )
+                    InputField(
+                        v_model="controls.parallel_projection",
+                        density="compact",
+                        type="checkbox",
+                    )
 
-            with vuetify.VSheet(classes="mb-2", style="height: 50vh;"):
+            with vuetify.VSheet(classes="mb-2", style="height: 40vh;"):
                 self.view = get_viewer(self.plotter)
                 self.view.ui(add_menu=False, mode="server")
 
             with vuetify.VTabs(
                 v_model="controls.oriented_lattice_tab",
                 classes="mb-1",
+                density="compact",
                 update_modelValue="flushState('controls')",
             ):
                 vuetify.VTab("Lattice Parameters", value=1)

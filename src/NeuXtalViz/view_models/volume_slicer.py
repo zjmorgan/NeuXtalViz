@@ -65,7 +65,7 @@ class VolumeSlicerControls(BaseModel):
     )
     slice_value: Optional[float] = Field(default=0.0, title="Slice")
     slice_thickness: Optional[float] = Field(default=0.1, title="Thickness")
-    slice_scale: AxisOptions = Field(default=AxisOptions.linear, tilte="Scale")
+    slice_scale: AxisOptions = Field(default=AxisOptions.linear, title="Scale")
     vlim_clip_type: ClipTypeOptions = Field(
         default=ClipTypeOptions.boxplot, title="Clip Type"
     )

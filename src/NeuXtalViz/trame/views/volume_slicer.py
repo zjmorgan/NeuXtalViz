@@ -58,11 +58,11 @@ class VolumeSlicerView:
         return self.server.state
 
     def create_ui(self):
-        with GridLayout(classes="pa-2", columns=2):
+        with GridLayout(classes="bg-white pa-2", columns=2):
             self.base_view = VisualizationPanel(self.server, self.view_model)
 
             with VBoxLayout():
-                with HBoxLayout():
+                with HBoxLayout(valign="center"):
                     InputField(v_model="vs_controls.vol_scale", type="select")
                     InputField(v_model="vs_controls.opacity", type="select")
                     InputField(v_model="vs_controls.opacity_range", type="select")
@@ -99,7 +99,7 @@ class VolumeSlicerView:
                         type="slider",
                     )
 
-                with HBoxLayout():
+                with HBoxLayout(valign="center"):
                     InputField(v_model="vs_controls.slice_plane", type="select")
                     InputField(v_model="vs_controls.slice_value")
                     InputField(v_model="vs_controls.slice_thickness")
@@ -116,12 +116,12 @@ class VolumeSlicerView:
                     InputField(v_model="vs_controls.vmax")
 
                 with HBoxLayout():
-                    self.fig_cut = Figure(layout="constrained")
+                    self.fig_cut = Figure(layout="constrained", figsize=(6.4, 3.2))
                     self.ax_cut = self.fig_cut.subplots(1, 1)
 
                     self.cut_view = MatplotlibFigure(self.fig_cut, webagg=True)
 
-                with HBoxLayout():
+                with HBoxLayout(valign="center"):
                     InputField(v_model="vs_controls.cut_line", type="select")
                     InputField(v_model="vs_controls.cut_value")
                     InputField(v_model="vs_controls.cut_thickness")

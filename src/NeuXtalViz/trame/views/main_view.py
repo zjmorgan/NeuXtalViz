@@ -36,7 +36,7 @@ class NeuXtalViz(ThemedApp):
             layout.toolbar_title.set_text("NeuXtalViz")
 
             with layout.pre_content:
-                with vuetify.VTabs(classes="pl-4"):
+                with vuetify.VTabs(classes="pl-4", density="compact"):
                     vuetify.VTab("Volume Slicer")
 
             with layout.content:
