@@ -23,6 +23,6 @@ dependencies:
   - pip:
     - pyqtdarktheme
     - nova-mvvm
-    - nova-trame
+    - nova-trame>=0.17.2
     - trame-matplotlib
     - trame-vtk
