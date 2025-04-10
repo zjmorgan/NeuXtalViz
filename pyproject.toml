@@ -1,7 +1,7 @@
 [project]
 name = "NeuXtalViz"
 description = "Neutron Scattering Single Crystal Visualization"
-dynamic = ["version"]
+version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
     "mantidworkbench >= 6.7.20230830",

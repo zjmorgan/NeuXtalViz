@@ -1,0 +1,71 @@
+pid        /tmp/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    client_body_temp_path /tmp/client_temp;
+    proxy_temp_path       /tmp/proxy_temp_path;
+    fastcgi_temp_path     /tmp/fastcgi_temp;
+    uwsgi_temp_path       /tmp/uwsgi_temp;
+    scgi_temp_path        /tmp/scgi_temp;
+
+    include       mime.types;
+
+    default_type  application/octet-stream;
+
+    sendfile        on;
+
+
+    keepalive_timeout  65;
+
+
+    server {
+        listen       8081;
+        server_name  localhost;
+
+        location ${EP_PATH}/ws {
+            proxy_pass   http://localhost:8080/ws;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+            proxy_socket_keepalive on;
+            proxy_connect_timeout 120;
+            proxy_send_timeout 360;
+            proxy_read_timeout 360;
+        }
+
+        location ${EP_PATH} {
+            alias /app/www-content;
+            try_files $uri $uri/ @fallback;
+        }
+
+        location / {
+            proxy_pass http://localhost:8080;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+            proxy_socket_keepalive on;
+            proxy_connect_timeout 120;
+            proxy_send_timeout 360;
+            proxy_read_timeout 360;
+        }
+
+        location @proxy {
+            rewrite ^/app/(.*) /$1 break;
+            proxy_pass http://localhost:8080;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+            proxy_socket_keepalive on;
+            proxy_connect_timeout 120;
+            proxy_send_timeout 360;
+            proxy_read_timeout 360;
+        }
+    }
+}

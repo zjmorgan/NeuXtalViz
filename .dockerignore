@@ -1,0 +1,3 @@
+.github
+.mypy_cache
+.pytest_cache
