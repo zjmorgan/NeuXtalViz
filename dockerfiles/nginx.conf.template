@@ -44,7 +44,7 @@ http {
         }
 
         location @proxy {
-            rewrite ^/app/(.*) /$1 break;
+            rewrite ^${EP_PATH}/(.*) /$1 break;
             proxy_pass http://localhost:8080;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
