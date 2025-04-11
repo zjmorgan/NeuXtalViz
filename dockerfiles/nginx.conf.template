@@ -40,7 +40,7 @@ http {
 
         location ${EP_PATH} {
             alias /app/www-content;
-            try_files $uri $uri/ @fallback;
+            try_files $uri $uri/ @proxy;
         }
 
         location @proxy {
