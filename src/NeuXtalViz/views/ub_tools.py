@@ -2033,7 +2033,7 @@ class UBView(NeuXtalVizWidget):
         integrate = np.any(intensities)
 
         if all([elem is not None for elem in params]) and len(numbers) > 0:
-            sphere = pv.Icosphere(radius=1, nsub=1)
+            sphere = pv.Icosphere(radius=1, nsub=0)
 
             geoms, self.indexing = [], {}
             for i, (T, I, ind, no) in enumerate(zip(*params)):

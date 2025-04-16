@@ -984,7 +984,7 @@ class UB(NeuXtalVizPresenter):
         if result is not None:
             self.view.reset_slider()
             self.view.update_slice(result)
-            self.slice_idle = True
+        self.slice_idle = True
 
     def convert_to_hkl_process(self, progress):
         proj = self.view.get_projection_matrix()

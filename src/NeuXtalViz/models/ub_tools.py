@@ -511,25 +511,6 @@ class UBModel(NeuXtalVizModel):
             self.min_lim = x[0], y[0], z[0]
             self.max_lim = x[-1], y[-1], z[-1]
 
-            # x, y, z = np.meshgrid(x, y, z, indexing="ij")
-
-            # thresh_x, thresh_y, thresh_z = x[mask], y[mask], z[mask]
-
-            # thresh_signal = signal[mask]
-            # thresh_events = events[mask]
-
-            # min_samples = int(np.percentile(thresh_events, 5))
-            # eps = np.mean([4 * dim.getBinWidth() for dim in dims])
-
-            # data = np.vstack((thresh_x, thresh_y, thresh_z)).T
-
-            # dbscan = DBSCAN(eps=eps, min_samples=min_samples + 1)
-            # labels = dbscan.fit_predict(data, sample_weight=thresh_events)
-
-            # mask = labels != -1
-
-            # self.x, self.y, self.z = x, y, z
-
             self.signal = signal
             self.signal[~mask] = np.nan
 
@@ -745,16 +726,19 @@ class UBModel(NeuXtalVizModel):
 
             bp_inv = np.linalg.inv(2 * np.pi * Bp)
 
+            Qx_min, Qy_min, Qz_min = self.min_lim
+            Qx_max, Qy_max, Qz_max = self.max_lim
+
             corners = np.array(
                 [
-                    [self.Qx_min, self.Qy_min, self.Qz_min],
-                    [self.Qx_max, self.Qy_min, self.Qz_min],
-                    [self.Qx_min, self.Qy_max, self.Qz_min],
-                    [self.Qx_max, self.Qy_max, self.Qz_min],
-                    [self.Qx_min, self.Qy_min, self.Qz_max],
-                    [self.Qx_max, self.Qy_min, self.Qz_max],
-                    [self.Qx_min, self.Qy_max, self.Qz_max],
-                    [self.Qx_max, self.Qy_max, self.Qz_max],
+                    [Qx_min, Qy_min, Qz_min],
+                    [Qx_max, Qy_min, Qz_min],
+                    [Qx_min, Qy_max, Qz_min],
+                    [Qx_max, Qy_max, Qz_min],
+                    [Qx_min, Qy_min, Qz_max],
+                    [Qx_max, Qy_min, Qz_max],
+                    [Qx_min, Qy_max, Qz_max],
+                    [Qx_max, Qy_max, Qz_max],
                 ]
             )
 
