@@ -2006,29 +2006,22 @@ class UBView(NeuXtalVizWidget):
         self.clear_scene()
 
         signal = Q_dict.get("signal")
-        x = Q_dict.get("x")
-        y = Q_dict.get("y")
-        z = Q_dict.get("z")
+        spacing = Q_dict.get("spacing")
+        min_lim = Q_dict.get("min_lim")
 
-        if all([elem is not None for elem in [signal, x, y, z]]):
-            points = np.column_stack([x, y, z])
+        grid = pv.ImageData(
+            spacing=spacing, dimensions=signal.shape, origin=min_lim
+        )
 
-            point_cloud = pv.PolyData(points)
-            point_cloud["scalars"] = signal
+        grid["scalars"] = signal.T.flatten()
 
-            self.plotter.add_mesh(
-                point_cloud,
-                scalars="scalars",
-                cmap="binary",
-                show_scalar_bar=False,
-                opacity=1,
-                log_scale=True,
-                point_size=3.5,
-                smooth_shading=True,
-                culling=False,
-                emissive=False,
-                style="points_gaussian",
-            )
+        _ = self.plotter.add_volume(
+            grid,
+            opacity="linear",
+            show_scalar_bar=False,
+            cmap="binary",
+            log_scale=True,
+        )
 
         transforms = Q_dict.get("transforms")
         intensities = Q_dict.get("intensities")

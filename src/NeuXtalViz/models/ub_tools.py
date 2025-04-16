@@ -69,7 +69,7 @@ config["Q.convention"] = "Crystallography"
 from mantid.geometry import PointGroupFactory, UnitCell
 from mantid.kernel import V3D
 
-from sklearn.cluster import DBSCAN
+# from sklearn.cluster import DBSCAN
 
 import numpy as np
 import scipy
@@ -490,9 +490,9 @@ class UBModel(NeuXtalVizModel):
             )
 
             signal = mtd["Q3D"].getSignalArray().copy()
-            events = mtd["Q3D"].getNumEventsArray().copy()
+            # events = mtd["Q3D"].getNumEventsArray().copy()
 
-            threshold = np.nanpercentile(signal[signal > 0], 99.7)
+            threshold = np.nanpercentile(signal[signal > 0], 95)
             mask = signal >= threshold
 
             dims = [mtd["Q3D"].getDimension(i) for i in range(3)]
@@ -506,34 +506,32 @@ class UBModel(NeuXtalVizModel):
                 for dim in dims
             ]
 
-            self.Qx_min, self.Qx_max = x[0], x[-1]
-            self.Qy_min, self.Qy_max = y[0], y[-1]
-            self.Qz_min, self.Qz_max = z[0], z[-1]
+            self.spacing = tuple([dim.getBinWidth() for dim in dims])
 
-            x, y, z = np.meshgrid(x, y, z, indexing="ij")
+            self.min_lim = x[0], y[0], z[0]
+            self.max_lim = x[-1], y[-1], z[-1]
 
-            thresh_x, thresh_y, thresh_z = x[mask], y[mask], z[mask]
+            # x, y, z = np.meshgrid(x, y, z, indexing="ij")
 
-            thresh_signal = signal[mask]
-            thresh_events = events[mask]
+            # thresh_x, thresh_y, thresh_z = x[mask], y[mask], z[mask]
 
-            min_samples = int(np.percentile(thresh_events, 5))
-            eps = np.mean([4 * dim.getBinWidth() for dim in dims])
+            # thresh_signal = signal[mask]
+            # thresh_events = events[mask]
 
-            data = np.vstack((thresh_x, thresh_y, thresh_z)).T
+            # min_samples = int(np.percentile(thresh_events, 5))
+            # eps = np.mean([4 * dim.getBinWidth() for dim in dims])
 
-            dbscan = DBSCAN(eps=eps, min_samples=min_samples + 1)
-            labels = dbscan.fit_predict(data, sample_weight=thresh_events)
+            # data = np.vstack((thresh_x, thresh_y, thresh_z)).T
 
-            mask = labels != -1
+            # dbscan = DBSCAN(eps=eps, min_samples=min_samples + 1)
+            # labels = dbscan.fit_predict(data, sample_weight=thresh_events)
 
-            self.x, self.y, self.z = (
-                thresh_x[mask],
-                thresh_y[mask],
-                thresh_z[mask],
-            )
+            # mask = labels != -1
 
-            self.signal = thresh_signal[mask]
+            # self.x, self.y, self.z = x, y, z
+
+            self.signal = signal
+            self.signal[~mask] = np.nan
 
             self.wavelength = wavelength
             self.counts = counts
@@ -899,13 +897,13 @@ class UBModel(NeuXtalVizModel):
             Q_dict["signal"] = self.signal
             # Q_dict["opacity"] = self.opacity
 
-            # Q_dict["min_lim"] = self.min_lim
-            # Q_dict["max_lim"] = self.max_lim
-            # Q_dict["spacing"] = self.spacing
+            Q_dict["min_lim"] = self.min_lim
+            Q_dict["max_lim"] = self.max_lim
+            Q_dict["spacing"] = self.spacing
 
-            Q_dict["x"] = self.x
-            Q_dict["y"] = self.y
-            Q_dict["z"] = self.z
+            # Q_dict["x"] = self.x
+            # Q_dict["y"] = self.y
+            # Q_dict["z"] = self.z
 
         if self.has_peaks():
             self.sort_peaks_by_hkl(self.table)
