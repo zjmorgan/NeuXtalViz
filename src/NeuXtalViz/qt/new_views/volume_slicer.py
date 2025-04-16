@@ -1,3 +1,5 @@
+from functools import partial
+
 from qtpy.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -23,7 +25,7 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT
 from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
 
-from NeuXtalViz.views.base_view import NeuXtalVizWidget
+from NeuXtalViz.qt.new_views.base_view import NeuXtalVizWidget
 from NeuXtalViz.config import colormap
 
 colormap.add_modified()
@@ -47,14 +49,17 @@ class VolumeSlicerView(NeuXtalVizWidget):
     slice_ready = pyqtSignal()
     cut_ready = pyqtSignal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, view_model, parent=None):
+        super().__init__(view_model, parent)
 
         self.tab_widget = QTabWidget(self)
 
         self.slicer_tab()
 
         self.layout().addWidget(self.tab_widget, stretch=1)
+
+        self.connect_bindings()
+        self.connect_widgets()
 
     def slicer_tab(self):
         slice_tab = QWidget()
@@ -275,77 +280,88 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         slice_tab.setLayout(plots_layout)
 
-    def connect_save_slice(self, save_slice):
-        self.save_slice_button.clicked.connect(save_slice)
+    def connect_bindings(self):
+        super().connect_bindings()
 
-    def connect_save_cut(self, save_cut):
-        self.save_cut_button.clicked.connect(save_cut)
+        self.view_model.slice_lim_bind.connect(
+            "slice_lim", self.set_slice_lim
+        )
+        self.view_model.cut_lim_bind.connect(
+            "cut_lim", self.set_cut_lim
+        )
+        self.view_model.redraw_data_bind.connect(
+            "redraw_data", self.redraw_data
+        )
+        self.view_model.slice_data_bind.connect(
+            "slice_data", self.slice_data
+        )
+        self.view_model.cut_data_bind.connect("cut_data", self.cut_data)
+        self.view_model.add_histo_bind.connect(
+            "add_histo", self.add_histo
+        )
+        self.view_model.add_slice_bind.connect(
+            "add_slice", self.add_slice
+        )
+        self.view_model.add_cut_bind.connect(
+            "add_cut", self.add_cut
+        )
 
-    def connect_vol_scale_combo(self, update_vol):
-        self.vol_scale_combo.currentIndexChanged.connect(update_vol)
+    def connect_widgets(self):
+        super().connect_widgets()
 
-    def connect_opacity_combo(self, update_opacity):
-        self.opacity_combo.currentIndexChanged.connect(update_opacity)
+        self.load_NXS_button.clicked.connect(self.load_NXS)
+        self.slice_ready.connect(self.view_model.update_slice)
+        self.cut_ready.connect(self.view_model.update_cut)
+        self.slice_combo.currentTextChanged.connect(self.view_model.set_slice_plane)
+        self.cut_combo.currentTextChanged.connect(self.view_model.set_cut_line)
+        self.slice_thickness_line.textChanged.connect(
+            partial(self.view_model.set_number, "slice_thickness")
+        )
+        self.slice_thickness_line.editingFinished.connect(self.view_model.update_slice)
+        self.cut_thickness_line.textChanged.connect(
+            partial(self.view_model.set_number, "cut_thickness")
+        )
+        self.cut_thickness_line.editingFinished.connect(self.view_model.update_cut)
+        self.clim_combo.currentTextChanged.connect(self.view_model.set_clim_clip_type)
+        self.cbar_combo.currentTextChanged.connect(self.view_model.set_cbar)
+        self.min_slider.valueChanged.connect(self.update_colorbar_min)
+        self.max_slider.valueChanged.connect(self.update_colorbar_max)
+        self.vlim_combo.currentTextChanged.connect(self.view_model.set_vlim_clip_type)
+        self.slice_scale_combo.currentTextChanged.connect(self.view_model.set_slice_scale)
+        self.cut_scale_combo.currentTextChanged.connect(self.view_model.set_cut_scale)
+        self.slice_line.textChanged.connect(
+            partial(self.view_model.set_number, "slice_value")
+        )
+        self.slice_line.editingFinished.connect(self.redraw_data)
+        self.cut_line.textChanged.connect(partial(self.view_model.set_number, "cut_value"))
+        self.cut_line.editingFinished.connect(self.view_model.update_cut)
+        self.vmin_line.textChanged.connect(partial(self.view_model.set_number, "vmin"))
+        self.vmin_line.editingFinished.connect(self.view_model.update_cvals)
+        self.vmax_line.textChanged.connect(partial(self.view_model.set_number, "vmax"))
+        self.vmax_line.editingFinished.connect(self.view_model.update_cvals)
+        self.xmin_line.textChanged.connect(partial(self.view_model.set_number, "xmin"))
+        self.xmin_line.editingFinished.connect(self.view_model.update_limits)
+        self.xmax_line.textChanged.connect(partial(self.view_model.set_number, "xmax"))
+        self.xmax_line.editingFinished.connect(self.view_model.update_limits)
+        self.ymin_line.textChanged.connect(partial(self.view_model.set_number, "ymin"))
+        self.ymin_line.editingFinished.connect(self.view_model.update_limits)
+        self.ymax_line.textChanged.connect(partial(self.view_model.set_number, "ymax"))
+        self.ymax_line.editingFinished.connect(self.view_model.update_limits)
+        self.vol_scale_combo.currentTextChanged.connect(self.view_model.set_vol_scale)
+        self.opacity_combo.currentTextChanged.connect(self.view_model.set_opacity)
+        self.range_combo.currentTextChanged.connect(self.view_model.set_opacity_range)
+        self.save_slice_button.clicked.connect(self.save_slice)
+        self.save_cut_button.clicked.connect(self.save_cut)
 
-    def connect_range_combo(self, update_range):
-        self.range_combo.currentIndexChanged.connect(update_range)
+    def save_slice(self):
+        filename = self.save_file_dialog()
+        if filename:
+            self.view_model.save_slice(filename)
 
-    def connect_clim_combo(self, update_clim):
-        self.clim_combo.currentIndexChanged.connect(update_clim)
-
-    def connect_vlim_combo(self, update_clim):
-        self.vlim_combo.currentIndexChanged.connect(update_clim)
-
-    def connect_cbar_combo(self, update_cbar):
-        self.cbar_combo.currentIndexChanged.connect(update_cbar)
-
-    def connect_slice_thickness_line(self, update_slice):
-        self.slice_thickness_line.editingFinished.connect(update_slice)
-
-    def connect_cut_thickness_line(self, update_cut):
-        self.cut_thickness_line.editingFinished.connect(update_cut)
-
-    def connect_slice_line(self, update_slice):
-        self.slice_line.editingFinished.connect(update_slice)
-
-    def connect_cut_line(self, update_cut):
-        self.cut_line.editingFinished.connect(update_cut)
-
-    def connect_slice_scale_combo(self, update_slice):
-        self.slice_scale_combo.currentIndexChanged.connect(update_slice)
-
-    def connect_cut_scale_combo(self, update_cut):
-        self.cut_scale_combo.currentIndexChanged.connect(update_cut)
-
-    def connect_slice_combo(self, update_slice):
-        self.slice_combo.currentIndexChanged.connect(update_slice)
-
-    def connect_cut_combo(self, update_cut):
-        self.cut_combo.currentIndexChanged.connect(update_cut)
-
-    def connect_min_slider(self, update_colorbar):
-        self.min_slider.valueChanged.connect(update_colorbar)
-
-    def connect_max_slider(self, update_colorbar):
-        self.max_slider.valueChanged.connect(update_colorbar)
-
-    def connect_vmin_line(self, update_vals):
-        self.vmin_line.editingFinished.connect(update_vals)
-
-    def connect_vmax_line(self, update_vals):
-        self.vmax_line.editingFinished.connect(update_vals)
-
-    def connect_xmin_line(self, update_vals):
-        self.xmin_line.editingFinished.connect(update_vals)
-
-    def connect_xmax_line(self, update_vals):
-        self.xmax_line.editingFinished.connect(update_vals)
-
-    def connect_ymin_line(self, update_vals):
-        self.ymin_line.editingFinished.connect(update_vals)
-
-    def connect_ymax_line(self, update_vals):
-        self.ymax_line.editingFinished.connect(update_vals)
+    def save_cut(self):
+        filename = self.save_file_dialog()
+        if filename:
+            self.view_model.save_cut(filename)
 
     def save_file_dialog(self):
         options = QFileDialog.Options()
@@ -414,8 +430,16 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.min_slider.blockSignals(False)
         self.max_slider.blockSignals(False)
 
-    def connect_load_NXS(self, load_NXS):
-        self.load_NXS_button.clicked.connect(load_NXS)
+    def load_NXS(self):
+        filename = self.load_NXS_file_dialog()
+
+        if filename:
+            worker = self.worker(partial(self.view_model.load_NXS_process, filename))
+            worker.connect_result(self.view_model.load_NXS_complete)
+            worker.connect_finished(self.redraw_data)
+            worker.connect_progress(self.view_model.update_processing)
+
+            self.start_worker_pool(worker)
 
     def load_NXS_file_dialog(self):
         options = QFileDialog.Options()
@@ -430,7 +454,33 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         return filename
 
-    def add_histo(self, histo_dict, normal, norm, value):
+    def redraw_data(self, _=None):
+        worker = self.worker(self.view_model.redraw_data_process)
+        worker.connect_result(self.view_model.redraw_data_complete)
+        worker.connect_finished(self.slice_data)
+        worker.connect_progress(self.view_model.update_processing)
+
+        self.start_worker_pool(worker)
+
+    def slice_data(self):
+        worker = self.worker(self.view_model.slice_data_process)
+        worker.connect_result(self.view_model.slice_data_complete)
+        worker.connect_finished(self.cut_data)
+        worker.connect_progress(self.view_model.update_processing)
+
+        self.start_worker_pool(worker)
+
+    def cut_data(self):
+        worker = self.worker(self.view_model.cut_data_process)
+        worker.connect_result(self.view_model.cut_data_complete)
+        worker.connect_finished(self.view_model.update_complete)
+        worker.connect_progress(self.view_model.update_processing)
+
+        self.start_worker_pool(worker)
+
+    def add_histo(self, result):
+        histo_dict, normal, norm, value = result
+
         opacity = opacities[self.get_opacity()][self.get_range()]
 
         log_scale = True if self.get_vol_scale() == "Log" else False
@@ -557,14 +607,13 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.slice_ready.emit()
 
-    def connect_slice_ready(self, reslice):
-        self.slice_ready.connect(reslice)
-
     def __format_axis_coord(self, x, y):
         x, y, _ = np.dot(self.T_inv, [x, y, 1])
         return "x={:.3f}, y={:.3f}".format(x, y)
 
     def add_slice(self, slice_dict):
+        self.reset_slider()
+
         self.max_slider.blockSignals(True)
         self.max_slider.setValue(100)
         self.max_slider.blockSignals(False)
@@ -708,28 +757,18 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         self.fig_slice.canvas.mpl_connect("button_press_event", self.on_press)
 
-        self.fig_slice.canvas.mpl_connect(
-            "button_release_event", self.on_release
-        )
+        self.fig_slice.canvas.mpl_connect("button_release_event", self.on_release)
 
-        self.fig_slice.canvas.mpl_connect(
-            "motion_notify_event", self.on_motion
-        )
+        self.fig_slice.canvas.mpl_connect("motion_notify_event", self.on_motion)
 
     def on_press(self, event):
-        if (
-            event.inaxes == self.ax_slice
-            and self.fig_slice.canvas.toolbar.mode == ""
-        ):
+        if event.inaxes == self.ax_slice and self.fig_slice.canvas.toolbar.mode == "":
             self.linecut["is_dragging"] = True
 
     def on_release(self, event):
         self.linecut["is_dragging"] = False
 
         self.cut_ready.emit()
-
-    def connect_cut_ready(self, recut):
-        self.cut_ready.connect(recut)
 
     def on_motion(self, event):
         if self.linecut["is_dragging"] and event.inaxes == self.ax_slice:
@@ -754,13 +793,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
             self.cut_line.blockSignals(False)
 
-            self.ax_slice.plot(
-                *l0, "w--", linewidth=1, transform=self.transform
-            )
+            self.ax_slice.plot(*l0, "w--", linewidth=1, transform=self.transform)
 
-            self.ax_slice.plot(
-                *l1, "w--", linewidth=1, transform=self.transform
-            )
+            self.ax_slice.plot(*l1, "w--", linewidth=1, transform=self.transform)
 
             self.canvas_slice.draw_idle()
             self.canvas_slice.flush_events()
@@ -833,9 +868,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def set_vmin_value(self, val):
         self.vmin_line.setText(str(round(val, 5)))
+        self.view_model.set_number("vmin", val)
 
     def set_vmax_value(self, val):
         self.vmax_line.setText(str(round(val, 5)))
+        self.view_model.set_number("vmax", val)
 
     def get_xmin_value(self):
         if self.xmin_line.hasAcceptableInput():
@@ -847,9 +884,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def set_xmin_value(self, val):
         self.xmin_line.setText(str(round(val, 4)))
+        self.view_model.set_number("xmin", val)
 
     def set_xmax_value(self, val):
         self.xmax_line.setText(str(round(val, 4)))
+        self.view_model.set_number("xmax", val)
 
     def get_ymin_value(self):
         if self.ymin_line.hasAcceptableInput():
@@ -861,11 +900,15 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def set_ymin_value(self, val):
         self.ymin_line.setText(str(round(val, 4)))
+        self.view_model.set_number("ymin", val)
 
     def set_ymax_value(self, val):
         self.ymax_line.setText(str(round(val, 4)))
+        self.view_model.set_number("ymax", val)
 
-    def set_slice_lim(self, xlim, ylim):
+    def set_slice_lim(self, lims):
+        xlim, ylim = lims
+
         if self.cb is not None:
             xmin, xmax = xlim
             ymin, ymax = ylim

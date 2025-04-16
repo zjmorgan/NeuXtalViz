@@ -22,3 +22,7 @@ dependencies:
   - black
   - pip:
     - pyqtdarktheme
+    - nova-mvvm
+    - nova-trame
+    - trame-matplotlib
+    - trame-vtk
