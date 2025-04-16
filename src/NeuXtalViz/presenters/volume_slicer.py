@@ -193,7 +193,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
 
             self.view.set_transform(trans)
 
-            self.draw_idle = True
+        self.draw_idle = True
 
     def redraw_data_process(self, progress):
         if self.model.is_histo_loaded():
@@ -242,7 +242,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
         if result is not None:
             self.view.reset_slider()
             self.view.add_slice(result)
-            self.slice_idle = True
+        self.slice_idle = True
 
     def slice_data_process(self, progress):
         if self.model.is_histo_loaded():
@@ -282,7 +282,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
     def cut_data_complete(self, result):
         if result is not None:
             self.view.add_cut(result)
-            self.cut_idle = True
+        self.cut_idle = True
 
     def cut_data_process(self, progress):
         if self.model.is_sliced():

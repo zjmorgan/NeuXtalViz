@@ -34,14 +34,13 @@ class VolumeSlicerModel(NeuXtalVizModel):
         mtd["histo"].setSignalArray(signal)
         mtd["histo"].setErrorSquaredArray(signal_var)
 
-        CompactMD(InputWorkspace="histo", OutputWorkspace="crop")
+        CompactMD(InputWorkspace="histo", OutputWorkspace="volume")
 
-        signal = mtd["crop"].getSignalArray().copy()
-        signal_var = mtd["crop"].getErrorSquaredArray().copy()
+        signal = mtd["volume"].getSignalArray()
 
         self.shape = signal.shape
 
-        dims = [mtd["crop"].getDimension(i) for i in range(3)]
+        dims = [mtd["volume"].getDimension(i) for i in range(3)]
 
         self.min_lim = np.array(
             [dim.getMinimum() + dim.getBinWidth() * 0.5 for dim in dims]
@@ -75,21 +74,6 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         self.set_B()
         self.set_W()
-
-        CloneMDWorkspace(InputWorkspace="crop", OutputWorkspace="data")
-        CloneMDWorkspace(InputWorkspace="crop", OutputWorkspace="norm")
-
-        data = signal**2 / signal_var
-        norm = signal / signal_var
-
-        data[~np.isfinite(data)] = 0
-        norm[~np.isfinite(norm)] = 0
-
-        mtd["data"].setSignalArray(data)
-        mtd["data"].setErrorSquaredArray(data)
-
-        mtd["norm"].setSignalArray(norm)
-        mtd["norm"].setErrorSquaredArray(norm * 0)
 
     def save_slice(self, filename):
         SaveMDToAscii("slice", filename)
@@ -154,36 +138,10 @@ class VolumeSlicerModel(NeuXtalVizModel):
         pbin = [None if norm == 0 else integrate for norm in normal]
 
         IntegrateMDHistoWorkspace(
-            InputWorkspace="data",
+            InputWorkspace="volume",
             P1Bin=pbin[0],
             P2Bin=pbin[1],
             P3Bin=pbin[2],
-            OutputWorkspace="data_slice",
-        )
-
-        IntegrateMDHistoWorkspace(
-            InputWorkspace="norm",
-            P1Bin=pbin[0],
-            P2Bin=pbin[1],
-            P3Bin=pbin[2],
-            OutputWorkspace="norm_slice",
-        )
-
-        data = mtd["data_slice"].getSignalArray().copy()
-        norm = mtd["norm_slice"].getSignalArray().copy()
-
-        data[~np.isfinite(data)] = 0
-        norm[~np.isfinite(norm)] = 0
-
-        mtd["data_slice"].setSignalArray(data)
-        mtd["data_slice"].setErrorSquaredArray(data)
-
-        mtd["norm_slice"].setSignalArray(norm)
-        mtd["norm_slice"].setErrorSquaredArray(norm * 0)
-
-        DivideMD(
-            LHSWorkspace="data_slice",
-            RHSWorkspace="norm_slice",
             OutputWorkspace="slice",
         )
 
@@ -248,36 +206,10 @@ class VolumeSlicerModel(NeuXtalVizModel):
         pbin = [None if ax == 0 else integrate for ax in axis]
 
         IntegrateMDHistoWorkspace(
-            InputWorkspace="data_slice",
+            InputWorkspace="slice",
             P1Bin=pbin[0],
             P2Bin=pbin[1],
             P3Bin=pbin[2],
-            OutputWorkspace="data_cut",
-        )
-
-        IntegrateMDHistoWorkspace(
-            InputWorkspace="norm_slice",
-            P1Bin=pbin[0],
-            P2Bin=pbin[1],
-            P3Bin=pbin[2],
-            OutputWorkspace="norm_cut",
-        )
-
-        data = mtd["data_cut"].getSignalArray().copy()
-        norm = mtd["norm_cut"].getSignalArray().copy()
-
-        data[~np.isfinite(data)] = 0
-        norm[~np.isfinite(norm)] = 0
-
-        mtd["data_cut"].setSignalArray(data)
-        mtd["data_cut"].setErrorSquaredArray(data)
-
-        mtd["norm_cut"].setSignalArray(norm)
-        mtd["norm_cut"].setErrorSquaredArray(norm * 0)
-
-        DivideMD(
-            LHSWorkspace="data_cut",
-            RHSWorkspace="norm_cut",
             OutputWorkspace="cut",
         )
 
