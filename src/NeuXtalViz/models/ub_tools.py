@@ -1292,7 +1292,10 @@ class UBModel(NeuXtalVizModel):
         hkl_trans = ",".join(9 * ["{}"]).format(*transform)
 
         TransformHKL(
-            PeaksWorkspace=self.table, Tolerance=tol, HKLTransform=hkl_trans
+            PeaksWorkspace=self.table,
+            Tolerance=tol,
+            HKLTransform=hkl_trans,
+            FindError=mtd[self.table].getNumberPeaks() > 3,
         )
 
         self.copy_UB_from_peaks()
