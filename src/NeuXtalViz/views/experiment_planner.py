@@ -288,6 +288,8 @@ class ExperimentView(NeuXtalVizWidget):
         self.fig_inst = self.canvas_inst.figure
         self.ax_inst = self.fig_inst.subplots(1, 1)
         self.ax_inst.clear()
+        self.ax_inst.invert_xaxis()
+
         self.cb_inst = None
         self.cb_inst_alt = None
 
@@ -939,6 +941,7 @@ class ExperimentView(NeuXtalVizWidget):
             self.cb_inst_alt = None
 
         self.ax_inst.clear()
+        self.ax_inst.invert_xaxis()
 
         self.ax_inst.scatter(
             gamma_inst, nu_inst, color="lightgray", marker="o", rasterized=True
@@ -993,6 +996,7 @@ class ExperimentView(NeuXtalVizWidget):
             self.cb_inst_alt = None
 
         self.ax_inst.clear()
+        self.ax_inst.invert_xaxis()
 
         self.ax_inst.scatter(
             gamma_inst, nu_inst, color="lightgray", marker="o", rasterized=True

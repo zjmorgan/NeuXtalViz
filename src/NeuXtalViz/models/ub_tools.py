@@ -69,7 +69,7 @@ config["Q.convention"] = "Crystallography"
 from mantid.geometry import PointGroupFactory, UnitCell
 from mantid.kernel import V3D
 
-# from sklearn.cluster import DBSCAN
+from sklearn.cluster import DBSCAN
 
 import numpy as np
 import scipy

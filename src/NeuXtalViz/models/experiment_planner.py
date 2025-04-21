@@ -245,6 +245,15 @@ class ExperimentModel(NeuXtalVizModel):
                 Pixel="0-{},{}-{}".format(mask_rows, rows - mask_rows, rows),
             )
 
+            banks = beamlines[instrument]["MaskBanks"]
+
+            for bank in banks:
+                MaskBTP(
+                    Workspace="instrument",
+                    Instrument=inst,
+                    Bank=bank,
+                )
+
             PreprocessDetectorsToMD(
                 InputWorkspace="instrument", OutputWorkspace="detectors"
             )

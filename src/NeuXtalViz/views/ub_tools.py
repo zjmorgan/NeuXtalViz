@@ -2048,7 +2048,7 @@ class UBView(NeuXtalVizWidget):
             mu = np.nanmean(intensities)
             sigma = np.nanstd(intensities)
 
-            cmap = "viridis" if integrate else ["lightblue", "lightgreen"]
+            cmap = "turbo" if integrate else ["lightblue", "lightgreen"]
             n_colors = 256 if integrate else 2
             clim = [mu - 3 * sigma, mu + 3 * sigma] if integrate else [0, 1]
 
@@ -2702,6 +2702,7 @@ class UBView(NeuXtalVizWidget):
             self.cb_inst = None
 
         self.ax_inst.clear()
+        self.ax_inst.invert_xaxis()
 
         self.im = self.ax_inst.scatter(
             gamma, nu, c=counts, marker="o", norm=norm, rasterized=True
