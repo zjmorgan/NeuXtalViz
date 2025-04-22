@@ -25,6 +25,9 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_roi_ready(self.lookup_angle)
         self.view.connect_viz_ready(self.visualize)
 
+        self.view.connect_update(self.view.update_counting)
+        self.view.connect_highlight_angles(self.view.highlight_angles)
+
         self.switch_instrument()
         self.switch_crystal()
 
@@ -45,10 +48,12 @@ class Experiment(NeuXtalVizPresenter):
         motors = self.model.get_motors(instrument)
         modes = self.model.get_modes(instrument)
         goniometers = self.model.get_goniometers(instrument, modes[0])
+        options = self.model.get_counting_options(instrument)
 
         self.view.set_modes(modes)
         self.view.set_wavelength(wavelength)
         self.view.update_tables(goniometers, motors)
+        self.view.set_counting_options(options)
 
         self.model.remove_instrument()
 
@@ -265,9 +270,10 @@ class Experiment(NeuXtalVizPresenter):
             peak_dict = self.model.get_coverage_info(
                 point_group, lattice_centering
             )
-            peak_dict["axis_limit"] = self.view.get_d_min()
+            if peak_dict is not None:
+                peak_dict["axis_limit"] = self.view.get_d_min()
 
-            self.view.add_peaks(peak_dict)
+                self.view.add_peaks(peak_dict)
 
     def optimize_coverage(self):
         worker = self.view.worker(self.optimize_coverage_process)
@@ -338,6 +344,8 @@ class Experiment(NeuXtalVizPresenter):
         mode = self.view.get_mode()
         settings = self.view.get_all_settings()
         comments = self.view.get_all_comments()
+        counts = self.view.get_all_countings()
+        values = self.view.get_all_values()
         use = self.view.get_orientations_to_use()
         names = self.view.get_free_angles()
         UB = self.model.get_UB()
@@ -348,7 +356,7 @@ class Experiment(NeuXtalVizPresenter):
         lattice_centering = self.view.get_lattice_centering()
         motors = self.view.get_motors()
         limits = self.view.get_goniometer_limits()
-        self.model.create_plan(names, settings, comments, use)
+        self.model.create_plan(names, settings, comments, counts, values, use)
         self.model.create_sample(instrument, mode, UB, wavelength, d_min)
         self.model.update_sample(crysal_system, point_group, lattice_centering)
         self.model.update_goniometer_motors(limits, motors)
@@ -373,7 +381,7 @@ class Experiment(NeuXtalVizPresenter):
         if filename:
             plan, config, symm = self.model.load_experiment(filename)
 
-            settings, comments, use = plan
+            settings, comments, counts, values, use = plan
             instrument, mode, wl, d_min, lims, vals = config
             cs, pg, lc = symm
 
@@ -391,7 +399,7 @@ class Experiment(NeuXtalVizPresenter):
             self.view.set_point_group(pg)
             self.switch_group()
             self.view.set_lattice_centering(lc)
-            self.view.add_settings(settings, comments, use)
+            self.view.add_settings(settings, comments, counts, values, use)
             self.add_settings()
 
     def add_settings(self):

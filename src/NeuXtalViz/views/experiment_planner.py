@@ -81,6 +81,16 @@ class ExperimentView(NeuXtalVizWidget):
         self.load_UB_button = QPushButton("Load UB", self)
         self.optimize_button = QPushButton("Optimize Coverage", self)
         self.delete_button = QPushButton("Delete Highlighted", self)
+        self.highlight_button = QPushButton("Highlight All", self)
+
+        self.count_combo = QComboBox(self)
+        self.update_button = QPushButton("Update Highlighted", self)
+        self.count_line = QLineEdit("1.0")
+
+        notation = QDoubleValidator.StandardNotation
+        validator = QDoubleValidator(0.001, 10000, 5, notation=notation)
+
+        self.count_line.setValidator(validator)
 
         self.save_plan_button = QPushButton("Save CSV", self)
         self.save_experiment_button = QPushButton("Save Experiment", self)
@@ -177,10 +187,15 @@ class ExperimentView(NeuXtalVizWidget):
         planning_layout.addWidget(settings_label)
         planning_layout.addWidget(self.settings_line)
         planning_layout.addStretch(1)
+        planning_layout.addWidget(self.count_combo)
+        planning_layout.addWidget(self.count_line)
+        planning_layout.addWidget(self.update_button)
+        planning_layout.addStretch(1)
         planning_layout.addWidget(self.optimize_button)
 
         save_layout = QHBoxLayout()
         save_layout.addWidget(self.delete_button)
+        save_layout.addWidget(self.highlight_button)
         save_layout.addStretch(1)
         save_layout.addWidget(self.save_plan_button)
         save_layout.addWidget(self.save_experiment_button)
@@ -342,6 +357,9 @@ class ExperimentView(NeuXtalVizWidget):
     def connect_delete_angles(self, delete_angles):
         self.delete_button.clicked.connect(delete_angles)
 
+    def connect_highlight_angles(self, highlight_angles):
+        self.highlight_button.clicked.connect(highlight_angles)
+
     def connect_calculate_single(self, calculate_single):
         self.calculate_single_button.clicked.connect(calculate_single)
 
@@ -380,6 +398,9 @@ class ExperimentView(NeuXtalVizWidget):
 
     def connect_wavelength(self, update_wavelength):
         self.wl_min_line.editingFinished.connect(update_wavelength)
+
+    def connect_update(self, update):
+        self.update_button.clicked.connect(update)
 
     def load_UB_file_dialog(self):
         options = QFileDialog.Options()
@@ -515,6 +536,24 @@ class ExperimentView(NeuXtalVizWidget):
         for mode in modes:
             self.mode_combo.addItem(mode)
 
+    def set_counting_options(self, options):
+        self.count_combo.clear()
+        for option in options:
+            self.count_combo.addItem(option)
+
+    def get_counting_options(self):
+        return [
+            self.count_combo.itemText(i)
+            for i in range(self.count_combo.count())
+        ]
+
+    def get_counting_index(self):
+        return self.count_combo.currentIndex()
+
+    def get_count_value(self):
+        if self.count_line.hasAcceptableInput():
+            return float(self.count_line.text())
+
     def set_peak_list(self, rows):
         self.angles_combo.blockSignals(True)
         self.angles_combo.clear()
@@ -590,9 +629,9 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.blockSignals(True)
         self.plan_table.clearContents()
         self.plan_table.setRowCount(0)
-        self.plan_table.setColumnCount(len(free) + 2)
+        self.plan_table.setColumnCount(len(free) + 4)
 
-        labels = free + ["Comment", "Use"]
+        labels = free + ["Comment", "Wait For", "Value", "Use"]
 
         resize = QHeaderView.Stretch
 
@@ -615,6 +654,32 @@ class ExperimentView(NeuXtalVizWidget):
 
         return rows
 
+    def highlight_angles(self):
+        self.plan_table.setSelectionBehavior(self.plan_table.SelectRows)
+        self.plan_table.selectAll()
+
+    def update_counting(self):
+        self.plan_table.blockSignals(True)
+
+        index = self.get_counting_index()
+        value = self.get_count_value()
+
+        col = self.plan_table.columnCount() - 3
+
+        rows = set(index.row() for index in self.plan_table.selectedIndexes())
+        for row in rows:
+            if index is not None:
+                widget = self.plan_table.cellWidget(row, col)
+                if isinstance(widget, QComboBox):
+                    widget.setCurrentIndex(index)
+            if value is not None:
+                item = QTableWidgetItem("{:.3f}".format(value))
+                self.plan_table.setItem(row, col + 1, item)
+
+        self.plan_table.blockSignals(False)
+
+        return rows
+
     def get_all_angles(self):
         rows = self.goniometer_table.rowCount()
 
@@ -625,7 +690,7 @@ class ExperimentView(NeuXtalVizWidget):
         return angles
 
     def get_free_angles(self):
-        cols = self.plan_table.columnCount() - 2
+        cols = self.plan_table.columnCount() - 4
 
         angles = [
             self.plan_table.horizontalHeaderItem(i).text() for i in range(cols)
@@ -646,8 +711,31 @@ class ExperimentView(NeuXtalVizWidget):
 
         return use
 
-    def get_all_comments(self):
+    def get_all_values(self):
         col = self.plan_table.columnCount() - 2
+
+        value = []
+        for row in range(self.get_number_of_orientations()):
+            item = self.plan_table.item(row, col).text()
+            value.append(item)
+
+        return value
+
+    def get_all_countings(self):
+        col = self.plan_table.columnCount() - 3
+
+        count = []
+        for row in range(self.get_number_of_orientations()):
+            widget = self.plan_table.cellWidget(row, col)
+            if isinstance(widget, QComboBox):
+                count.append(widget.currentText())
+            else:
+                count.append("")
+
+        return count
+
+    def get_all_comments(self):
+        col = self.plan_table.columnCount() - 4
 
         comment = []
         for row in range(self.get_number_of_orientations()):
@@ -668,7 +756,7 @@ class ExperimentView(NeuXtalVizWidget):
             return int(self.settings_line.text())
 
     def get_optimized_settings(self):
-        col = self.plan_table.columnCount() - 2
+        col = self.plan_table.columnCount() - 4
 
         opt = []
         for row in range(self.get_number_of_orientations()):
@@ -678,7 +766,7 @@ class ExperimentView(NeuXtalVizWidget):
         return opt
 
     def get_angle_setting(self, row):
-        cols = self.plan_table.columnCount() - 2
+        cols = self.plan_table.columnCount() - 4
 
         setting = []
         for col in range(cols):
@@ -702,6 +790,22 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.setItem(row, col, QTableWidgetItem(comment))
         col += 1
 
+        combobox = QComboBox()
+        options = self.get_counting_options()
+        for option in options:
+            combobox.addItem(option)
+        index = self.get_counting_index()
+        if index is not None:
+            combobox.setCurrentIndex(index)
+        self.plan_table.setCellWidget(row, col, combobox)
+        col += 1
+
+        val = self.get_count_value()
+        if val is not None:
+            item = QTableWidgetItem("{:.3f}".format(val))
+            self.plan_table.setItem(row, col, item)
+        col += 1
+
         flags = Qt.ItemIsUserCheckable | Qt.ItemIsEnabled
 
         checkbox = QTableWidgetItem("")
@@ -714,7 +818,7 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.blockSignals(False)
         self.plan_table.setSortingEnabled(True)
 
-    def add_settings(self, settings, comments, use):
+    def add_settings(self, settings, comments, counts, values, use):
         self.plan_table.setUpdatesEnabled(False)
         self.plan_table.setSortingEnabled(False)
         self.plan_table.blockSignals(True)
@@ -730,6 +834,19 @@ class ExperimentView(NeuXtalVizWidget):
                 col += 1
 
             self.plan_table.setItem(row, col, QTableWidgetItem(comments[row]))
+            col += 1
+
+            combobox = QComboBox()
+            options = self.get_counting_options()
+            for option in options:
+                combobox.addItem(option)
+            index = options.index(counts[row])
+            combobox.setCurrentIndex(index)
+            self.plan_table.setCellWidget(row, col, combobox)
+            col += 1
+
+            item = QTableWidgetItem("{:.3f}".format(values[row]))
+            self.plan_table.setItem(row, col, item)
             col += 1
 
             flags = Qt.ItemIsUserCheckable | Qt.ItemIsEnabled

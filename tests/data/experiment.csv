@@ -1,5 +1,4 @@
-# BL12:Mot:goniokm:omega , BL12:Mot:goniokm:phi , comment , use 
-# float , float , str , bool 
-92.3,90.5,CrystalPlan,true
--111.1,-126.8,CrystalPlan,true
-106.2,-124.6,CrystalPlan,true
+BL12:Mot:goniokm:omega,BL12:Mot:goniokm:phi,Comment,Wait For,Value
+-102.0,-4.5,CrystalPlan,BL12:Det:PCharge:C,1.0
+167.6999969482422,-16.799999237060547,CrystalPlan,BL12:Det:PCharge:C,1.0
+39.29999923706055,51.0,CrystalPlan,BL12:Det:PCharge:C,1.0

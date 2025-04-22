@@ -17,6 +17,7 @@ beamlines = {
             "det_arc2": 105,
         },
         "RawFile": "nexus/SNAP_{}.nxs.h5",
+        "Counting": ["BL3:Det:PCharge:C", "seconds"],
     },
     "CORELLI": {
         "Name": "CORELLI",
@@ -40,6 +41,7 @@ beamlines = {
             }
         },
         "RawFile": "nexus/CORELLI_{}.nxs.h5",
+        "Counting": ["BL9:Det:PCharge:C", "seconds"],
     },
     "TOPAZ": {
         "Name": "TOPAZ",
@@ -68,6 +70,7 @@ beamlines = {
             },
         },
         "RawFile": "nexus/TOPAZ_{}.nxs.h5",
+        "Counting": ["BL12:Det:PCharge:C", "seconds"],
     },
     "MANDI": {
         "Name": "MANDI",
@@ -91,6 +94,7 @@ beamlines = {
             }
         },
         "RawFile": "nexus/MANDI_{}.nxs.h5",
+        "Counting": ["BL11B:Det:PCharge:C", "seconds"],
     },
     "WAND²": {
         "Name": "WAND",
@@ -114,6 +118,7 @@ beamlines = {
             "HB2C:Mot:detz.RBV": 0,
         },
         "RawFile": "nexus/HB2C_{}.nxs.h5",
+        "Counting": ["seconds"],
     },
     "DEMAND": {
         "Name": "HB3A",
@@ -141,5 +146,6 @@ beamlines = {
             "det_trans": 410.38595,
         },
         "RawFile": "shared/autoreduce/HB3A_exp{:04}_scan{:04}.nxs",
+        "Counting": ["seconds"],
     },
 }

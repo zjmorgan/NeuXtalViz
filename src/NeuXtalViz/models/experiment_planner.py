@@ -345,21 +345,27 @@ class ExperimentModel(NeuXtalVizModel):
     def get_symmetry(self, point_group, centering):
         return str(point_group), str(centering)
 
-    def create_plan(self, names, settings, comments, use):
+    def create_plan(self, names, settings, comments, counts, values, use):
         CreateEmptyTableWorkspace(OutputWorkspace="plan")
 
         for name in names:
             mtd["plan"].addColumn("float", name)
 
-        mtd["plan"].addColumn("str", "comment")
-        mtd["plan"].addColumn("bool", "use")
+        mtd["plan"].addColumn("str", "Comment")
+        mtd["plan"].addColumn("str", "Wait For")
+        mtd["plan"].addColumn("float", "Value")
+        mtd["plan"].addColumn("bool", "Use")
 
-        for setting, comment, active in zip(settings, comments, use):
+        for setting, comment, count, value, active in zip(
+            settings, comments, counts, values, use
+        ):
             row = {}
             for angle, name in zip(setting, names):
                 row[name] = np.round(angle, 2)
-            row["comment"] = comment
-            row["use"] = active
+            row["Comment"] = comment
+            row["Wait For"] = count
+            row["Value"] = float(value)
+            row["Use"] = active
             mtd["plan"].addRow(row)
 
     def create_sample(self, instrument, mode, UB, wavelength, d_min):
@@ -464,6 +470,9 @@ class ExperimentModel(NeuXtalVizModel):
     def get_modes(self, instrument):
         return list(beamlines[instrument]["Goniometer"].keys())
 
+    def get_counting_options(self, instrument):
+        return beamlines[instrument]["Counting"]
+
     def get_axes_polarities(self, instrument, mode):
         goniometers = beamlines[instrument]["Goniometer"][mode]
 
@@ -501,14 +510,14 @@ class ExperimentModel(NeuXtalVizModel):
 
     def save_plan(self, filename):
         plan_dict = mtd["plan"].toDict().copy()
-        use_angle = plan_dict["use"]
+        use_angle = plan_dict["Use"]
 
         for key in plan_dict.keys():
             items = plan_dict[key]
             items = [item for item, use in zip(items, use_angle) if use]
             plan_dict[key] = items
 
-        plan_dict.pop("use")
+        plan_dict.pop("Use")
 
         with open(filename, mode="w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=plan_dict.keys())
@@ -553,11 +562,13 @@ class ExperimentModel(NeuXtalVizModel):
         else:
             wl = [wl_min, wl_max]
 
-        cols = mtd[plan].columnCount() - 2
+        cols = mtd[plan].columnCount() - 4
         rows = mtd[plan].rowCount()
 
-        use = mtd[plan].column(cols + 1)
         comments = mtd[plan].column(cols)
+        counts = mtd[plan].column(cols + 1)
+        values = mtd[plan].column(cols + 2)
+        use = mtd[plan].column(cols + 3)
 
         settings = []
         for row in range(rows):
@@ -567,7 +578,7 @@ class ExperimentModel(NeuXtalVizModel):
                 angles.append(angle)
             settings.append(angles)
 
-        plan = (settings, comments, use)
+        plan = (settings, comments, counts, values, use)
         config = (instrument, mode, wl, d_min, lims, vals)
         symm = (cs, pg, lc)
 
@@ -1003,6 +1014,8 @@ class ExperimentModel(NeuXtalVizModel):
                     comp.append(completeness * 100)
                     mult.append(redundancy)
                     refl.append(unique)
+            else:
+                return None
 
         return shel, comp, mult, refl
 
@@ -1047,63 +1060,64 @@ class ExperimentModel(NeuXtalVizModel):
         UB = mtd["coverage"].sample().getOrientedLattice().getUB().copy()
         # UB_inv = np.linalg.inv(UB)
 
-        h = mtd["filtered"].column("h")
-        k = mtd["filtered"].column("k")
-        l = mtd["filtered"].column("l")
+        if mtd.doesExist("filtered"):
+            h = mtd["filtered"].column("h")
+            k = mtd["filtered"].column("k")
+            l = mtd["filtered"].column("l")
 
-        hkls = np.array([h, k, l]).T.astype(int).tolist()
+            hkls = np.array([h, k, l]).T.astype(int).tolist()
 
-        hkl_dict = {}
-        hkl_dict[(0, 0, 0)] = 0
-        for hkl in hkls:
-            if centering_conditions[lattice_centering](*hkl):
-                equiv_hkls = pg.getEquivalents(hkl)
-                for equiv_hkl in equiv_hkls:
-                    key = tuple(equiv_hkl)
-                    no = hkl_dict.get(key)
-                    if no is None:
-                        no = 1
-                    else:
-                        no += 1
-                    hkl_dict[key] = no
+            hkl_dict = {}
+            hkl_dict[(0, 0, 0)] = 0
+            for hkl in hkls:
+                if centering_conditions[lattice_centering](*hkl):
+                    equiv_hkls = pg.getEquivalents(hkl)
+                    for equiv_hkl in equiv_hkls:
+                        key = tuple(equiv_hkl)
+                        no = hkl_dict.get(key)
+                        if no is None:
+                            no = 1
+                        else:
+                            no += 1
+                        hkl_dict[key] = no
 
-        nos = np.array([value for value in hkl_dict.values()])
-        hkls = np.array([key for key in hkl_dict.keys()])
+            nos = np.array([value for value in hkl_dict.values()])
+            hkls = np.array([key for key in hkl_dict.keys()])
 
-        r = np.sqrt(hkls[:, 0] ** 2 + hkls[:, 1] ** 2 + hkls[:, 2] ** 2)
-        theta = np.arccos(hkls[:, 2] / r)
-        phi = np.arctan2(hkls[:, 1], hkls[:, 0])
+            r = np.sqrt(hkls[:, 0] ** 2 + hkls[:, 1] ** 2 + hkls[:, 2] ** 2)
+            theta = np.arccos(hkls[:, 2] / r)
+            phi = np.arctan2(hkls[:, 1], hkls[:, 0])
 
-        hue = phi * 180 / np.pi + 180
-        saturation = np.ones_like(hue)
-        lightness = theta / np.pi
+            hue = phi * 180 / np.pi + 180
+            saturation = np.ones_like(hue)
+            lightness = theta / np.pi
 
-        rgb = self.hsl_to_rgb(hue, saturation, lightness)
-        coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
+            rgb = self.hsl_to_rgb(hue, saturation, lightness)
+            coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
 
-        coverage_dict["colors"] = (rgb * 255).astype(np.uint8)
-        coverage_dict["sizes"] = nos / nos.max()
-        coverage_dict["coords"] = coords
+            coverage_dict["colors"] = (rgb * 255).astype(np.uint8)
+            coverage_dict["sizes"] = nos / nos.max()
+            coverage_dict["coords"] = coords
 
-        hkls = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+            hkls = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
-        r = np.sqrt(hkls[:, 0] ** 2 + hkls[:, 1] ** 2 + hkls[:, 2] ** 2)
-        theta = np.arccos(hkls[:, 2] / r)
-        phi = np.arctan2(hkls[:, 1], hkls[:, 0])
+            r = np.sqrt(hkls[:, 0] ** 2 + hkls[:, 1] ** 2 + hkls[:, 2] ** 2)
+            theta = np.arccos(hkls[:, 2] / r)
+            phi = np.arctan2(hkls[:, 1], hkls[:, 0])
 
-        hue = phi * 180 / np.pi + 180
-        saturation = np.ones_like(hue)
-        lightness = theta / np.pi
+            hue = phi * 180 / np.pi + 180
+            saturation = np.ones_like(hue)
+            lightness = theta / np.pi
 
-        coverage_dict["axis_coords"] = coords
+            coverage_dict["axis_coords"] = coords
 
-        rgb = self.hsl_to_rgb(hue, saturation, lightness)
-        coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
+            rgb = self.hsl_to_rgb(hue, saturation, lightness)
+            coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
 
-        coverage_dict["axis_colors"] = (rgb * 255).astype(np.uint8)
-        coverage_dict["axis_coords"] = coords
+            coverage_dict["axis_colors"] = (rgb * 255).astype(np.uint8)
+            coverage_dict["axis_coords"] = coords
 
-        return coverage_dict
+            return coverage_dict
 
     def crystal_plan(self, *args):
         return CrystalPlan(*args)
