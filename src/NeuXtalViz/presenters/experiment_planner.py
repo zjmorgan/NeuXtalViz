@@ -49,10 +49,11 @@ class Experiment(NeuXtalVizPresenter):
         modes = self.model.get_modes(instrument)
         goniometers = self.model.get_goniometers(instrument, modes[0])
         options = self.model.get_counting_options(instrument)
+        title = self.model.get_scan_log(instrument)
 
         self.view.set_modes(modes)
         self.view.set_wavelength(wavelength)
-        self.view.update_tables(goniometers, motors)
+        self.view.update_tables(title, goniometers, motors)
         self.view.set_counting_options(options)
 
         self.model.remove_instrument()
@@ -84,8 +85,9 @@ class Experiment(NeuXtalVizPresenter):
 
         goniometers = self.model.get_goniometers(instrument, mode)
         motors = self.model.get_motors(instrument)
+        title = self.model.get_scan_log(instrument)
 
-        self.view.update_tables(goniometers, motors)
+        self.view.update_tables(title, goniometers, motors)
 
     def update_wavelength(self):
         wl_min, wl_max = self.view.get_wavelength()
@@ -230,7 +232,8 @@ class Experiment(NeuXtalVizPresenter):
             if angle_name in free_angles:
                 update_angles.append(angle)
 
-        self.view.add_orientation(comment, update_angles)
+        title = self.view.get_title()
+        self.view.add_orientation(title, comment, update_angles)
         self.update_peaks()
 
     def add_orientation_process(self, progress):
@@ -284,9 +287,10 @@ class Experiment(NeuXtalVizPresenter):
         self.view.start_worker_pool(worker)
 
     def optimize_coverage_complete(self, result):
+        title = self.view.get_title()
         if result is not None:
             for angles in result:
-                self.view.add_orientation("CrystalPlan", angles)
+                self.view.add_orientation(title, "CrystalPlan", angles)
             self.update_peaks()
 
     def optimize_coverage_process(self, progress):
@@ -348,6 +352,7 @@ class Experiment(NeuXtalVizPresenter):
         values = self.view.get_all_values()
         use = self.view.get_orientations_to_use()
         names = self.view.get_free_angles()
+        titles = self.view.get_all_titles()
         UB = self.model.get_UB()
         wavelength = self.view.get_wavelength()
         d_min = self.view.get_d_min()
@@ -356,7 +361,9 @@ class Experiment(NeuXtalVizPresenter):
         lattice_centering = self.view.get_lattice_centering()
         motors = self.view.get_motors()
         limits = self.view.get_goniometer_limits()
-        self.model.create_plan(names, settings, comments, counts, values, use)
+        pv = self.model.get_scan_log(instrument)
+        table = pv, names, titles, settings, comments, counts, values, use
+        self.model.create_plan(table)
         self.model.create_sample(instrument, mode, UB, wavelength, d_min)
         self.model.update_sample(crysal_system, point_group, lattice_centering)
         self.model.update_goniometer_motors(limits, motors)
@@ -381,9 +388,11 @@ class Experiment(NeuXtalVizPresenter):
         if filename:
             plan, config, symm = self.model.load_experiment(filename)
 
-            settings, comments, counts, values, use = plan
+            titles, settings, comments, counts, values, use = plan
             instrument, mode, wl, d_min, lims, vals = config
             cs, pg, lc = symm
+
+            table = titles, settings, comments, counts, values, use
 
             self.view.set_instrument(instrument)
             self.switch_instrument()
@@ -399,7 +408,7 @@ class Experiment(NeuXtalVizPresenter):
             self.view.set_point_group(pg)
             self.switch_group()
             self.view.set_lattice_centering(lc)
-            self.view.add_settings(settings, comments, counts, values, use)
+            self.view.add_settings(*table)
             self.add_settings()
 
     def add_settings(self):

@@ -86,6 +86,7 @@ class ExperimentView(NeuXtalVizWidget):
         self.count_combo = QComboBox(self)
         self.update_button = QPushButton("Update Highlighted", self)
         self.count_line = QLineEdit("1.0")
+        self.title_line = QLineEdit("Scan Title")
 
         notation = QDoubleValidator.StandardNotation
         validator = QDoubleValidator(0.001, 10000, 5, notation=notation)
@@ -184,13 +185,13 @@ class ExperimentView(NeuXtalVizWidget):
         mode_layout.addStretch(1)
 
         planning_layout = QHBoxLayout()
-        planning_layout.addWidget(settings_label)
-        planning_layout.addWidget(self.settings_line)
-        planning_layout.addStretch(1)
+        planning_layout.addWidget(self.title_line)
         planning_layout.addWidget(self.count_combo)
         planning_layout.addWidget(self.count_line)
         planning_layout.addWidget(self.update_button)
         planning_layout.addStretch(1)
+        planning_layout.addWidget(settings_label)
+        planning_layout.addWidget(self.settings_line)
         planning_layout.addWidget(self.optimize_button)
 
         save_layout = QHBoxLayout()
@@ -594,7 +595,7 @@ class ExperimentView(NeuXtalVizWidget):
         if not self.wl_max_line.isEnabled():
             self.wl_max_line.setText(str(lamda_min))
 
-    def update_tables(self, goniometers, motors):
+    def update_tables(self, title, goniometers, motors):
         self.goniometer_table.clearContents()
         self.goniometer_table.setRowCount(0)
         self.goniometer_table.setRowCount(len(goniometers))
@@ -629,9 +630,9 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.blockSignals(True)
         self.plan_table.clearContents()
         self.plan_table.setRowCount(0)
-        self.plan_table.setColumnCount(len(free) + 4)
+        self.plan_table.setColumnCount(len(free) + 5)
 
-        labels = free + ["Comment", "Wait For", "Value", "Use"]
+        labels = [title] + free + ["Comment", "Wait For", "Value", "Use"]
 
         resize = QHeaderView.Stretch
 
@@ -658,9 +659,13 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.setSelectionBehavior(self.plan_table.SelectRows)
         self.plan_table.selectAll()
 
+    def get_title(self):
+        return self.title_line.text()
+
     def update_counting(self):
         self.plan_table.blockSignals(True)
 
+        title = self.get_title()
         index = self.get_counting_index()
         value = self.get_count_value()
 
@@ -668,6 +673,9 @@ class ExperimentView(NeuXtalVizWidget):
 
         rows = set(index.row() for index in self.plan_table.selectedIndexes())
         for row in rows:
+            if title is not None:
+                item = QTableWidgetItem(title)
+                self.plan_table.setItem(row, 0, item)
             if index is not None:
                 widget = self.plan_table.cellWidget(row, col)
                 if isinstance(widget, QComboBox):
@@ -690,10 +698,11 @@ class ExperimentView(NeuXtalVizWidget):
         return angles
 
     def get_free_angles(self):
-        cols = self.plan_table.columnCount() - 4
+        cols = self.plan_table.columnCount() - 5
 
         angles = [
-            self.plan_table.horizontalHeaderItem(i).text() for i in range(cols)
+            self.plan_table.horizontalHeaderItem(i + 1).text()
+            for i in range(cols)
         ]
 
         return angles
@@ -711,12 +720,21 @@ class ExperimentView(NeuXtalVizWidget):
 
         return use
 
+    def get_all_titles(self):
+        title = []
+        for row in range(self.get_number_of_orientations()):
+            item = self.plan_table.item(row, 0).text()
+            title.append(item)
+
+        return title
+
     def get_all_values(self):
         col = self.plan_table.columnCount() - 2
 
         value = []
         for row in range(self.get_number_of_orientations()):
             item = self.plan_table.item(row, col).text()
+            item = float(item) if item.isnumeric() else 0.0
             value.append(item)
 
         return value
@@ -756,31 +774,35 @@ class ExperimentView(NeuXtalVizWidget):
             return int(self.settings_line.text())
 
     def get_optimized_settings(self):
-        col = self.plan_table.columnCount() - 4
+        col = self.plan_table.columnCount() - 5
 
         opt = []
         for row in range(self.get_number_of_orientations()):
-            item = self.plan_table.item(row, col)
+            item = self.plan_table.item(row, col + 1)
             opt.append(item.text() == "CrystalPlan")
 
         return opt
 
     def get_angle_setting(self, row):
-        cols = self.plan_table.columnCount() - 4
+        cols = self.plan_table.columnCount() - 5
 
         setting = []
         for col in range(cols):
-            setting.append(float(self.plan_table.item(row, col).text()))
+            setting.append(float(self.plan_table.item(row, col + 1).text()))
 
         return setting
 
-    def add_orientation(self, comment, angles):
+    def add_orientation(self, title, comment, angles):
         row = self.get_number_of_orientations()
         self.plan_table.blockSignals(True)
         self.plan_table.setSortingEnabled(False)
         self.plan_table.setRowCount(row + 1)
 
         col = 0
+
+        item = QTableWidgetItem(title)
+        self.plan_table.setItem(row, col, item)
+        col += 1
 
         for angle in angles:
             item = QTableWidgetItem("{:.1f}".format(angle))
@@ -818,7 +840,7 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.blockSignals(False)
         self.plan_table.setSortingEnabled(True)
 
-    def add_settings(self, settings, comments, counts, values, use):
+    def add_settings(self, titles, settings, comments, counts, values, use):
         self.plan_table.setUpdatesEnabled(False)
         self.plan_table.setSortingEnabled(False)
         self.plan_table.blockSignals(True)
@@ -827,6 +849,10 @@ class ExperimentView(NeuXtalVizWidget):
 
         for row, angles in enumerate(settings):
             col = 0
+
+            item = QTableWidgetItem(titles[row])
+            self.plan_table.setItem(row, col, item)
+            col += 1
 
             for angle in angles:
                 item = QTableWidgetItem("{:.1f}".format(angle))

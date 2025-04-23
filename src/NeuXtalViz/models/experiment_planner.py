@@ -345,8 +345,12 @@ class ExperimentModel(NeuXtalVizModel):
     def get_symmetry(self, point_group, centering):
         return str(point_group), str(centering)
 
-    def create_plan(self, names, settings, comments, counts, values, use):
+    def create_plan(self, table):
+        pv, names, titles, settings, comments, counts, values, use = table
+
         CreateEmptyTableWorkspace(OutputWorkspace="plan")
+
+        mtd["plan"].addColumn("str", pv)
 
         for name in names:
             mtd["plan"].addColumn("float", name)
@@ -356,15 +360,16 @@ class ExperimentModel(NeuXtalVizModel):
         mtd["plan"].addColumn("float", "Value")
         mtd["plan"].addColumn("bool", "Use")
 
-        for setting, comment, count, value, active in zip(
-            settings, comments, counts, values, use
+        for title, setting, comment, count, value, active in zip(
+            titles, settings, comments, counts, values, use
         ):
             row = {}
+            row[pv] = title
             for angle, name in zip(setting, names):
                 row[name] = np.round(angle, 2)
             row["Comment"] = comment
             row["Wait For"] = count
-            row["Value"] = float(value)
+            row["Value"] = value
             row["Use"] = active
             mtd["plan"].addRow(row)
 
@@ -473,6 +478,9 @@ class ExperimentModel(NeuXtalVizModel):
     def get_counting_options(self, instrument):
         return beamlines[instrument]["Counting"]
 
+    def get_scan_log(self, instrument):
+        return beamlines[instrument]["Title"]
+
     def get_axes_polarities(self, instrument, mode):
         goniometers = beamlines[instrument]["Goniometer"][mode]
 
@@ -562,23 +570,24 @@ class ExperimentModel(NeuXtalVizModel):
         else:
             wl = [wl_min, wl_max]
 
-        cols = mtd[plan].columnCount() - 4
+        cols = mtd[plan].columnCount() - 5
         rows = mtd[plan].rowCount()
 
-        comments = mtd[plan].column(cols)
-        counts = mtd[plan].column(cols + 1)
-        values = mtd[plan].column(cols + 2)
-        use = mtd[plan].column(cols + 3)
+        titles = mtd[plan].column(0)
+        comments = mtd[plan].column(cols + 1)
+        counts = mtd[plan].column(cols + 2)
+        values = mtd[plan].column(cols + 3)
+        use = mtd[plan].column(cols + 4)
 
         settings = []
         for row in range(rows):
             angles = []
             for col in range(cols):
-                angle = mtd[plan].cell(row, col)
+                angle = mtd[plan].cell(row, col + 1)
                 angles.append(angle)
             settings.append(angles)
 
-        plan = (settings, comments, counts, values, use)
+        plan = (titles, settings, comments, counts, values, use)
         config = (instrument, mode, wl, d_min, lims, vals)
         symm = (cs, pg, lc)
 
