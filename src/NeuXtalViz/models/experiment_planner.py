@@ -614,6 +614,11 @@ class ExperimentModel(NeuXtalVizModel):
     def _calculate_matrices(self, axes, polarities, limits, step):
         self.generate_axes(axes, polarities)
 
+        # free = 0
+        # for limit in limits:
+        #     free += 1-np.isclose(limit[0], limit[1])
+        # step *= free
+
         angular_coverage = []
         for limit in limits:
             angular_coverage.append(np.arange(limit[0], limit[1] + step, step))

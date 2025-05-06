@@ -630,6 +630,7 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.blockSignals(True)
         self.plan_table.clearContents()
         self.plan_table.setRowCount(0)
+        self.plan_table.setColumnCount(0)
         self.plan_table.setColumnCount(len(free) + 5)
 
         labels = [title] + free + ["Comment", "Wait For", "Value", "Use"]
@@ -734,7 +735,7 @@ class ExperimentView(NeuXtalVizWidget):
         value = []
         for row in range(self.get_number_of_orientations()):
             item = self.plan_table.item(row, col).text()
-            item = float(item) if item.isnumeric() else 0.0
+            item = float(item) if item.replace(".", "").isnumeric() else 0.0
             value.append(item)
 
         return value
