@@ -200,10 +200,14 @@ class Experiment(NeuXtalVizPresenter):
 
         vals = self.model.get_angles(gamma, nu)
         if vals is not None:
-            angles, gamma, nu = vals
+            angles, gamma, nu, lamda, gamma_alt, nu_alt, lamda_alt = vals
             self.view.set_angles(angles)
             self.view.set_horizontal(gamma)
             self.view.set_vertical(nu)
+            self.view.set_intersect(lamda)
+            self.view.set_horizontal_alternate(gamma_alt)
+            self.view.set_vertical_alternate(nu_alt)
+            self.view.set_intersect_alternate(lamda_alt)
             self.view.update_inst()
 
     def delete_angles(self):

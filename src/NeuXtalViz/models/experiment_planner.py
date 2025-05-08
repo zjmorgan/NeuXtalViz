@@ -697,6 +697,11 @@ class ExperimentModel(NeuXtalVizModel):
         self.angles = self.angles[mask]
         self.angles_gamma = gamma.copy()
         self.angles_nu = nu.copy()
+        self.angles_lamda = lamda.copy()
+
+        self.angles_gamma_alt = None
+        self.angles_nu_alt = None
+        self.angles_lamda_alt = None
 
         if len(lamda) > 0:
             k = 2 * np.pi / lamda
@@ -718,6 +723,7 @@ class ExperimentModel(NeuXtalVizModel):
             self.angles = self.angles[mask]
             self.angles_gamma = gamma.copy()
             self.angles_nu = nu.copy()
+            self.angles_lamda = lamda.copy()
 
         return gamma, nu, lamda
 
@@ -786,6 +792,11 @@ class ExperimentModel(NeuXtalVizModel):
         self.angles = self.angles[mask]
         self.angles_gamma = gamma0.copy()
         self.angles_nu = nu0.copy()
+        self.angles_lamda = lamda0.copy()
+
+        self.angles_gamma_alt = gamma1.copy()
+        self.angles_nu_alt = nu1.copy()
+        self.angles_lamda_alt = lamda1.copy()
 
         if len(lamda0) > 0:
             k0 = 2 * np.pi / lamda0
@@ -827,6 +838,11 @@ class ExperimentModel(NeuXtalVizModel):
             self.angles = self.angles[mask]
             self.angles_gamma = gamma0.copy()
             self.angles_nu = nu0.copy()
+            self.angles_lamda = lamda0.copy()
+
+            self.angles_gamma_alt = gamma1.copy()
+            self.angles_nu_alt = nu1.copy()
+            self.angles_lamda_alt = lamda1.copy()
 
         return (gamma0, nu0, lamda0), (gamma1, nu1, lamda1)
 
@@ -838,7 +854,18 @@ class ExperimentModel(NeuXtalVizModel):
 
             angles = self.angles[i]
 
-            return angles, self.angles_gamma[i], self.angles_nu[i]
+            gamma = self.angles_gamma[i]
+            nu = self.angles_nu[i]
+            lamda = self.angles_lamda[i]
+
+            gamma_alt = nu_alt = lamda_alt = None
+
+            if self.angles_lamda_alt is not None:
+                gamma_alt = self.angles_gamma_alt[i]
+                nu_alt = self.angles_nu_alt[i]
+                lamda_alt = self.angles_lamda_alt[i]
+
+            return angles, gamma, nu, lamda, gamma_alt, nu_alt, lamda_alt
 
     def add_orientation(self, angles, wavelength, d_min, rows):
         if np.isclose(wavelength[0], wavelength[1]):

@@ -275,6 +275,26 @@ class ExperimentView(NeuXtalVizWidget):
         self.k2_line.setValidator(validator)
         self.l2_line.setValidator(validator)
 
+        gamma_label = QLabel("γ [°]", self)
+        nu_label = QLabel("ν [°]", self)
+        intersect_label = QLabel("λ [Å]", self)
+
+        self.horizontal_line = QLineEdit()
+        self.vertical_line = QLineEdit()
+        self.intersect_line = QLineEdit()
+
+        self.horizontal_line.setEnabled(False)
+        self.vertical_line.setEnabled(False)
+        self.intersect_line.setEnabled(False)
+
+        self.horizontal_alt_line = QLineEdit()
+        self.vertical_alt_line = QLineEdit()
+        self.intersect_alt_line = QLineEdit()
+
+        self.horizontal_alt_line.setEnabled(False)
+        self.vertical_alt_line.setEnabled(False)
+        self.intersect_alt_line.setEnabled(False)
+
         self.calculate_single_button = QPushButton("Individual Peak", self)
         self.calculate_double_button = QPushButton("Simultaneous Peaks", self)
 
@@ -293,6 +313,19 @@ class ExperimentView(NeuXtalVizWidget):
         calculator_layout.addWidget(self.k2_line, 2, 2)
         calculator_layout.addWidget(self.l2_line, 2, 3)
         calculator_layout.addWidget(self.calculate_double_button, 2, 4)
+
+        calculator_layout.addWidget(gamma_label, 0, 5, Qt.AlignCenter)
+        calculator_layout.addWidget(nu_label, 0, 6, Qt.AlignCenter)
+        calculator_layout.addWidget(intersect_label, 0, 7, Qt.AlignCenter)
+
+        calculator_layout.addWidget(self.horizontal_line, 1, 5)
+        calculator_layout.addWidget(self.horizontal_alt_line, 2, 5)
+
+        calculator_layout.addWidget(self.vertical_line, 1, 6)
+        calculator_layout.addWidget(self.vertical_alt_line, 2, 6)
+
+        calculator_layout.addWidget(self.intersect_line, 1, 7)
+        calculator_layout.addWidget(self.intersect_alt_line, 2, 7)
 
         peak_layout.addLayout(calculator_layout)
 
@@ -314,19 +347,13 @@ class ExperimentView(NeuXtalVizWidget):
         self.add_button = QPushButton("Add Orientation", self)
 
         self.angles_line = QLineEdit()
-        self.horizontal_line = QLineEdit()
-        self.vertical_line = QLineEdit()
 
         self.angles_line.setEnabled(False)
-        self.horizontal_line.setEnabled(False)
-        self.vertical_line.setEnabled(False)
 
         self.angles_combo = QComboBox(self)
 
         orientation_layout.addWidget(self.angles_combo)
         orientation_layout.addWidget(self.angles_line)
-        orientation_layout.addWidget(self.horizontal_line)
-        orientation_layout.addWidget(self.vertical_line)
         orientation_layout.addWidget(self.add_button)
 
         peak_layout.addLayout(orientation_layout)
@@ -558,7 +585,7 @@ class ExperimentView(NeuXtalVizWidget):
     def set_peak_list(self, rows):
         self.angles_combo.blockSignals(True)
         self.angles_combo.clear()
-        self.angles_combo.addItem("0")
+        self.angles_combo.addItem("0: Missing")
         for row in range(rows):
             self.angles_combo.addItem((str(row + 1)))
         self.angles_combo.blockSignals(False)
@@ -566,8 +593,8 @@ class ExperimentView(NeuXtalVizWidget):
     def get_peak_list(self):
         val = self.angles_combo.currentText()
         if val is not None:
-            if val.isdigit():
-                return int(val) - 1
+            if val.split(":")[0].isdigit():
+                return int(val.split(":")[0]) - 1
 
     def set_wavelength(self, wavelength):
         self.wl_min_line.blockSignals(True)
@@ -1189,6 +1216,22 @@ class ExperimentView(NeuXtalVizWidget):
         self.canvas_inst.draw_idle()
         self.canvas_inst.flush_events()
 
+    def get_intersect(self):
+        if self.intersect_line.hasAcceptableInput():
+            return float(self.intersect_line.text())
+
+    def set_intersect(self, val):
+        self.intersect_line.setText(str(round(val, 2)))
+
+    def get_intersect_alternate(self):
+        if self.intersect_alt_line.hasAcceptableInput():
+            if self.intersect_alt_line.text() != "":
+                return float(self.intersect_alt_line.text())
+
+    def set_intersect_alternate(self, val):
+        value = str(round(val, 2)) if val is not None else ""
+        self.intersect_alt_line.setText(value)
+
     def get_horizontal(self):
         if self.horizontal_line.hasAcceptableInput():
             return float(self.horizontal_line.text())
@@ -1202,6 +1245,24 @@ class ExperimentView(NeuXtalVizWidget):
 
     def set_vertical(self, val):
         self.vertical_line.setText(str(round(val, 2)))
+
+    def get_horizontal_alternate(self):
+        if self.horizontal_alt_line.hasAcceptableInput():
+            if self.horizontal_alt_line.text() != "":
+                return float(self.horizontal_alt_line.text())
+
+    def get_vertical_alternate(self):
+        if self.vertical_alt_line.hasAcceptableInput():
+            if self.vertical_alt_line.text() != "":
+                return float(self.vertical_alt_line.text())
+
+    def set_horizontal_alternate(self, val):
+        value = str(round(val, 2)) if val is not None else ""
+        self.horizontal_alt_line.setText(value)
+
+    def set_vertical_alternate(self, val):
+        value = str(round(val, 2)) if val is not None else ""
+        self.vertical_alt_line.setText(value)
 
     def set_angles(self, values):
         ang = "(" + ", ".join(np.array(values).astype(str)) + ")"
@@ -1233,6 +1294,13 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.ax_inst.axvline(x=horz, color="k", linestyle="--")
         self.ax_inst.axhline(y=vert, color="k", linestyle="--")
+
+        horz_alt = self.get_horizontal_alternate()
+        vert_alt = self.get_vertical_alternate()
+
+        if horz_alt is not None and vert_alt is not None:
+            self.ax_inst.axvline(x=horz_alt, color="k", linestyle=":")
+            self.ax_inst.axhline(y=vert_alt, color="k", linestyle=":")
 
         self.canvas_inst.draw_idle()
         self.canvas_inst.flush_events()
