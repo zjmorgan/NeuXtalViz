@@ -1,6 +1,7 @@
 import os
 
 import csv
+import itertools
 
 from mantid.simpleapi import (
     CreatePeaksWorkspace,
@@ -614,10 +615,10 @@ class ExperimentModel(NeuXtalVizModel):
     def _calculate_matrices(self, axes, polarities, limits, step):
         self.generate_axes(axes, polarities)
 
-        # free = 0
-        # for limit in limits:
-        #     free += 1-np.isclose(limit[0], limit[1])
-        # step *= free
+        free = 0
+        for limit in limits:
+            free += 1 - np.isclose(limit[0], limit[1])
+        step *= free
 
         angular_coverage = []
         for limit in limits:
@@ -629,7 +630,7 @@ class ExperimentModel(NeuXtalVizModel):
         angle_settings = np.meshgrid(*angular_coverage, indexing="ij")
         angle_settings = np.reshape(angle_settings, (len(polarities), -1)).T
 
-        self.angles = angle_settings.copy()
+        angles = angle_settings.copy()
 
         angle_settings = angle_settings * polarities
         angle_settings = np.deg2rad(angle_settings)
@@ -647,9 +648,46 @@ class ExperimentModel(NeuXtalVizModel):
                 R = R @ all_rotations[i, j, :, :]
             Rs.append(R)
 
-        return Rs
+        return Rs, angles
 
     def individual_peak(
+        self, hkl, wavelength, axes, polarities, limits, equiv, pg, step=1
+    ):
+        pg = PointGroupFactory.createPointGroup(pg)
+
+        hkls = pg.getEquivalents(hkl) if equiv else [hkl]
+
+        angles, angles_gamma, angles_nu, angles_lamda = [], [], [], []
+
+        for hkl in hkls:
+            settings, values = self.calculate_individual_peak(
+                hkl, wavelength, axes, polarities, limits, step
+            )
+
+            gamma, nu, lamda = values
+
+            angles.append(settings)
+            angles_gamma.append(gamma)
+            angles_nu.append(nu)
+            angles_lamda.append(lamda)
+
+        angles = np.row_stack(angles)
+        gamma = np.concatenate(angles_gamma)
+        nu = np.concatenate(angles_nu)
+        lamda = np.concatenate(angles_lamda)
+
+        self.angles = angles
+        self.angles_gamma = gamma
+        self.angles_nu = nu
+        self.angles_lamda = lamda
+
+        self.angles_gamma_alt = None
+        self.angles_nu_alt = None
+        self.angles_lamda_alt = None
+
+        return gamma, nu, lamda
+
+    def calculate_individual_peak(
         self, hkl, wavelength, axes, polarities, limits, step=1
     ):
         self.comment = "(" + " ".join(np.array(hkl).astype(str)) + ")"
@@ -675,7 +713,7 @@ class ExperimentModel(NeuXtalVizModel):
 
         Q = np.sqrt(np.dot(Q_sample, Q_sample))
 
-        Rs = self._calculate_matrices(axes, polarities, limits, step)
+        Rs, angles = self._calculate_matrices(axes, polarities, limits, step)
 
         mtd["peak"].run().getGoniometer().setR(np.eye(3))
         mtd["peaks"].run().getGoniometer().setR(np.eye(3))
@@ -694,14 +732,7 @@ class ExperimentModel(NeuXtalVizModel):
         nu = np.rad2deg(np.arcsin(kf[:, 1] / k))[mask]
         lamda = lamda[mask]
 
-        self.angles = self.angles[mask]
-        self.angles_gamma = gamma.copy()
-        self.angles_nu = nu.copy()
-        self.angles_lamda = lamda.copy()
-
-        self.angles_gamma_alt = None
-        self.angles_nu_alt = None
-        self.angles_lamda_alt = None
+        angles = angles[mask]
 
         if len(lamda) > 0:
             k = 2 * np.pi / lamda
@@ -720,14 +751,71 @@ class ExperimentModel(NeuXtalVizModel):
             nu = nu[mask]
             lamda = lamda[mask]
 
-            self.angles = self.angles[mask]
-            self.angles_gamma = gamma.copy()
-            self.angles_nu = nu.copy()
-            self.angles_lamda = lamda.copy()
+            settings = angles[mask]
 
-        return gamma, nu, lamda
+        return settings, (gamma, nu, lamda)
 
     def simultaneous_peaks(
+        self,
+        hkl_1,
+        hkl_2,
+        wavelength,
+        axes,
+        polarities,
+        limits,
+        equiv,
+        pg,
+        step=1,
+    ):
+        pg = PointGroupFactory.createPointGroup(pg)
+
+        hkls_1 = pg.getEquivalents(hkl_1) if equiv else [hkl_1]
+        hkls_2 = pg.getEquivalents(hkl_2) if equiv else [hkl_2]
+
+        pairs = list(itertools.product(hkls_1, hkls_2))
+
+        angles, angles_gamma, angles_nu, angles_lamda = [], [], [], []
+
+        angles_gamma_alt, angles_nu_alt, angles_lamda_alt = [], [], []
+
+        for hkl_1, hkl_2 in pairs:
+            settings, values0, values1 = self.simultaneous_peaks_hkl(
+                hkl_1, hkl_2, wavelength, axes, polarities, limits, step
+            )
+
+            gamma0, nu0, lamda0 = values0
+            gamma1, nu1, lamda1 = values1
+
+            angles.append(settings)
+            angles_gamma.append(gamma0)
+            angles_nu.append(nu0)
+            angles_lamda.append(lamda0)
+
+            angles_gamma_alt.append(gamma1)
+            angles_nu_alt.append(nu1)
+            angles_lamda_alt.append(lamda1)
+
+        angles = np.row_stack(angles)
+        gamma = np.concatenate(angles_gamma)
+        nu = np.concatenate(angles_nu)
+        lamda = np.concatenate(angles_lamda)
+
+        gamma_alt = np.concatenate(angles_gamma_alt)
+        nu_alt = np.concatenate(angles_nu_alt)
+        lamda_alt = np.concatenate(angles_lamda_alt)
+
+        self.angles = angles
+        self.angles_gamma = gamma
+        self.angles_nu = nu
+        self.angles_lamda = lamda
+
+        self.angles_gamma_alt = gamma_alt
+        self.angles_nu_alt = nu_alt
+        self.angles_lamda_alt = lamda_alt
+
+        return (gamma, nu, lamda), (gamma_alt, nu_alt, lamda_alt)
+
+    def simultaneous_peaks_hkl(
         self, hkl_1, hkl_2, wavelength, axes, polarities, limits, step=1
     ):
         self.comment = "(" + " ".join(np.array(hkl_1).astype(str)) + ")"
@@ -756,7 +844,7 @@ class ExperimentModel(NeuXtalVizModel):
         Q0 = np.sqrt(np.dot(Q0_sample, Q0_sample))
         Q1 = np.sqrt(np.dot(Q1_sample, Q1_sample))
 
-        Rs = self._calculate_matrices(axes, polarities, limits, step)
+        Rs, angles = self._calculate_matrices(axes, polarities, limits, step)
 
         Q0_lab = np.einsum("kij,j->ki", Rs, Q0_sample)
         Q1_lab = np.einsum("kij,j->ki", Rs, Q1_sample)
@@ -789,14 +877,7 @@ class ExperimentModel(NeuXtalVizModel):
         lamda0 = lamda0[mask]
         lamda1 = lamda1[mask]
 
-        self.angles = self.angles[mask]
-        self.angles_gamma = gamma0.copy()
-        self.angles_nu = nu0.copy()
-        self.angles_lamda = lamda0.copy()
-
-        self.angles_gamma_alt = gamma1.copy()
-        self.angles_nu_alt = nu1.copy()
-        self.angles_lamda_alt = lamda1.copy()
+        angles = angles[mask]
 
         if len(lamda0) > 0:
             k0 = 2 * np.pi / lamda0
@@ -835,16 +916,9 @@ class ExperimentModel(NeuXtalVizModel):
             lamda0 = lamda0[mask]
             lamda1 = lamda1[mask]
 
-            self.angles = self.angles[mask]
-            self.angles_gamma = gamma0.copy()
-            self.angles_nu = nu0.copy()
-            self.angles_lamda = lamda0.copy()
+            angles = angles[mask]
 
-            self.angles_gamma_alt = gamma1.copy()
-            self.angles_nu_alt = nu1.copy()
-            self.angles_lamda_alt = lamda1.copy()
-
-        return (gamma0, nu0, lamda0), (gamma1, nu1, lamda1)
+        return angles, (gamma0, nu0, lamda0), (gamma1, nu1, lamda1)
 
     def get_angles(self, gamma, nu):
         if len(self.angles_gamma) > 0:
@@ -997,7 +1071,8 @@ class ExperimentModel(NeuXtalVizModel):
         return np.array([h, k, l, d, lamda]).T.tolist()
 
     def calculate_statistics(self, point_group, lattice_centering, use, d_min):
-        shel, comp, mult, refl = [], [], [], []
+        shel_sym, comp_sym, mult_sym, refl_sym = [], [], [], []
+        shel_asym, comp_asym, mult_asym, refl_asym = [], [], [], []
         if mtd.doesExist("combined"):
             CloneWorkspace(
                 InputWorkspace="combined", OutputWorkspace="filtered"
@@ -1023,7 +1098,7 @@ class ExperimentModel(NeuXtalVizModel):
 
                 pg, lc = self.get_symmetry(point_group, lattice_centering)
 
-                output = CountReflections(
+                symmetric = CountReflections(
                     InputWorkspace="filtered",
                     PointGroup=pg,
                     LatticeCentering=lc,
@@ -1032,15 +1107,15 @@ class ExperimentModel(NeuXtalVizModel):
                     MissingReflectionsWorkspace="missing",
                 )
 
-                unique, completeness, redundancy, multiple, _ = output
+                unique, completeness, redundancy, multiple, _ = symmetric
 
-                shel = ["Overall"]
-                comp = [completeness * 100]
-                mult = [redundancy]
-                refl = [unique]
+                shel_sym = ["Overall"]
+                comp_sym = [completeness * 100]
+                mult_sym = [redundancy]
+                refl_sym = [unique]
 
                 for i in range(len(d) - 1):
-                    output = CountReflections(
+                    symmetric = CountReflections(
                         InputWorkspace="filtered",
                         PointGroup=pg,
                         LatticeCentering=lc,
@@ -1049,16 +1124,52 @@ class ExperimentModel(NeuXtalVizModel):
                         MissingReflectionsWorkspace="",
                     )
 
-                    unique, completeness, redundancy, multiple = output
+                    unique, completeness, redundancy, multiple = symmetric
 
-                    shel.append("{:.2f}-{:.2f}".format(d[i], d[i + 1]))
-                    comp.append(completeness * 100)
-                    mult.append(redundancy)
-                    refl.append(unique)
+                    shel_sym.append("{:.2f}-{:.2f}".format(d[i], d[i + 1]))
+                    comp_sym.append(completeness * 100)
+                    mult_sym.append(redundancy)
+                    refl_sym.append(unique)
+
+                asymmetric = CountReflections(
+                    InputWorkspace="filtered",
+                    PointGroup="1",
+                    LatticeCentering=lc,
+                    MinDSpacing=d_min,
+                    MaxDSpacing=d_max,
+                    MissingReflectionsWorkspace="missing",
+                )
+
+                unique, completeness, redundancy, multiple, _ = asymmetric
+
+                shel_asym = ["Overall"]
+                comp_asym = [completeness * 100]
+                mult_asym = [redundancy]
+                refl_asym = [unique]
+
+                for i in range(len(d) - 1):
+                    asymmetric = CountReflections(
+                        InputWorkspace="filtered",
+                        PointGroup="1",
+                        LatticeCentering=lc,
+                        MinDSpacing=d[i + 1],
+                        MaxDSpacing=d[i],
+                        MissingReflectionsWorkspace="",
+                    )
+
+                    unique, completeness, redundancy, multiple = asymmetric
+
+                    shel_asym.append("{:.2f}-{:.2f}".format(d[i], d[i + 1]))
+                    comp_asym.append(completeness * 100)
+                    mult_asym.append(redundancy)
+                    refl_asym.append(unique)
             else:
                 return None
 
-        return shel, comp, mult, refl
+        sym = (shel_sym, comp_sym, mult_sym, refl_sym)
+        asym = (shel_asym, comp_asym, mult_asym, refl_asym)
+
+        return sym, asym
 
     def hsl_to_rgb(self, hue, saturation, lightness):
         h = np.array(hue)

@@ -82,6 +82,7 @@ class UB(NeuXtalVizPresenter):
         self.view.connect_slice_line(self.reslice)
 
         self.slice_idle = True
+        self.volume_idle = True
 
         self.view.connect_cluster(self.cluster)
 
@@ -329,7 +330,9 @@ class UB(NeuXtalVizPresenter):
     def visualize(self):
         Q_hist = self.model.get_Q_info()
 
-        if Q_hist is not None:
+        if Q_hist is not None and self.volume_idle:
+            self.volume_idle = False
+
             self.update_processing()
 
             self.update_processing("Updating view...", 50)
@@ -351,6 +354,8 @@ class UB(NeuXtalVizPresenter):
                 self.view.update_peaks_table(peaks)
 
             self.update_complete("Data visualized!")
+
+            self.volume_idle = True
 
     def update_lattice_info(self):
         params = self.model.get_lattice_constants()

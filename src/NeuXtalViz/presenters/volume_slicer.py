@@ -251,7 +251,7 @@ class VolumeSlicer(NeuXtalVizPresenter):
             thick = self.view.get_slice_thickness()
             value = self.view.get_slice_value()
 
-            if thick is not None:
+            if thick is not None and value is not None:
                 progress("Processing...", 1)
 
                 progress("Updating slice...", 50)

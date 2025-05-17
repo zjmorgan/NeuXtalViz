@@ -422,7 +422,7 @@ class UBModel(NeuXtalVizModel):
 
                 Q_max = (
                     4 * np.pi / min(wavelength) * np.sin(0.5 * max(two_theta))
-                ) / 2
+                )
 
                 ConvertToMD(
                     InputWorkspace="data",
@@ -432,7 +432,6 @@ class UBModel(NeuXtalVizModel):
                     LorentzCorrection=lorentz,
                     MinValues=[-Q_max, -Q_max, -Q_max],
                     MaxValues=[+Q_max, +Q_max, +Q_max],
-                    MaxRecursionDepth=5,
                     PreprocDetectorsWS="detectors",
                     OutputWorkspace="md",
                 )
@@ -452,9 +451,9 @@ class UBModel(NeuXtalVizModel):
 
             BinMD(
                 InputWorkspace=self.Q,
-                AlignedDim0="Q_sample_x,{},{},192".format(-Q_max, Q_max),
-                AlignedDim1="Q_sample_y,{},{},192".format(-Q_max, Q_max),
-                AlignedDim2="Q_sample_z,{},{},192".format(-Q_max, Q_max),
+                AlignedDim0="Q_sample_x,{},{},384".format(-Q_max, Q_max),
+                AlignedDim1="Q_sample_y,{},{},384".format(-Q_max, Q_max),
+                AlignedDim2="Q_sample_z,{},{},384".format(-Q_max, Q_max),
                 OutputWorkspace="Q3D",
             )
 
@@ -475,24 +474,9 @@ class UBModel(NeuXtalVizModel):
 
             CompactMD(InputWorkspace="Q3D", OutputWorkspace="Q3D")
 
-            dims = [mtd["Q3D"].getDimension(i) for i in range(3)]
-
-            xmin, ymin, zmin = [dim.getMinimum() for dim in dims]
-            xmax, ymax, zmax = [dim.getMaximum() for dim in dims]
-            xn, yn, zn = [2 * dim.getNBins() for dim in dims]
-
-            BinMD(
-                InputWorkspace=self.Q,
-                AlignedDim0="Q_sample_x,{},{},{}".format(xmin, xmax, xn),
-                AlignedDim1="Q_sample_y,{},{},{}".format(ymin, ymax, yn),
-                AlignedDim2="Q_sample_z,{},{},{}".format(zmin, zmax, zn),
-                OutputWorkspace="Q3D",
-            )
-
             signal = mtd["Q3D"].getSignalArray().copy()
-            # events = mtd["Q3D"].getNumEventsArray().copy()
 
-            threshold = np.nanpercentile(signal[signal > 0], 90)
+            threshold = np.nanpercentile(signal[signal > 0], 99)
             mask = signal >= threshold
 
             dims = [mtd["Q3D"].getDimension(i) for i in range(3)]
@@ -1086,6 +1070,9 @@ class UBModel(NeuXtalVizModel):
             beta=beta,
             gamma=gamma,
             Tolerance=tol,
+            NumInitial=100,
+            FixParameters=True,
+            Iterations=5,
         )
 
         self.copy_UB_from_peaks()

@@ -15,6 +15,7 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_optimize(self.optimize_coverage)
         self.view.connect_calculate_single(self.calculate_single)
         self.view.connect_calculate_double(self.calculate_double)
+        self.view.connect_calculate_single_alt(self.calculate_single_alt)
         self.view.connect_add_orientation(self.add_orientation)
         self.view.connect_delete_angles(self.delete_angles)
         self.view.connect_save_CSV(self.save_CSV)
@@ -30,6 +31,8 @@ class Experiment(NeuXtalVizPresenter):
 
         self.switch_instrument()
         self.switch_crystal()
+
+        self.draw_idle = True
 
     def load_UB(self):
         filename = self.view.load_UB_file_dialog()
@@ -100,6 +103,14 @@ class Experiment(NeuXtalVizPresenter):
         self.model.initialize_instrument(instrument, motors)
 
     def calculate_single(self):
+        self.alt_hkl = False
+        self.calculate_single_hkl()
+
+    def calculate_single_alt(self):
+        self.alt_hkl = True
+        self.calculate_single_hkl()
+
+    def calculate_single_hkl(self):
         worker = self.view.worker(self.calculate_single_process)
         worker.connect_result(self.calculate_single_complete)
         worker.connect_finished(self.visualize)
@@ -114,6 +125,11 @@ class Experiment(NeuXtalVizPresenter):
     def calculate_single_process(self, progress):
         hkl_1, hkl_2 = self.view.get_input_hkls()
         wavelength = self.view.get_wavelength()
+
+        hkl = hkl_1 if not self.alt_hkl else hkl_2
+
+        equiv = self.view.use_equivalents()
+        pg = self.view.get_point_group()
 
         instrument = self.view.get_instrument()
         mode = self.view.get_mode()
@@ -131,7 +147,13 @@ class Experiment(NeuXtalVizPresenter):
             progress("Calculating peak coverage", 15)
 
             gamma, nu, lamda = self.model.individual_peak(
-                hkl_1, wavelength, axes, polarities, limits
+                hkl,
+                wavelength,
+                axes,
+                polarities,
+                limits,
+                equiv,
+                pg,
             )
 
             progress("Peak calculated!", 0)
@@ -159,6 +181,9 @@ class Experiment(NeuXtalVizPresenter):
         hkl_1, hkl_2 = self.view.get_input_hkls()
         wavelength = self.view.get_wavelength()
 
+        equiv = self.view.use_equivalents()
+        pg = self.view.get_point_group()
+
         instrument = self.view.get_instrument()
         mode = self.view.get_mode()
         axes, polarities = self.model.get_axes_polarities(instrument, mode)
@@ -175,7 +200,7 @@ class Experiment(NeuXtalVizPresenter):
             progress("Calculating peaks coverage", 15)
 
             peak_1, peak_2 = self.model.simultaneous_peaks(
-                hkl_1, hkl_2, wavelength, axes, polarities, limits
+                hkl_1, hkl_2, wavelength, axes, polarities, limits, equiv, pg
             )
 
             gamma_1, nu_1, lamda_1 = peak_1

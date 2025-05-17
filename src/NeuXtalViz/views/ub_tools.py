@@ -137,7 +137,7 @@ class UBView(NeuXtalVizWidget):
         self.beta_line = QLineEdit()
         self.gamma_line = QLineEdit()
 
-        pattern = r"^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?\(\d+\)$"
+        pattern = r"^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?(\(\d+\))?$$"
         regex = QRegExp(pattern)
         validator = QRegExpValidator(regex)
 
@@ -358,7 +358,7 @@ class UBView(NeuXtalVizWidget):
 
         validator = QIntValidator(1, 1000, self)
 
-        self.filter_time_line = QLineEdit("300")
+        self.filter_time_line = QLineEdit("")
         self.filter_time_line.setValidator(validator)
 
         self.cal_browse_button = QPushButton("Detector", self)
@@ -1369,10 +1369,10 @@ class UBView(NeuXtalVizWidget):
 
         validator = QDoubleValidator(0, 180, 5, notation=notation)
 
-        self.vertical_roi_line = QLineEdit("5")
+        self.vertical_roi_line = QLineEdit("2")
         self.vertical_roi_line.setValidator(validator)
 
-        self.horizontal_roi_line = QLineEdit("5")
+        self.horizontal_roi_line = QLineEdit("2")
         self.horizontal_roi_line.setValidator(validator)
 
         angle_layout = QHBoxLayout()
@@ -1917,7 +1917,7 @@ class UBView(NeuXtalVizWidget):
 
         if "SNS" in filepath:
             self.filter_time_line.setEnabled(True)
-            self.filter_time_line.setText("300")
+            self.filter_time_line.setText("")
             self.tube_line.setEnabled(False)
             self.tube_browse_button.setEnabled(False)
             if "CORELLI" in filepath:
@@ -2008,6 +2008,7 @@ class UBView(NeuXtalVizWidget):
         signal = Q_dict.get("signal")
         spacing = Q_dict.get("spacing")
         min_lim = Q_dict.get("min_lim")
+        max_lim = Q_dict.get("max_lim")
 
         grid = pv.ImageData(
             spacing=spacing, dimensions=signal.shape, origin=min_lim
@@ -2015,12 +2016,17 @@ class UBView(NeuXtalVizWidget):
 
         grid["scalars"] = signal.T.flatten()
 
+        # cmax = np.nanmax(signal)
+
         _ = self.plotter.add_volume(
             grid,
             opacity="linear",
             show_scalar_bar=False,
             cmap="binary",
+            # clim=[0.0001*cmax, cmax],
             log_scale=True,
+            shade=True,
+            culling=True,
         )
 
         transforms = Q_dict.get("transforms")
@@ -2031,6 +2037,30 @@ class UBView(NeuXtalVizWidget):
         params = [transforms, intensities, indexings, numbers]
 
         integrate = np.any(intensities)
+
+        mesh = pv.Line(
+            pointa=(min_lim[0], 0, 0), pointb=(max_lim[0], 0, 0), resolution=1
+        )
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
+
+        mesh = pv.Line(
+            pointa=(0, min_lim[1], 0), pointb=(0, max_lim[1], 0), resolution=1
+        )
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
+
+        mesh = pv.Line(
+            pointa=(0, 0, min_lim[2]), pointb=(0, 0, max_lim[2]), resolution=1
+        )
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
 
         if all([elem is not None for elem in params]) and len(numbers) > 0:
             sphere = pv.Icosphere(radius=1, nsub=0)
@@ -2692,7 +2722,7 @@ class UBView(NeuXtalVizWidget):
         self.check_k_line.setText(str(round(k, 4)))
         self.check_l_line.setText(str(round(l, 4)))
 
-    def update_instrument_view(self, inst_view, norm="log"):
+    def update_instrument_view(self, inst_view, norm="linear"):
         gamma = inst_view["gamma"]
         nu = inst_view["nu"]
         counts = inst_view["counts"]
@@ -2705,7 +2735,15 @@ class UBView(NeuXtalVizWidget):
         self.ax_inst.invert_xaxis()
 
         self.im = self.ax_inst.scatter(
-            gamma, nu, c=counts, marker="o", norm=norm, rasterized=True
+            gamma,
+            nu,
+            c=counts,
+            s=1,
+            marker="o",
+            norm=norm,
+            vmin=0,
+            vmax=np.percentile(counts, 95),
+            rasterized=True,
         )
 
         self.ax_inst.set_aspect(1)

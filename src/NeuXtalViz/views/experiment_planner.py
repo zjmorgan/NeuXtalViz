@@ -1,5 +1,7 @@
 import sys
 
+from cycler import cycler
+
 from qtpy.QtWidgets import (
     QWidget,
     QTableWidget,
@@ -24,7 +26,7 @@ from qtpy.QtCore import Qt, Signal
 
 import numpy as np
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import pyvista as pv
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
@@ -298,6 +300,11 @@ class ExperimentView(NeuXtalVizWidget):
         self.calculate_single_button = QPushButton("Individual Peak", self)
         self.calculate_double_button = QPushButton("Simultaneous Peaks", self)
 
+        self.calculate_single_alt_button = QPushButton("Individual Peak", self)
+
+        self.equivalents_box = QCheckBox("Allow Equivalents", self)
+        self.equivalents_box.setChecked(False)
+
         calculator_layout.addWidget(h_label, 0, 1, Qt.AlignCenter)
         calculator_layout.addWidget(k_label, 0, 2, Qt.AlignCenter)
         calculator_layout.addWidget(l_label, 0, 3, Qt.AlignCenter)
@@ -307,25 +314,27 @@ class ExperimentView(NeuXtalVizWidget):
         calculator_layout.addWidget(self.k1_line, 1, 2)
         calculator_layout.addWidget(self.l1_line, 1, 3)
         calculator_layout.addWidget(self.calculate_single_button, 1, 4)
+        calculator_layout.addWidget(self.equivalents_box, 1, 5)
 
         calculator_layout.addWidget(peak_2_label, 2, 0)
         calculator_layout.addWidget(self.h2_line, 2, 1)
         calculator_layout.addWidget(self.k2_line, 2, 2)
         calculator_layout.addWidget(self.l2_line, 2, 3)
-        calculator_layout.addWidget(self.calculate_double_button, 2, 4)
+        calculator_layout.addWidget(self.calculate_single_alt_button, 2, 4)
+        calculator_layout.addWidget(self.calculate_double_button, 2, 5)
 
-        calculator_layout.addWidget(gamma_label, 0, 5, Qt.AlignCenter)
-        calculator_layout.addWidget(nu_label, 0, 6, Qt.AlignCenter)
-        calculator_layout.addWidget(intersect_label, 0, 7, Qt.AlignCenter)
+        calculator_layout.addWidget(gamma_label, 0, 6, Qt.AlignCenter)
+        calculator_layout.addWidget(nu_label, 0, 7, Qt.AlignCenter)
+        calculator_layout.addWidget(intersect_label, 0, 8, Qt.AlignCenter)
 
-        calculator_layout.addWidget(self.horizontal_line, 1, 5)
-        calculator_layout.addWidget(self.horizontal_alt_line, 2, 5)
+        calculator_layout.addWidget(self.horizontal_line, 1, 6)
+        calculator_layout.addWidget(self.horizontal_alt_line, 2, 6)
 
-        calculator_layout.addWidget(self.vertical_line, 1, 6)
-        calculator_layout.addWidget(self.vertical_alt_line, 2, 6)
+        calculator_layout.addWidget(self.vertical_line, 1, 7)
+        calculator_layout.addWidget(self.vertical_alt_line, 2, 7)
 
-        calculator_layout.addWidget(self.intersect_line, 1, 7)
-        calculator_layout.addWidget(self.intersect_alt_line, 2, 7)
+        calculator_layout.addWidget(self.intersect_line, 1, 8)
+        calculator_layout.addWidget(self.intersect_alt_line, 2, 8)
 
         peak_layout.addLayout(calculator_layout)
 
@@ -393,6 +402,9 @@ class ExperimentView(NeuXtalVizWidget):
 
     def connect_calculate_double(self, calculate_double):
         self.calculate_double_button.clicked.connect(calculate_double)
+
+    def connect_calculate_single_alt(self, calculate_single):
+        self.calculate_single_alt_button.clicked.connect(calculate_single)
 
     def connect_switch_crystal(self, switch_crystal):
         self.crystal_combo.activated.connect(switch_crystal)
@@ -1079,14 +1091,28 @@ class ExperimentView(NeuXtalVizWidget):
 
         return params_1, params_2
 
-    def plot_statistics(self, shel, comp, mult, refl):
+    def plot_statistics(self, sym, asym):
         self.ax_cov[0].clear()
         self.ax_cov[1].clear()
         self.ax_cov[2].clear()
 
-        self.ax_cov[0].bar(shel, comp, color="C0")
-        self.ax_cov[1].bar(shel, mult, color="C1")
-        self.ax_cov[2].bar(shel, refl, color="C2")
+        color = plt.get_cmap("tab20").colors
+
+        width = 1 / 3
+
+        shel, comp, mult, refl = sym
+
+        x = np.arange(len(shel))
+
+        self.ax_cov[0].bar(x, comp, width, color=color[0])
+        self.ax_cov[1].bar(x, mult, width, color=color[2])
+        self.ax_cov[2].bar(x, refl, width, color=color[4])
+
+        shel, comp, mult, refl = asym
+
+        self.ax_cov[0].bar(x + width, comp, width, color=color[1])
+        self.ax_cov[1].bar(x + width, mult, width, color=color[3])
+        self.ax_cov[2].bar(x + width, refl, width, color=color[5])
 
         self.ax_cov[0].set_ylim(0, 100)
 
@@ -1094,10 +1120,14 @@ class ExperimentView(NeuXtalVizWidget):
         self.ax_cov[1].minorticks_on()
         self.ax_cov[2].minorticks_on()
 
-        self.ax_cov[2].set_xlabel("Resolution [Å]")
+        self.ax_cov[2].set_xlabel("Resolution Shell [Å]")
         self.ax_cov[0].set_ylabel("Completeness [%]")
         self.ax_cov[1].set_ylabel("Redundancy")
-        self.ax_cov[2].set_ylabel("Reflections")
+        self.ax_cov[2].set_ylabel("Unique Reflections")
+
+        self.ax_cov[0].set_xticks(x + width, shel)
+        self.ax_cov[1].set_xticks(x + width, shel)
+        self.ax_cov[2].set_xticks(x + width, shel)
 
         self.canvas_cov.draw_idle()
         self.canvas_cov.flush_events()
@@ -1307,3 +1337,9 @@ class ExperimentView(NeuXtalVizWidget):
 
     def connect_roi_ready(self, lookup):
         self.roi_ready.connect(lookup)
+
+    def use_equivalents(self):
+        return self.equivalents_box.isChecked()
+
+    def use_symmetry(self):
+        return self.symmetry_box.isChecked()
