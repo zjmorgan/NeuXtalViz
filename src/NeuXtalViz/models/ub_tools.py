@@ -451,9 +451,9 @@ class UBModel(NeuXtalVizModel):
 
             BinMD(
                 InputWorkspace=self.Q,
-                AlignedDim0="Q_sample_x,{},{},128".format(-Q_max, Q_max),
-                AlignedDim1="Q_sample_y,{},{},128".format(-Q_max, Q_max),
-                AlignedDim2="Q_sample_z,{},{},128".format(-Q_max, Q_max),
+                AlignedDim0="Q_sample_x,{},{},384".format(-Q_max, Q_max),
+                AlignedDim1="Q_sample_y,{},{},384".format(-Q_max, Q_max),
+                AlignedDim2="Q_sample_z,{},{},384".format(-Q_max, Q_max),
                 OutputWorkspace="Q3D",
             )
 

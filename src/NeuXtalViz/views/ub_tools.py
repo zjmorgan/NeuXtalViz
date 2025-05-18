@@ -2020,7 +2020,7 @@ class UBView(NeuXtalVizWidget):
 
         _ = self.plotter.add_volume(
             grid,
-            opacity="linear",
+            # opacity="linear",
             show_scalar_bar=False,
             cmap="binary",
             # clim=[0.0001*cmax, cmax],
