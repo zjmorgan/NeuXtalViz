@@ -127,11 +127,11 @@ point_group_centering = {
     "-42m": ["P", "I"],
     "-4m2": ["P", "I"],
     "4/mmm": ["P", "I"],
-    "3 r": ["R"],
-    "-3 r": ["R"],
-    "32 r": ["R"],
-    "3m r": ["R"],
-    "-3m r": ["R"],
+    "3 r": ["P"],
+    "-3 r": ["P"],
+    "32 r": ["P"],
+    "3m r": ["P"],
+    "-3m r": ["P"],
     "3": ["Robv", "Rrev"],
     "-3": ["Robv", "Rrev"],
     "312": ["Robv", "Rrev"],
@@ -940,6 +940,27 @@ class ExperimentModel(NeuXtalVizModel):
                 lamda_alt = self.angles_lamda_alt[i]
 
             return angles, gamma, nu, lamda, gamma_alt, nu_alt, lamda_alt
+
+    def add_mesh(
+        self, mesh_angles, wavelength, d_min, rows, free_angles, all_angles
+    ):
+        limits, ns = mesh_angles
+
+        mins, maxs = zip(*limits)
+
+        axes = [np.linspace(lo, hi, n) for lo, hi, n in zip(mins, maxs, ns)]
+
+        grids = np.meshgrid(*axes, indexing="ij")
+        points = np.stack(grids, axis=-1).reshape(-1, len(limits))
+
+        indices = [all_angles.index(free) for free in free_angles]
+
+        values = []
+        for i, angles in enumerate(points):
+            self.add_orientation(angles, wavelength, d_min, rows + i)
+            values.append(angles[indices])
+
+        return values
 
     def add_orientation(self, angles, wavelength, d_min, rows):
         if np.isclose(wavelength[0], wavelength[1]):

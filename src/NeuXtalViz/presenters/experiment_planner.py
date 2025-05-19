@@ -13,6 +13,7 @@ class Experiment(NeuXtalVizPresenter):
         self.view.connect_switch_lattice_centering(self.switch_centering)
         self.view.connect_wavelength(self.update_wavelength)
         self.view.connect_optimize(self.optimize_coverage)
+        self.view.connect_mesh(self.mesh_scan)
         self.view.connect_calculate_single(self.calculate_single)
         self.view.connect_calculate_double(self.calculate_double)
         self.view.connect_calculate_single_alt(self.calculate_single_alt)
@@ -266,7 +267,7 @@ class Experiment(NeuXtalVizPresenter):
         self.update_peaks()
 
     def add_orientation_process(self, progress):
-        angles = self.view.get_angles()
+        angles = self.view.get_goniometer_limits()
         free_angles = self.view.get_free_angles()
         all_angles = self.view.get_all_angles()
 
@@ -282,6 +283,53 @@ class Experiment(NeuXtalVizPresenter):
             progress("Reflections calculated!", 0)
 
             return angles, all_angles, free_angles
+
+        else:
+            progress("Invalid parameters.", 0)
+
+    def mesh_scan(self):
+        worker = self.view.worker(self.mesh_scan_process)
+        worker.connect_result(self.mesh_scan_complete)
+        worker.connect_finished(self.visualize)
+        worker.connect_progress(self.update_processing)
+
+        self.view.start_worker_pool(worker)
+
+    def mesh_scan_complete(self, result):
+        title = self.view.get_title()
+        if result is not None:
+            for angles in result:
+                self.view.add_orientation(title, "Mesh Scan", angles)
+            self.update_peaks()
+
+    def mesh_scan_process(self, progress):
+        mesh_angles = self.view.get_mesh_angles()
+        free_angles = self.view.get_free_angles()
+        all_angles = self.view.get_all_angles()
+
+        wavelength = self.view.get_wavelength()
+        d_min = self.view.get_d_min()
+        rows = self.view.get_number_of_orientations()
+
+        instrument = self.view.get_instrument()
+        mode = self.view.get_mode()
+        axes, polarities = self.model.get_axes_polarities(instrument, mode)
+        self.model.generate_axes(axes, polarities)
+
+        progress("Initializing instrument", 5)
+
+        self.create_instrument()
+
+        if mesh_angles is not None:
+            progress("Calculating reflections", 5)
+
+            angles = self.model.add_mesh(
+                mesh_angles, wavelength, d_min, rows, free_angles, all_angles
+            )
+
+            progress("Reflections calculated!", 0)
+
+            return angles
 
         else:
             progress("Invalid parameters.", 0)

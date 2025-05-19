@@ -153,6 +153,19 @@ class ExperimentView(NeuXtalVizWidget):
         self.motor_table.horizontalHeader().setSectionResizeMode(resize)
         self.motor_table.setHorizontalHeaderLabels(labels)
 
+        self.mesh_table = QTableWidget()
+
+        self.mesh_table.setRowCount(0)
+        self.mesh_table.setColumnCount(4)
+
+        labels = ["Motor", "Min", "Max", "Angles"]
+
+        self.mesh_table.horizontalHeader().setStretchLastSection(True)
+        self.mesh_table.horizontalHeader().setSectionResizeMode(resize)
+        self.mesh_table.setHorizontalHeaderLabels(labels)
+
+        self.mesh_button = QPushButton("Add Mesh", self)
+
         settings_layout = QHBoxLayout()
 
         settings_layout.addWidget(self.load_UB_button)
@@ -199,6 +212,7 @@ class ExperimentView(NeuXtalVizWidget):
         save_layout = QHBoxLayout()
         save_layout.addWidget(self.delete_button)
         save_layout.addWidget(self.highlight_button)
+        save_layout.addWidget(self.mesh_button)
         save_layout.addStretch(1)
         save_layout.addWidget(self.save_plan_button)
         save_layout.addWidget(self.save_experiment_button)
@@ -209,7 +223,10 @@ class ExperimentView(NeuXtalVizWidget):
         motor_layout.addWidget(self.motor_table)
         plan_layout.addLayout(planning_layout)
         plan_layout.addWidget(self.plan_table)
+        plan_layout.addWidget(self.mesh_table)
         plan_layout.addLayout(save_layout)
+        plan_layout.setStretch(1, 2)
+        plan_layout.setStretch(2, 1)
 
         goniometer_tab.setLayout(goniometer_layout)
         motor_tab.setLayout(motor_layout)
@@ -231,10 +248,10 @@ class ExperimentView(NeuXtalVizWidget):
         fig = self.canvas_cov.figure
 
         self.ax_cov = fig.subplots(3, 1, sharex=True)
-        self.ax_cov[2].set_xlabel("Resolution [Å]")
+        self.ax_cov[2].set_xlabel("Resolution Shell [Å]")
         self.ax_cov[0].set_ylabel("Completeness [%]")
         self.ax_cov[1].set_ylabel("Multiplicity")
-        self.ax_cov[2].set_ylabel("Reflections")
+        self.ax_cov[2].set_ylabel("Unique Reflections")
 
         coverage_layout.addLayout(settings_layout)
         coverage_layout.addLayout(params_layout)
@@ -423,6 +440,9 @@ class ExperimentView(NeuXtalVizWidget):
 
     def connect_optimize(self, optimize):
         self.optimize_button.clicked.connect(optimize)
+
+    def connect_mesh(self, mesh):
+        self.mesh_button.clicked.connect(mesh)
 
     def connect_load_UB(self, load_UB):
         self.load_UB_button.clicked.connect(load_UB)
@@ -638,6 +658,7 @@ class ExperimentView(NeuXtalVizWidget):
         self.goniometer_table.clearContents()
         self.goniometer_table.setRowCount(0)
         self.goniometer_table.setRowCount(len(goniometers))
+        self.goniometer_table.blockSignals(True)
 
         free = []
         for row, gon in enumerate(goniometers):
@@ -654,6 +675,8 @@ class ExperimentView(NeuXtalVizWidget):
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             else:
                 free.append(angle)
+        self.goniometer_table.itemChanged.connect(self.update_limits)
+        self.goniometer_table.blockSignals(False)
 
         self.motor_table.setRowCount(0)
         self.motor_table.setRowCount(len(motors))
@@ -682,6 +705,54 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.plan_table.itemChanged.connect(self.handle_item_changed)
         self.plan_table.blockSignals(False)
+
+        self.mesh_table.clearContents()
+        self.mesh_table.setRowCount(0)
+        self.mesh_table.setRowCount(len(free))
+
+        row = 0
+        for gon in goniometers:
+            angle, amin, amax = gon
+            if not float(amin) == float(amax):
+                amin, amax = str(amin), str(amax)
+                self.mesh_table.setItem(row, 0, QTableWidgetItem(angle))
+                self.mesh_table.setItem(row, 1, QTableWidgetItem(amin))
+                self.mesh_table.setItem(row, 2, QTableWidgetItem(amax))
+                self.mesh_table.setItem(row, 3, QTableWidgetItem("1"))
+                row += 1
+
+    def update_limits(self, item):
+        text = item.text()
+        row, col = item.row(), item.column()
+
+        angle = self.goniometer_table.item(row, 0).text()
+
+        rows = self.mesh_table.rowCount()
+
+        if text.replace(".", "").isnumeric() and len(text.split(".")) <= 2:
+            value = float(text)
+            if value.is_integer():
+                value = int(value)
+            for row in range(rows):
+                if angle == self.mesh_table.item(row, 0).text():
+                    text = QTableWidgetItem(str(value))
+                    self.mesh_table.setItem(row, col, text)
+
+    def get_mesh_angles(self):
+        rows = self.mesh_table.rowCount()
+
+        all_angles = self.get_all_angles()
+        n = len(all_angles)
+
+        limits = self.get_goniometer_limits()
+        angles = [1] * n
+
+        for row in range(rows):
+            ind = all_angles.index(self.mesh_table.item(row, 0).text())
+            limits[ind][0] = float(self.mesh_table.item(row, 1).text())
+            limits[ind][1] = float(self.mesh_table.item(row, 2).text())
+            angles[ind] = int(float(self.mesh_table.item(row, 3).text()))
+        return limits, angles
 
     def delete_angles(self):
         self.plan_table.blockSignals(True)
