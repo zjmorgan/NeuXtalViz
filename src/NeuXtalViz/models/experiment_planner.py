@@ -948,7 +948,10 @@ class ExperimentModel(NeuXtalVizModel):
 
         mins, maxs = zip(*limits)
 
-        axes = [np.linspace(lo, hi, n) for lo, hi, n in zip(mins, maxs, ns)]
+        axes = [
+            np.linspace(lo, hi, n + 1)[:-1]
+            for lo, hi, n in zip(mins, maxs, ns)
+        ]
 
         grids = np.meshgrid(*axes, indexing="ij")
         points = np.stack(grids, axis=-1).reshape(-1, len(limits))
