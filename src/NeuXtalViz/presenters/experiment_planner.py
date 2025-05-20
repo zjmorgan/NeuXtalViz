@@ -267,7 +267,7 @@ class Experiment(NeuXtalVizPresenter):
         self.update_peaks()
 
     def add_orientation_process(self, progress):
-        angles = self.view.get_goniometer_limits()
+        angles = self.view.get_angles()
         free_angles = self.view.get_free_angles()
         all_angles = self.view.get_all_angles()
 
@@ -344,7 +344,9 @@ class Experiment(NeuXtalVizPresenter):
             point_group, lattice_centering, use, d_min
         )
 
-        if stats is not None and self.model.has_UB():
+        if stats is not None and self.model.has_UB() and self.draw_idle:
+            self.draw_idle = False
+
             self.view.plot_statistics(*stats)
 
             peak_dict = self.model.get_coverage_info(
@@ -354,6 +356,8 @@ class Experiment(NeuXtalVizPresenter):
                 peak_dict["axis_limit"] = self.view.get_d_min()
 
                 self.view.add_peaks(peak_dict)
+
+            self.draw_idle = True
 
     def optimize_coverage(self):
         worker = self.view.worker(self.optimize_coverage_process)

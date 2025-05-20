@@ -43,6 +43,7 @@ from mantid.simpleapi import (
     Rebin,
     SetGoniometer,
     PreprocessDetectorsToMD,
+    CompressEvents,
     GroupDetectors,
     GroupWorkspaces,
     UnGroupWorkspace,
@@ -399,6 +400,12 @@ class UBModel(NeuXtalVizModel):
                     OutputWorkspace="data",
                 )
 
+                CompressEvents(
+                    InputWorkspace="data",
+                    Tolerance=1e-4,
+                    OutputWorkspace="data",
+                )
+
                 Rebin(
                     InputWorkspace="data",
                     OutputWorkspace="data",
@@ -451,9 +458,9 @@ class UBModel(NeuXtalVizModel):
 
             BinMD(
                 InputWorkspace=self.Q,
-                AlignedDim0="Q_sample_x,{},{},384".format(-Q_max, Q_max),
-                AlignedDim1="Q_sample_y,{},{},384".format(-Q_max, Q_max),
-                AlignedDim2="Q_sample_z,{},{},384".format(-Q_max, Q_max),
+                AlignedDim0="Q_sample_x,{},{},512".format(-Q_max, Q_max),
+                AlignedDim1="Q_sample_y,{},{},512".format(-Q_max, Q_max),
+                AlignedDim2="Q_sample_z,{},{},512".format(-Q_max, Q_max),
                 OutputWorkspace="Q3D",
             )
 
@@ -475,9 +482,13 @@ class UBModel(NeuXtalVizModel):
             CompactMD(InputWorkspace="Q3D", OutputWorkspace="Q3D")
 
             signal = mtd["Q3D"].getSignalArray().copy()
+            signal[np.isclose(signal, 0)] = np.nan
 
-            threshold = np.nanpercentile(signal[signal > 0], 99)
-            mask = signal >= threshold
+            threshold = np.nanpercentile(signal, 90)
+            signal[signal <= threshold] = np.nan
+
+            # threshold = np.nanpercentile(signal, 99)
+            # signal[signal >= threshold] = threshold
 
             dims = [mtd["Q3D"].getDimension(i) for i in range(3)]
 
@@ -495,8 +506,14 @@ class UBModel(NeuXtalVizModel):
             self.min_lim = x[0], y[0], z[0]
             self.max_lim = x[-1], y[-1], z[-1]
 
-            self.signal = signal
-            self.signal[~mask] = np.nan
+            signal = np.log10(signal)
+
+            smin = np.nanmin(signal)
+            smax = np.nanmax(signal)
+
+            self.signal = np.round(
+                255 * (signal - smin) / (smax - smin)
+            ).astype(np.uint8)
 
             self.wavelength = wavelength
             self.counts = counts
