@@ -9,8 +9,6 @@ from pyvista.trame.ui import get_viewer
 from trame.widgets import client, html
 from trame.widgets import vuetify3 as vuetify
 
-pv.start_xvfb()
-
 
 class VisualizationPanel:
     def __init__(self, server, view_model):

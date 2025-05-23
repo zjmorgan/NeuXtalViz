@@ -1,8 +1,5 @@
 import argparse
 
-from NeuXtalViz.qt.gui import gui
-from NeuXtalViz.trame.gui import trame
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -16,8 +13,10 @@ def main():
 
     match args.frontend:
         case "qt":
+            from NeuXtalViz.qt.gui import gui
             gui()
         case "trame":
+            from NeuXtalViz.trame.gui import trame
             trame()
 
 

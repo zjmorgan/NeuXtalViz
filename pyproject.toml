@@ -1,12 +1,8 @@
 [project]
 name = "NeuXtalViz"
 description = "Neutron Scattering Single Crystal Visualization"
-version = "0.1.0"
+version = "0.2.0"
 requires-python = ">=3.10"
-dependencies = [
-    "mantidworkbench >= 6.7.20230830",
-    "pyoncat ~= 1.6"
-]
 license = { text = "GPL3.0" }
 
 [build-system]
@@ -17,6 +13,11 @@ requires = [
    "versioningit"
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.poetry]
+name = "NeuXtalViz"
+version = "0.2.0"
+packages = [{ include = "NeuXtalViz", from = "src" }]
 
 [tool.versioningit.vcs]
 method = "git"

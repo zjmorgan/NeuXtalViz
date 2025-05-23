@@ -1,1 +1,1 @@
-python src/NeuXtalViz.py trame
+python -m NeuXtalViz trame
