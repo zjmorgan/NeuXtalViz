@@ -21,15 +21,12 @@ from mantid.simpleapi import (
     PredictSatellitePeaks,
     CentroidPeaksMD,
     IntegratePeaksMD,
-    PeakIntensityVsRadius,
     FilterPeaks,
     SortPeaksWorkspace,
     DeleteWorkspace,
     DeleteTableRows,
-    ExtractSingleSpectrum,
     CombinePeaksWorkspaces,
     CreatePeaksWorkspace,
-    ConvertPeaksWorkspace,
     ConvertQtoHKLMDHisto,
     CompactMD,
     CopySample,
@@ -67,7 +64,14 @@ from mantid import config
 
 config["Q.convention"] = "Crystallography"
 
-from mantid.geometry import PointGroupFactory, UnitCell
+from mantid.geometry import (
+    PointGroupFactory,
+    UnitCell,
+    CrystalStructure,
+    ReflectionGenerator,
+    ReflectionConditionFilter,
+)
+
 from mantid.kernel import V3D
 
 from sklearn.cluster import DBSCAN
@@ -1087,9 +1091,9 @@ class UBModel(NeuXtalVizModel):
             beta=beta,
             gamma=gamma,
             Tolerance=tol,
-            NumInitial=100,
-            FixParameters=True,
-            Iterations=5,
+            NumInitial=150,
+            FixParameters=False,
+            Iterations=1,
         )
 
         self.copy_UB_from_peaks()
@@ -1909,6 +1913,47 @@ class UBModel(NeuXtalVizModel):
             Criterion="!=",
             BankName="None",
         )
+
+    def get_d_min(self):
+        d_min = 0.7
+        if self.has_peaks():
+            for peak in mtd[self.table]:
+                d_spacing = peak.getDSpacing()
+                if d_spacing < d_min:
+                    d_min = d_spacing
+        return d_min
+
+    def avoid_aluminum_contamination(self, d_min, d_max, delta=0.1):
+        aluminum = CrystalStructure(
+            "4.05 4.05 4.05", "F m -3 m", "Al 0 0 0 1.0 0.005"
+        )
+
+        generator = ReflectionGenerator(aluminum)
+
+        hkls = generator.getUniqueHKLsUsingFilter(
+            d_min, d_max, ReflectionConditionFilter.StructureFactor
+        )
+
+        ds = list(generator.getDValues(hkls))
+
+        if self.has_peaks():
+            for peak in mtd[self.table]:
+                d_spacing = peak.getDSpacing()
+                Q_mod = 2 * np.pi / d_spacing
+                for d in ds:
+                    Q = 2 * np.pi / d
+                    if Q - delta < Q_mod < Q + delta or d_spacing > d_max:
+                        peak.setRunNumber(-1)
+
+            FilterPeaks(
+                InputWorkspace=self.table,
+                OutputWorkspace=self.table,
+                FilterVariable="RunNumber",
+                FilterValue="-1",
+                Operator="!=",
+                Criterion="!=",
+                BankName="None",
+            )
 
     def get_modulation_info(self):
         if self.has_peaks() and self.has_UB():

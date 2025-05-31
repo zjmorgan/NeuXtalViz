@@ -21,6 +21,8 @@ class UB(NeuXtalVizPresenter):
 
         self.view.connect_convert_Q(self.convert_Q)
         self.view.connect_find_peaks(self.find_peaks)
+        self.view.connect_find_spacing(self.update_find_spacing)
+        self.view.connect_find_distance(self.update_find_distance)
         self.view.connect_index_peaks(self.index_peaks)
         self.view.connect_predict_peaks(self.predict_peaks)
         self.view.connect_integrate_peaks(self.integrate_peaks)
@@ -85,6 +87,16 @@ class UB(NeuXtalVizPresenter):
         self.volume_idle = True
 
         self.view.connect_cluster(self.cluster)
+
+    def update_find_spacing(self):
+        d = self.view.get_find_peaks_spacing()
+        Q = 2 * np.pi / d
+        self.view.set_find_peaks_distance(Q)
+
+    def update_find_distance(self):
+        Q = self.view.get_find_peaks_distance()
+        d = 2 * np.pi / Q
+        self.view.set_find_peaks_spacing(d)
 
     def hand_index_fractional(self):
         mod_info = self.get_modulation_info()
@@ -382,16 +394,22 @@ class UB(NeuXtalVizPresenter):
 
     def find_peaks_process(self, progress):
         if self.model.has_Q():
-            dist = self.view.get_find_peaks_distance()
+            Q_min = self.view.get_find_peaks_distance()
+            d_max = self.view.get_find_peaks_spacing()
             params = self.view.get_find_peaks_parameters()
             edge = self.view.get_find_peaks_edge()
+            no_al = self.view.get_avoid_aluminum()
 
-            if dist is not None and params is not None:
+            if Q_min is not None and params is not None:
                 progress("Processing...", 1)
 
                 progress("Finding peaks...", 10)
 
-                self.model.find_peaks(dist, *params, edge)
+                self.model.find_peaks(Q_min, *params, edge)
+                d_min = self.model.get_d_min()
+
+                if no_al and d_min < d_max:
+                    self.model.avoid_aluminum_contamination(d_min, d_max)
 
                 progress("Peaks found...", 90)
 

@@ -417,9 +417,13 @@ class UBView(NeuXtalVizWidget):
 
         max_peaks_label = QLabel("Max Peaks:")
         min_distance_label = QLabel("Min Distance:")
+        max_spacing_label = QLabel("Max Spacing:")
         density_threshold_label = QLabel("Min Density:")
         find_edge_label = QLabel("Edge Pixels:")
         distance_unit_label = QLabel("Å⁻¹")
+        angstrom_unit_label = QLabel("Å")
+        self.aluminum_box = QCheckBox("Avoid Aluminum", self)
+        self.aluminum_box.setChecked(True)
 
         validator = QIntValidator(10, 1000, self)
 
@@ -435,8 +439,13 @@ class UBView(NeuXtalVizWidget):
 
         validator = QDoubleValidator(0.01, 10, 4, notation=notation)
 
-        self.min_distance_line = QLineEdit("0.2")
+        self.min_distance_line = QLineEdit("0.20")
         self.min_distance_line.setValidator(validator)
+
+        validator = QDoubleValidator(0.1, 100, 4, notation=notation)
+
+        self.max_spacing_line = QLineEdit("31.46")
+        self.max_spacing_line.setValidator(validator)
 
         validator = QIntValidator(0, 64, self)
 
@@ -447,11 +456,16 @@ class UBView(NeuXtalVizWidget):
 
         find_params_layout.addWidget(max_peaks_label, 0, 0)
         find_params_layout.addWidget(self.max_peaks_line, 0, 1)
-        find_params_layout.addWidget(density_threshold_label, 0, 2)
-        find_params_layout.addWidget(self.density_threshold_line, 0, 3)
-        find_params_layout.addWidget(min_distance_label, 1, 0)
-        find_params_layout.addWidget(self.min_distance_line, 1, 1)
-        find_params_layout.addWidget(distance_unit_label, 1, 2)
+        find_params_layout.addWidget(min_distance_label, 0, 2)
+        find_params_layout.addWidget(self.min_distance_line, 0, 3)
+        find_params_layout.addWidget(distance_unit_label, 0, 4)
+        find_params_layout.addWidget(max_spacing_label, 1, 2)
+        find_params_layout.addWidget(self.max_spacing_line, 1, 3)
+        find_params_layout.addWidget(angstrom_unit_label, 1, 4)
+
+        find_params_layout.addWidget(density_threshold_label, 1, 0)
+        find_params_layout.addWidget(self.density_threshold_line, 1, 1)
+
         find_params_layout.addWidget(find_edge_label, 2, 0)
         find_params_layout.addWidget(self.find_edge_line, 2, 1)
 
@@ -459,6 +473,7 @@ class UBView(NeuXtalVizWidget):
 
         find_action_layout = QHBoxLayout()
         find_action_layout.addWidget(self.find_button)
+        find_action_layout.addWidget(self.aluminum_box)
         find_action_layout.addStretch(1)
 
         find_tab_layout.addLayout(find_params_layout)
@@ -1581,6 +1596,12 @@ class UBView(NeuXtalVizWidget):
     def connect_find_peaks(self, find_peaks):
         self.find_button.clicked.connect(find_peaks)
 
+    def connect_find_distance(self, update):
+        self.min_distance_line.editingFinished.connect(update)
+
+    def connect_find_spacing(self, update):
+        self.max_spacing_line.editingFinished.connect(update)
+
     def connect_find_conventional(self, find_conventional):
         self.conventional_button.clicked.connect(find_conventional)
 
@@ -2216,11 +2237,26 @@ class UBView(NeuXtalVizWidget):
         if param.hasAcceptableInput():
             return float(param.text())
 
+    def get_find_peaks_spacing(self):
+        param = self.max_spacing_line
+
+        if param.hasAcceptableInput():
+            return float(param.text())
+
+    def set_find_peaks_distance(self, val):
+        self.min_distance_line.setText("{:.2f}".format(val))
+
+    def set_find_peaks_spacing(self, val):
+        self.max_spacing_line.setText("{:.2f}".format(val))
+
     def get_find_peaks_edge(self):
         param = self.find_edge_line
 
         if param.hasAcceptableInput():
             return int(param.text())
+
+    def get_avoid_aluminum(self):
+        return self.aluminum_box.isChecked()
 
     def get_calculate_UB_tol(self):
         param = self.calculate_tolerance_line
