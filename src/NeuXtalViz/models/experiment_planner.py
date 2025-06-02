@@ -732,7 +732,7 @@ class ExperimentModel(NeuXtalVizModel):
         nu = np.rad2deg(np.arcsin(kf[:, 1] / k))[mask]
         lamda = lamda[mask]
 
-        angles = angles[mask]
+        settings = angles[mask]
 
         if len(lamda) > 0:
             k = 2 * np.pi / lamda
@@ -751,7 +751,7 @@ class ExperimentModel(NeuXtalVizModel):
             nu = nu[mask]
             lamda = lamda[mask]
 
-            settings = angles[mask]
+            settings = settings[mask]
 
         return settings, (gamma, nu, lamda)
 
