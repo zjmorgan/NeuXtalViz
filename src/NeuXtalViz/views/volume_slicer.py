@@ -9,6 +9,7 @@ from qtpy.QtWidgets import (
     QLineEdit,
     QSlider,
     QFileDialog,
+    QCheckBox,
 )
 
 from qtpy.QtGui import QDoubleValidator
@@ -64,9 +65,13 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         validator = QDoubleValidator(-100, 100, 5, notation=notation)
 
+        self.container = QWidget()
+        self.container.setVisible(False)
+
         plots_layout = QVBoxLayout()
         slice_params_layout = QHBoxLayout()
         view_params_layout = QHBoxLayout()
+        collabsible_layout = QVBoxLayout(self.container)
         cut_params_layout = QHBoxLayout()
         draw_layout = QHBoxLayout()
 
@@ -203,6 +208,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.save_slice_button = QPushButton("Save Slice", self)
         self.save_cut_button = QPushButton("Save Cut", self)
 
+        self.toggle_line_box = QCheckBox("Show Line Cut")
+        self.toggle_line_box.setChecked(False)
+
         slider_layout.addLayout(bar_layout)
 
         slice_params_layout.addWidget(self.slice_combo)
@@ -210,6 +218,8 @@ class VolumeSlicerView(NeuXtalVizWidget):
         slice_params_layout.addWidget(self.slice_line)
         slice_params_layout.addWidget(slice_thickness_label)
         slice_params_layout.addWidget(self.slice_thickness_line)
+        slice_params_layout.addWidget(self.toggle_line_box)
+        slice_params_layout.addStretch(1)
         slice_params_layout.addWidget(self.save_slice_button)
         slice_params_layout.addWidget(self.slice_scale_combo)
 
@@ -221,6 +231,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         view_params_layout.addWidget(self.ymin_line)
         view_params_layout.addWidget(ymax_label)
         view_params_layout.addWidget(self.ymax_line)
+        view_params_layout.addStretch(1)
         view_params_layout.addWidget(self.vlim_combo)
         view_params_layout.addWidget(vmin_label)
         view_params_layout.addWidget(self.vmin_line)
@@ -232,6 +243,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         cut_params_layout.addWidget(self.cut_line)
         cut_params_layout.addWidget(cut_thickness_label)
         cut_params_layout.addWidget(self.cut_thickness_line)
+        cut_params_layout.addStretch(1)
         cut_params_layout.addWidget(self.save_cut_button)
         cut_params_layout.addWidget(self.cut_scale_combo)
 
@@ -262,8 +274,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
         plots_layout.addLayout(image_layout)
         plots_layout.addLayout(slice_params_layout)
         plots_layout.addLayout(view_params_layout)
-        plots_layout.addLayout(line_layout)
-        plots_layout.addLayout(cut_params_layout)
+
+        collabsible_layout.addLayout(line_layout)
+        collabsible_layout.addLayout(cut_params_layout)
+
+        plots_layout.addWidget(self.container)
 
         self.fig_slice = self.canvas_slice.figure
         self.fig_cut = self.canvas_cut.figure
@@ -274,6 +289,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.cb = None
 
         slice_tab.setLayout(plots_layout)
+
+        self.toggle_line_box.toggled.connect(self.toggle_container)
+
+    def toggle_container(self, state):
+        self.container.setVisible(state)
 
     def connect_save_slice(self, save_slice):
         self.save_slice_button.clicked.connect(save_slice)
