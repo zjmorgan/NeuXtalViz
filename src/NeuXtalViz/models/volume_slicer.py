@@ -277,6 +277,17 @@ class VolumeSlicerModel(NeuXtalVizModel):
 
         return trans
 
+    def orientation_matrix(self):
+        Bp = np.dot(self.UB, self.W)
+
+        Q, R = scipy.linalg.qr(Bp)
+
+        v = scipy.linalg.cholesky(np.dot(R.T, R), lower=False)
+
+        Q = np.dot(Bp, np.linalg.inv(v))
+
+        return np.dot(Q.T, self.UB)
+
     def get_transform(self, reciprocal=True):
         if self.UB is not None:
             b = self.UB / np.linalg.norm(self.UB, axis=0)

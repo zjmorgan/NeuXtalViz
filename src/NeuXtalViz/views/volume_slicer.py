@@ -140,7 +140,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         cut_thickness_label = QLabel("Thickness:", self)
 
         self.slice_thickness_line = QLineEdit("0.1")
-        self.cut_thickness_line = QLineEdit("0.1")
+        self.cut_thickness_line = QLineEdit("0.5")
 
         self.slice_thickness_line.setValidator(validator)
         self.cut_thickness_line.setValidator(validator)

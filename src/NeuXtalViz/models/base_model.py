@@ -40,7 +40,7 @@ class NeuXtalVizModel:
 
         """
 
-        self.UB = UB
+        self.UB = UB.copy()
 
     def get_oriented_lattice_parameters(self):
         """
@@ -68,6 +68,9 @@ class NeuXtalVizModel:
 
             return *params, u, v
 
+    def orientation_matrix(self):
+        return self.UB.copy()
+
     def get_transform(self, reciprocal=True):
         """
         Transformation matrix describing the reciprocal or crystal axes.
@@ -87,7 +90,7 @@ class NeuXtalVizModel:
 
         if self.UB is not None:
             if reciprocal:
-                T = self.UB.copy()
+                T = self.orientation_matrix()
             else:
                 T = np.column_stack(
                     [
@@ -113,7 +116,9 @@ class NeuXtalVizModel:
         """
 
         if self.UB is not None:
-            return np.dot(self.UB, [0, 0, 1]), np.dot(self.UB, [1, 0, 0])
+            return np.dot(self.orientation_matrix(), [0, 0, 1]), np.dot(
+                self.orientation_matrix(), [1, 0, 0]
+            )
 
     def bc_star_axes(self):
         """
@@ -129,7 +134,9 @@ class NeuXtalVizModel:
         """
 
         if self.UB is not None:
-            return np.dot(self.UB, [1, 0, 0]), np.dot(self.UB, [0, 1, 0])
+            return np.dot(self.orientation_matrix(), [1, 0, 0]), np.dot(
+                self.orientation_matrix(), [0, 1, 0]
+            )
 
     def ca_star_axes(self):
         """
@@ -145,7 +152,9 @@ class NeuXtalVizModel:
         """
 
         if self.UB is not None:
-            return np.dot(self.UB, [0, 1, 0]), np.dot(self.UB, [0, 0, 1])
+            return np.dot(self.orientation_matrix(), [0, 1, 0]), np.dot(
+                self.orientation_matrix(), [0, 0, 1]
+            )
 
     def ab_axes(self):
         """
@@ -221,11 +230,15 @@ class NeuXtalVizModel:
 
         if self.UB is not None:
             if axes_type == "[hkl]":
-                matrix = self.UB
+                matrix = self.orientation_matrix()
             else:
                 matrix = np.cross(
-                    np.dot(self.UB, np.roll(np.eye(3), 2, 1)).T,
-                    np.dot(self.UB, np.roll(np.eye(3), 1, 1)).T,
+                    np.dot(
+                        self.orientation_matrix(), np.roll(np.eye(3), 2, 1)
+                    ).T,
+                    np.dot(
+                        self.orientation_matrix(), np.roll(np.eye(3), 1, 1)
+                    ).T,
                 ).T
 
             vec = np.dot(matrix, ind)
