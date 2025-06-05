@@ -294,6 +294,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
     def toggle_container(self, state):
         self.container.setVisible(state)
+        self.update_lines(state)
 
     def connect_save_slice(self, save_slice):
         self.save_slice_button.clicked.connect(save_slice)
@@ -668,6 +669,13 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.canvas_slice.draw_idle()
         self.canvas_slice.flush_events()
 
+    def update_lines(self, alpha):
+        lines = self.ax_slice.get_lines()
+        for line in lines:
+            line.set_alpha(alpha)
+        self.canvas_slice.draw_idle()
+        self.canvas_slice.flush_events()
+
     def add_cut(self, cut_dict):
         x = cut_dict["x"]
         y = cut_dict["y"]
@@ -702,8 +710,10 @@ class VolumeSlicerView(NeuXtalVizWidget):
             l1 = xlim, [val + delta, val + delta]
             direction = "horizontal"
 
-        self.ax_slice.plot(*l0, "w--", linewidth=1, transform=self.transform)
-        self.ax_slice.plot(*l1, "w--", linewidth=1, transform=self.transform)
+        l = self.toggle_line_box.isChecked()
+
+        self.ax_slice.plot(*l0, "w--", lw=1, alpha=l, transform=self.transform)
+        self.ax_slice.plot(*l1, "w--", lw=1, alpha=l, transform=self.transform)
 
         self.ax_cut.clear()
 
@@ -740,6 +750,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         if (
             event.inaxes == self.ax_slice
             and self.fig_slice.canvas.toolbar.mode == ""
+            and self.toggle_line_box.isChecked()
         ):
             self.linecut["is_dragging"] = True
 

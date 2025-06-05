@@ -1,7 +1,5 @@
 import sys
 
-from cycler import cycler
-
 from qtpy.QtWidgets import (
     QWidget,
     QTableWidget,
