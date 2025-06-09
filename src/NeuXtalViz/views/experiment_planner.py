@@ -300,17 +300,17 @@ class ExperimentView(NeuXtalVizWidget):
         self.vertical_line = QLineEdit()
         self.intersect_line = QLineEdit()
 
-        self.horizontal_line.setEnabled(False)
-        self.vertical_line.setEnabled(False)
-        self.intersect_line.setEnabled(False)
+        self.horizontal_line.setReadOnly(True)
+        self.vertical_line.setReadOnly(True)
+        self.intersect_line.setReadOnly(True)
 
         self.horizontal_alt_line = QLineEdit()
         self.vertical_alt_line = QLineEdit()
         self.intersect_alt_line = QLineEdit()
 
-        self.horizontal_alt_line.setEnabled(False)
-        self.vertical_alt_line.setEnabled(False)
-        self.intersect_alt_line.setEnabled(False)
+        self.horizontal_alt_line.setReadOnly(True)
+        self.vertical_alt_line.setReadOnly(True)
+        self.intersect_alt_line.setReadOnly(True)
 
         self.calculate_single_button = QPushButton("Individual Peak", self)
         self.calculate_double_button = QPushButton("Simultaneous Peaks", self)
@@ -372,7 +372,7 @@ class ExperimentView(NeuXtalVizWidget):
 
         self.angles_line = QLineEdit()
 
-        self.angles_line.setEnabled(False)
+        self.angles_line.setReadOnly(True)
 
         self.angles_combo = QComboBox(self)
 
@@ -636,7 +636,7 @@ class ExperimentView(NeuXtalVizWidget):
         else:
             self.wl_min_line.setText(str(wavelength))
             self.wl_max_line.setText(str(wavelength))
-            self.wl_max_line.setEnabled(False)
+            self.wl_max_line.setReadOnly(True)
         self.wl_min_line.blockSignals(False)
         self.wl_max_line.blockSignals(False)
 
