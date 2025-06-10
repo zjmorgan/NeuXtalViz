@@ -65,7 +65,7 @@ class NeuXtalViz(QMainWindow):
 
         self._topaz_path = "/SNS/TOPAZ"
 
-        icon = os.path.join(os.path.dirname(__file__), "icons/NeuXtalViz.png")
+        icon = os.path.join(os.path.dirname(__file__), "icons/neuxtalviz.png")
         self.setWindowIcon(QIcon(icon))
         self.setWindowTitle("NeuXtalViz {}".format(__version__))
         # self.resize(1200, 900)
