@@ -1,4 +1,4 @@
-# ![](https://github.com/zjmorgan/NeuXtalViz/blob/main/src/icons/neuxtalviz_logo.svg)
+# ![](https://github.com/zjmorgan/NeuXtalViz/blob/improve_viz/src/icons/neuxtalviz_logo.svg)
 
 Neutron Scattering Single Crystal Visualization
 
@@ -10,7 +10,7 @@ It brings together two main libraries; PyVista is the main tool for displaying t
 - [PyVista](https://pyvista.org/)
 - [Mantid](https://github.com/mantidproject/mantid/)
 
-The application also relises on several other packages.
+The application also relies on several other packages.
 
 - [Matplotlib](https://matplotlib.org/)
 - [NumPy](https://numpy.org/)
