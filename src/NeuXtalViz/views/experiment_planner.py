@@ -218,7 +218,24 @@ class ExperimentView(NeuXtalVizWidget):
 
         goniometer_layout.addLayout(mode_layout)
         goniometer_layout.addWidget(self.goniometer_table)
+
+        cal_layout = QGridLayout()
+
+        self.cal_line = QLineEdit("")
+        self.mask_line = QLineEdit("")
+
+        self.cal_browse_button = QPushButton("Detector", self)
+        self.mask_browse_button = QPushButton("Mask", self)
+
+        cal_layout.addWidget(self.cal_line, 0, 0)
+        cal_layout.addWidget(self.cal_browse_button, 0, 1)
+
+        cal_layout.addWidget(self.mask_line, 1, 0)
+        cal_layout.addWidget(self.mask_browse_button, 1, 1)
+
+        motor_layout.addLayout(cal_layout)
         motor_layout.addWidget(self.motor_table)
+
         plan_layout.addLayout(planning_layout)
         plan_layout.addWidget(self.plan_table)
         plan_layout.addWidget(self.mesh_table)
@@ -231,7 +248,7 @@ class ExperimentView(NeuXtalVizWidget):
         plan_tab.setLayout(plan_layout)
 
         values_tab.addTab(goniometer_tab, "Goniometers")
-        values_tab.addTab(motor_tab, "Motors")
+        values_tab.addTab(motor_tab, "Calibration/Motors")
         values_tab.addTab(plan_tab, "Plan")
 
         result_layout.addWidget(values_tab)
@@ -459,6 +476,52 @@ class ExperimentView(NeuXtalVizWidget):
 
     def connect_update(self, update):
         self.update_button.clicked.connect(update)
+
+    def connect_load_mask(self, load_mask):
+        self.mask_browse_button.clicked.connect(load_mask)
+
+    def connect_load_detector(self, load_detector_cal):
+        self.cal_browse_button.clicked.connect(load_detector_cal)
+
+    def get_detector_calibration(self):
+        return self.cal_line.text()
+
+    def set_detector_calibration(self, filename):
+        return self.cal_line.setText(filename)
+
+    def get_mask(self):
+        return self.mask_line.text()
+
+    def set_mask(self, filename):
+        return self.mask_line.setText(filename)
+
+    def load_detector_cal_dialog(self, path=""):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        file_filters = "Calibration files (*.DetCal *.detcal *.xml)"
+
+        filename, _ = file_dialog.getOpenFileName(
+            self, "Load calibration file", path, file_filters, options=options
+        )
+
+        return filename
+
+    def load_mask_dialog(self, path=""):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        file_filters = "Mask files (*.xml)"
+
+        filename, _ = file_dialog.getOpenFileName(
+            self, "Load mask file", path, file_filters, options=options
+        )
 
     def load_UB_file_dialog(self):
         options = QFileDialog.Options()

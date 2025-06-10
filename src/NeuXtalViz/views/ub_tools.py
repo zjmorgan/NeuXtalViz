@@ -1780,7 +1780,7 @@ class UBView(NeuXtalVizWidget):
         file_filters = "Tube files (*.h5 *.nxs)"
 
         filename, _ = file_dialog.getOpenFileName(
-            self, "Load calibration file", path, file_filters, options=options
+            self, "Load tube file", path, file_filters, options=options
         )
 
         return filename

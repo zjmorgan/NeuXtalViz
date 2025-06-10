@@ -18,6 +18,10 @@ from mantid.simpleapi import (
     LoadIsawUB,
     LoadEmptyInstrument,
     LoadInstrument,
+    LoadMask,
+    LoadIsawDetCal,
+    LoadParameterFile,
+    MaskDetectors,
     ExtractMonitors,
     PreprocessDetectorsToMD,
     GroupDetectors,
@@ -202,7 +206,7 @@ class ExperimentModel(NeuXtalVizModel):
             OutputWorkspace="coverage",
         )
 
-    def initialize_instrument(self, instrument, logs):
+    def initialize_instrument(self, instrument, logs, cal, mask):
         inst = self.get_instrument_name(instrument)
 
         if not mtd.doesExist("instrument"):
@@ -219,11 +223,25 @@ class ExperimentModel(NeuXtalVizModel):
                     NumberType="Double",
                 )
 
-            LoadInstrument(
-                Workspace="instrument",
-                RewriteSpectraMap=False,
-                InstrumentName=inst,
-            )
+            if len(logs.keys()) > 0:
+                LoadInstrument(
+                    Workspace="instrument",
+                    RewriteSpectraMap=False,
+                    InstrumentName=inst,
+                )
+
+            if cal != "" and os.path.exists(cal):
+                if os.path.splitext(cal)[1] == ".xml":
+                    LoadParameterFile(Workspace="instrument", Filename=cal)
+                else:
+                    LoadIsawDetCal(InputWorkspace="instrument", Filename=cal)
+
+            if mask != "" and os.path.exists(mask):
+                if not mtd.doesExist("mask"):
+                    LoadMask(
+                        Instrument=inst, InputFile=mask, OutputWOrkspace="mask"
+                    )
+                MaskDetectors(Workspace="instrument", MaskedWorkspace="mask")
 
             ExtractMonitors(
                 InputWorkspace="instrument",
@@ -326,6 +344,24 @@ class ExperimentModel(NeuXtalVizModel):
             self.det_ID = det_ID.copy()
             self.nu = np.rad2deg(np.arcsin(y / L2))
             self.gamma = np.rad2deg(np.arctan2(x, z))
+
+    def get_calibration_file_path(self, instrument):
+        inst = beamlines[instrument]
+
+        return os.path.join(
+            "/",
+            inst["Facility"],
+            inst["InstrumentName"],
+            "shared",
+            "calibration",
+        )
+
+    def get_vanadium_file_path(self, instrument):
+        inst = beamlines[instrument]
+
+        return os.path.join(
+            "/", inst["Facility"], inst["InstrumentName"], "shared", "Vanadium"
+        )
 
     def remove_instrument(self):
         if mtd.doesExist("instrument"):
@@ -440,7 +476,7 @@ class ExperimentModel(NeuXtalVizModel):
                 LogType="String",
             )
 
-    def update_goniometer_motors(self, limits, motors):
+    def update_goniometer_motors(self, limits, motors, cal, mask):
         if mtd.doesExist("sample"):
             mtd["sample"].run()["limits"] = np.array(limits).flatten().tolist()
 
@@ -449,6 +485,9 @@ class ExperimentModel(NeuXtalVizModel):
                 values.append(motors[key])
             if len(values) > 0:
                 mtd["sample"].run()["motors"] = values
+
+            mtd["sample"].run()["cal"] = cal
+            mtd["sample"].run()["mask"] = mask
 
     def load_UB(self, filename):
         LoadIsawUB(InputWorkspace="coverage", Filename=filename)
@@ -561,6 +600,8 @@ class ExperimentModel(NeuXtalVizModel):
         pg = mtd[sample].run().getProperty("point_group").value
         lc = mtd[sample].run().getProperty("lattice_centering").value
         lims = mtd[sample].run().getProperty("limits").value
+        mask = mtd[sample].run().getProperty("mask").value
+        cal = mtd[sample].run().getProperty("cal").value
         lims = np.array(lims).reshape(-1, 2).tolist()
         vals = []
         if mtd[sample].run().hasProperty("motors"):
@@ -589,7 +630,7 @@ class ExperimentModel(NeuXtalVizModel):
             settings.append(angles)
 
         plan = (titles, settings, comments, counts, values, use)
-        config = (instrument, mode, wl, d_min, lims, vals)
+        config = (instrument, mode, wl, d_min, lims, vals, cal, mask)
         symm = (cs, pg, lc)
 
         return plan, config, symm
