@@ -344,8 +344,11 @@ class UBModel(NeuXtalVizModel):
             input_ws_names = mtd["data"].getNames()
             return len(input_ws_names)
 
-    def convert_data(self, instrument, wavelength, lorentz):
+    def convert_data(self, instrument, wavelength, lorentz, min_d=None):
         filepath = self.get_raw_file_path(instrument)
+
+        if min_d is not None:
+            Q_max = 2 * np.pi / min_d
 
         if mtd.doesExist("data"):
             input_ws_names = mtd["data"].getNames()
@@ -377,9 +380,9 @@ class UBModel(NeuXtalVizModel):
 
                 counts = [c.reshape(-1, c.shape[2]) for c in counts]
 
-                Q_max = (
-                    4 * np.pi / wavelength[0] * np.sin(0.5 * max(two_theta))
-                ) / 2
+                if min_d is None:
+                    k = 2 * np.pi / wavelength[0]
+                    Q_max = k * np.sin(0.5 * max(two_theta))
 
                 ConvertHFIRSCDtoMDE(
                     InputWorkspace="data",
@@ -431,9 +434,9 @@ class UBModel(NeuXtalVizModel):
 
                 counts = [mtd[ws].extractY().copy() for ws in input_ws_names]
 
-                Q_max = (
-                    4 * np.pi / min(wavelength) * np.sin(0.5 * max(two_theta))
-                )
+                if min_d is None:
+                    k = 2 * np.pi / min(wavelength)
+                    Q_max = k * np.sin(0.5 * max(two_theta))
 
                 ConvertToMD(
                     InputWorkspace="data",
@@ -458,13 +461,15 @@ class UBModel(NeuXtalVizModel):
 
                 RenameWorkspace(InputWorkspace=input_ws, OutputWorkspace="md")
 
+            self.Q_max_cut = Q_max
+
             self.Q = "md"
 
             BinMD(
                 InputWorkspace=self.Q,
-                AlignedDim0="Q_sample_x,{},{},512".format(-Q_max, Q_max),
-                AlignedDim1="Q_sample_y,{},{},512".format(-Q_max, Q_max),
-                AlignedDim2="Q_sample_z,{},{},512".format(-Q_max, Q_max),
+                AlignedDim0="Q_sample_x,{},{},256".format(-Q_max, Q_max),
+                AlignedDim1="Q_sample_y,{},{},256".format(-Q_max, Q_max),
+                AlignedDim2="Q_sample_z,{},{},256".format(-Q_max, Q_max),
                 OutputWorkspace="Q3D",
             )
 
@@ -504,6 +509,11 @@ class UBModel(NeuXtalVizModel):
                 )
                 for dim in dims
             ]
+
+            Qx, Qy, Qz = np.meshgrid(x, y, z, indexing="ij")
+
+            mask = (Qx**2 + Qy**2 + Qz**2) > self.Q_max_cut**2
+            signal[mask] = np.nan
 
             self.spacing = tuple([dim.getBinWidth() for dim in dims])
 
@@ -1005,6 +1015,26 @@ class UBModel(NeuXtalVizModel):
     def copy_UB_to_peaks(self):
         CopySample(
             InputWorkspace=self.cell,
+            OutputWorkspace=self.table,
+            CopyName=False,
+            CopyMaterial=False,
+            CopyEnvironment=False,
+            CopyShape=False,
+        )
+
+    def copy_UB_from_Q(self):
+        CopySample(
+            InputWorkspace=self.Q,
+            OutputWorkspace=self.cell,
+            CopyName=False,
+            CopyMaterial=False,
+            CopyEnvironment=False,
+            CopyShape=False,
+        )
+
+    def copy_UB_to_Q(self):
+        CopySample(
+            InputWorkspace=self.Q,
             OutputWorkspace=self.table,
             CopyName=False,
             CopyMaterial=False,
@@ -1586,8 +1616,10 @@ class UBModel(NeuXtalVizModel):
 
         d_max = self.get_max_d_spacing(self.table)
 
+        self.copy_to_Q()
+
         PredictPeaks(
-            InputWorkspace=self.table,
+            InputWorkspace=self.Q,
             WavelengthMin=lamda_min,
             WavelengthMax=lamda_max,
             MinDSpacing=d_min,

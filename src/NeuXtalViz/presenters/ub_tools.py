@@ -169,6 +169,7 @@ class UB(NeuXtalVizPresenter):
         exp = self.view.get_experiment()
         lorentz = self.view.get_lorentz()
         time_stop = self.view.get_time_stop()
+        d_min = self.view.get_convert_min_d()
 
         validate = [IPTS, runs, wavelength]
 
@@ -183,7 +184,11 @@ class UB(NeuXtalVizPresenter):
             progress("Data loading...", 10)
 
             data_load = self.model.load_data(
-                instrument, IPTS, runs, exp, time_stop
+                instrument,
+                IPTS,
+                runs,
+                exp,
+                time_stop,
             )
 
             if data_load is None:
@@ -201,7 +206,7 @@ class UB(NeuXtalVizPresenter):
 
             progress("Data converting...", 70)
 
-            self.model.convert_data(instrument, wavelength, lorentz)
+            self.model.convert_data(instrument, wavelength, lorentz, d_min)
 
             progress("Data converted...", 99)
 

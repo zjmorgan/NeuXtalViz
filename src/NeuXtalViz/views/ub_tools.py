@@ -356,6 +356,11 @@ class UBView(NeuXtalVizWidget):
         self.wl_min_line.setValidator(validator)
         self.wl_max_line.setValidator(validator)
 
+        d_min_label = QLabel("d(min):", self)
+
+        self.convert_min_d_line = QLineEdit("0.7")
+        self.convert_min_d_line.setValidator(validator)
+
         validator = QIntValidator(1, 1000, self)
 
         self.filter_time_line = QLineEdit("")
@@ -394,6 +399,8 @@ class UBView(NeuXtalVizWidget):
         convert_to_q_action_layout.addWidget(filter_time_label)
         convert_to_q_action_layout.addWidget(self.filter_time_line)
         convert_to_q_action_layout.addStretch(1)
+        convert_to_q_action_layout.addWidget(d_min_label)
+        convert_to_q_action_layout.addWidget(self.convert_min_d_line)
         convert_to_q_action_layout.addLayout(wavelength_params_layout)
 
         convert_to_q_tab_layout.addLayout(experiment_params_layout)
@@ -2022,6 +2029,10 @@ class UBView(NeuXtalVizWidget):
     def get_time_stop(self):
         if self.filter_time_line.hasAcceptableInput():
             return self.filter_time_line.text()
+
+    def get_convert_min_d(self):
+        if self.convert_min_d_line.hasAcceptableInput():
+            return float(self.convert_min_d_line.text())
 
     def add_Q_viz(self, Q_dict):
         self.clear_scene()
