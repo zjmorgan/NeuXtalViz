@@ -1081,10 +1081,12 @@ class UB(NeuXtalVizPresenter):
             progress("Invalid parameters.", 0)
 
             peak_info = self.model.get_cluster_info()
+            print(peak_info)
             if peak_info is not None:
                 progress("Clustering peaks.", 25)
 
                 success = self.model.cluster_peaks(peak_info, *params)
+                print(success)
 
                 if success:
                     progress("Peaks clustered!", 100)
