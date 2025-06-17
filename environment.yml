@@ -12,7 +12,7 @@ dependencies:
   - pyvista>=0.45.2
   - pyvistaqt
   - pytest
-  - mantidworkbench
+  - mantid
   - scikit-learn
   - scikit-image
   - astropy
@@ -25,5 +25,6 @@ dependencies:
     - blinker
     - nova-mvvm
     - nova-trame>=0.17.2
+    - pyqt5
     - trame-matplotlib
     - trame-vtk
