@@ -21,15 +21,12 @@ from mantid.simpleapi import (
     PredictSatellitePeaks,
     CentroidPeaksMD,
     IntegratePeaksMD,
-    PeakIntensityVsRadius,
     FilterPeaks,
     SortPeaksWorkspace,
     DeleteWorkspace,
     DeleteTableRows,
-    ExtractSingleSpectrum,
     CombinePeaksWorkspaces,
     CreatePeaksWorkspace,
-    ConvertPeaksWorkspace,
     ConvertQtoHKLMDHisto,
     CompactMD,
     CopySample,
@@ -43,6 +40,7 @@ from mantid.simpleapi import (
     Rebin,
     SetGoniometer,
     PreprocessDetectorsToMD,
+    CompressEvents,
     GroupDetectors,
     GroupWorkspaces,
     UnGroupWorkspace,
@@ -66,7 +64,14 @@ from mantid import config
 
 config["Q.convention"] = "Crystallography"
 
-from mantid.geometry import PointGroupFactory, UnitCell
+from mantid.geometry import (
+    PointGroupFactory,
+    UnitCell,
+    CrystalStructure,
+    ReflectionGenerator,
+    ReflectionConditionFilter,
+)
+
 from mantid.kernel import V3D
 
 from sklearn.cluster import DBSCAN
@@ -339,8 +344,11 @@ class UBModel(NeuXtalVizModel):
             input_ws_names = mtd["data"].getNames()
             return len(input_ws_names)
 
-    def convert_data(self, instrument, wavelength, lorentz):
+    def convert_data(self, instrument, wavelength, lorentz, min_d=None):
         filepath = self.get_raw_file_path(instrument)
+
+        if min_d is not None:
+            Q_max = 2 * np.pi / min_d
 
         if mtd.doesExist("data"):
             input_ws_names = mtd["data"].getNames()
@@ -372,9 +380,9 @@ class UBModel(NeuXtalVizModel):
 
                 counts = [c.reshape(-1, c.shape[2]) for c in counts]
 
-                Q_max = (
-                    4 * np.pi / wavelength[0] * np.sin(0.5 * max(two_theta))
-                ) / 2
+                if min_d is None:
+                    k = 2 * np.pi / wavelength[0]
+                    Q_max = k * np.sin(0.5 * max(two_theta))
 
                 ConvertHFIRSCDtoMDE(
                     InputWorkspace="data",
@@ -399,6 +407,12 @@ class UBModel(NeuXtalVizModel):
                     OutputWorkspace="data",
                 )
 
+                CompressEvents(
+                    InputWorkspace="data",
+                    Tolerance=1e-4,
+                    OutputWorkspace="data",
+                )
+
                 Rebin(
                     InputWorkspace="data",
                     OutputWorkspace="data",
@@ -420,9 +434,9 @@ class UBModel(NeuXtalVizModel):
 
                 counts = [mtd[ws].extractY().copy() for ws in input_ws_names]
 
-                Q_max = (
-                    4 * np.pi / min(wavelength) * np.sin(0.5 * max(two_theta))
-                ) / 2
+                if min_d is None:
+                    k = 2 * np.pi / min(wavelength)
+                    Q_max = k * np.sin(0.5 * max(two_theta))
 
                 ConvertToMD(
                     InputWorkspace="data",
@@ -432,7 +446,6 @@ class UBModel(NeuXtalVizModel):
                     LorentzCorrection=lorentz,
                     MinValues=[-Q_max, -Q_max, -Q_max],
                     MaxValues=[+Q_max, +Q_max, +Q_max],
-                    MaxRecursionDepth=5,
                     PreprocDetectorsWS="detectors",
                     OutputWorkspace="md",
                 )
@@ -448,13 +461,15 @@ class UBModel(NeuXtalVizModel):
 
                 RenameWorkspace(InputWorkspace=input_ws, OutputWorkspace="md")
 
+            self.Q_max_cut = Q_max
+
             self.Q = "md"
 
             BinMD(
                 InputWorkspace=self.Q,
-                AlignedDim0="Q_sample_x,{},{},192".format(-Q_max, Q_max),
-                AlignedDim1="Q_sample_y,{},{},192".format(-Q_max, Q_max),
-                AlignedDim2="Q_sample_z,{},{},192".format(-Q_max, Q_max),
+                AlignedDim0="Q_sample_x,{},{},256".format(-Q_max, Q_max),
+                AlignedDim1="Q_sample_y,{},{},256".format(-Q_max, Q_max),
+                AlignedDim2="Q_sample_z,{},{},256".format(-Q_max, Q_max),
                 OutputWorkspace="Q3D",
             )
 
@@ -475,25 +490,14 @@ class UBModel(NeuXtalVizModel):
 
             CompactMD(InputWorkspace="Q3D", OutputWorkspace="Q3D")
 
-            dims = [mtd["Q3D"].getDimension(i) for i in range(3)]
-
-            xmin, ymin, zmin = [dim.getMinimum() for dim in dims]
-            xmax, ymax, zmax = [dim.getMaximum() for dim in dims]
-            xn, yn, zn = [2 * dim.getNBins() for dim in dims]
-
-            BinMD(
-                InputWorkspace=self.Q,
-                AlignedDim0="Q_sample_x,{},{},{}".format(xmin, xmax, xn),
-                AlignedDim1="Q_sample_y,{},{},{}".format(ymin, ymax, yn),
-                AlignedDim2="Q_sample_z,{},{},{}".format(zmin, zmax, zn),
-                OutputWorkspace="Q3D",
-            )
-
             signal = mtd["Q3D"].getSignalArray().copy()
-            events = mtd["Q3D"].getNumEventsArray().copy()
+            signal[np.isclose(signal, 0)] = np.nan
 
-            threshold = np.nanpercentile(signal[signal > 0], 99.7)
-            mask = signal >= threshold
+            threshold = np.nanpercentile(signal, 90)
+            signal[signal <= threshold] = np.nan
+
+            # threshold = np.nanpercentile(signal, 99)
+            # signal[signal >= threshold] = threshold
 
             dims = [mtd["Q3D"].getDimension(i) for i in range(3)]
 
@@ -506,34 +510,24 @@ class UBModel(NeuXtalVizModel):
                 for dim in dims
             ]
 
-            self.Qx_min, self.Qx_max = x[0], x[-1]
-            self.Qy_min, self.Qy_max = y[0], y[-1]
-            self.Qz_min, self.Qz_max = z[0], z[-1]
+            Qx, Qy, Qz = np.meshgrid(x, y, z, indexing="ij")
 
-            x, y, z = np.meshgrid(x, y, z, indexing="ij")
+            mask = (Qx**2 + Qy**2 + Qz**2) > self.Q_max_cut**2
+            signal[mask] = np.nan
 
-            thresh_x, thresh_y, thresh_z = x[mask], y[mask], z[mask]
+            self.spacing = tuple([dim.getBinWidth() for dim in dims])
 
-            thresh_signal = signal[mask]
-            thresh_events = events[mask]
+            self.min_lim = x[0], y[0], z[0]
+            self.max_lim = x[-1], y[-1], z[-1]
 
-            min_samples = int(np.percentile(thresh_events, 5))
-            eps = np.mean([4 * dim.getBinWidth() for dim in dims])
+            signal = np.log10(signal)
 
-            data = np.vstack((thresh_x, thresh_y, thresh_z)).T
+            smin = np.nanmin(signal)
+            smax = np.nanmax(signal)
 
-            dbscan = DBSCAN(eps=eps, min_samples=min_samples + 1)
-            labels = dbscan.fit_predict(data, sample_weight=thresh_events)
-
-            mask = labels != -1
-
-            self.x, self.y, self.z = (
-                thresh_x[mask],
-                thresh_y[mask],
-                thresh_z[mask],
-            )
-
-            self.signal = thresh_signal[mask]
+            self.signal = np.round(
+                255 * (signal - smin) / (smax - smin)
+            ).astype(np.uint8)
 
             self.wavelength = wavelength
             self.counts = counts
@@ -747,16 +741,19 @@ class UBModel(NeuXtalVizModel):
 
             bp_inv = np.linalg.inv(2 * np.pi * Bp)
 
+            Qx_min, Qy_min, Qz_min = self.min_lim
+            Qx_max, Qy_max, Qz_max = self.max_lim
+
             corners = np.array(
                 [
-                    [self.Qx_min, self.Qy_min, self.Qz_min],
-                    [self.Qx_max, self.Qy_min, self.Qz_min],
-                    [self.Qx_min, self.Qy_max, self.Qz_min],
-                    [self.Qx_max, self.Qy_max, self.Qz_min],
-                    [self.Qx_min, self.Qy_min, self.Qz_max],
-                    [self.Qx_max, self.Qy_min, self.Qz_max],
-                    [self.Qx_min, self.Qy_max, self.Qz_max],
-                    [self.Qx_max, self.Qy_max, self.Qz_max],
+                    [Qx_min, Qy_min, Qz_min],
+                    [Qx_max, Qy_min, Qz_min],
+                    [Qx_min, Qy_max, Qz_min],
+                    [Qx_max, Qy_max, Qz_min],
+                    [Qx_min, Qy_min, Qz_max],
+                    [Qx_max, Qy_min, Qz_max],
+                    [Qx_min, Qy_max, Qz_max],
+                    [Qx_max, Qy_max, Qz_max],
                 ]
             )
 
@@ -899,13 +896,13 @@ class UBModel(NeuXtalVizModel):
             Q_dict["signal"] = self.signal
             # Q_dict["opacity"] = self.opacity
 
-            # Q_dict["min_lim"] = self.min_lim
-            # Q_dict["max_lim"] = self.max_lim
-            # Q_dict["spacing"] = self.spacing
+            Q_dict["min_lim"] = self.min_lim
+            Q_dict["max_lim"] = self.max_lim
+            Q_dict["spacing"] = self.spacing
 
-            Q_dict["x"] = self.x
-            Q_dict["y"] = self.y
-            Q_dict["z"] = self.z
+            # Q_dict["x"] = self.x
+            # Q_dict["y"] = self.y
+            # Q_dict["z"] = self.z
 
         if self.has_peaks():
             self.sort_peaks_by_hkl(self.table)
@@ -1025,6 +1022,26 @@ class UBModel(NeuXtalVizModel):
             CopyShape=False,
         )
 
+    def copy_UB_from_Q(self):
+        CopySample(
+            InputWorkspace=self.Q,
+            OutputWorkspace=self.cell,
+            CopyName=False,
+            CopyMaterial=False,
+            CopyEnvironment=False,
+            CopyShape=False,
+        )
+
+    def copy_UB_to_Q(self):
+        CopySample(
+            InputWorkspace=self.Q,
+            OutputWorkspace=self.table,
+            CopyName=False,
+            CopyMaterial=False,
+            CopyEnvironment=False,
+            CopyShape=False,
+        )
+
     def save_UB(self, filename):
         """
         Save UB to file.
@@ -1104,6 +1121,9 @@ class UBModel(NeuXtalVizModel):
             beta=beta,
             gamma=gamma,
             Tolerance=tol,
+            NumInitial=150,
+            FixParameters=False,
+            Iterations=1,
         )
 
         self.copy_UB_from_peaks()
@@ -1310,7 +1330,10 @@ class UBModel(NeuXtalVizModel):
         hkl_trans = ",".join(9 * ["{}"]).format(*transform)
 
         TransformHKL(
-            PeaksWorkspace=self.table, Tolerance=tol, HKLTransform=hkl_trans
+            PeaksWorkspace=self.table,
+            Tolerance=tol,
+            HKLTransform=hkl_trans,
+            FindError=mtd[self.table].getNumberPeaks() > 3,
         )
 
         self.copy_UB_from_peaks()
@@ -1593,8 +1616,10 @@ class UBModel(NeuXtalVizModel):
 
         d_max = self.get_max_d_spacing(self.table)
 
+        self.copy_to_Q()
+
         PredictPeaks(
-            InputWorkspace=self.table,
+            InputWorkspace=self.Q,
             WavelengthMin=lamda_min,
             WavelengthMax=lamda_max,
             MinDSpacing=d_min,
@@ -1920,6 +1945,47 @@ class UBModel(NeuXtalVizModel):
             Criterion="!=",
             BankName="None",
         )
+
+    def get_d_min(self):
+        d_min = 0.7
+        if self.has_peaks():
+            for peak in mtd[self.table]:
+                d_spacing = peak.getDSpacing()
+                if d_spacing < d_min:
+                    d_min = d_spacing
+        return d_min
+
+    def avoid_aluminum_contamination(self, d_min, d_max, delta=0.1):
+        aluminum = CrystalStructure(
+            "4.05 4.05 4.05", "F m -3 m", "Al 0 0 0 1.0 0.005"
+        )
+
+        generator = ReflectionGenerator(aluminum)
+
+        hkls = generator.getUniqueHKLsUsingFilter(
+            d_min, d_max, ReflectionConditionFilter.StructureFactor
+        )
+
+        ds = list(generator.getDValues(hkls))
+
+        if self.has_peaks():
+            for peak in mtd[self.table]:
+                d_spacing = peak.getDSpacing()
+                Q_mod = 2 * np.pi / d_spacing
+                for d in ds:
+                    Q = 2 * np.pi / d
+                    if Q - delta < Q_mod < Q + delta or d_spacing > d_max:
+                        peak.setRunNumber(-1)
+
+            FilterPeaks(
+                InputWorkspace=self.table,
+                OutputWorkspace=self.table,
+                FilterVariable="RunNumber",
+                FilterValue="-1",
+                Operator="!=",
+                Criterion="!=",
+                BankName="None",
+            )
 
     def get_modulation_info(self):
         if self.has_peaks() and self.has_UB():

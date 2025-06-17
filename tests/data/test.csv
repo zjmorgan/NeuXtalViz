@@ -1,5 +1,2 @@
-BL12:Mot:goniokm:omega,BL12:Mot:goniokm:phi,comment
--110.0,152.0,(4.0 0.0 0.0)
--107.9000015258789,-105.5,CrystalPlan 1
-65.5999984741211,-167.89999389648438,CrystalPlan 2
-64.19999694824219,-30.600000381469727, 
+BL12:CS:RunInfo:Title,BL12:Mot:goniokm:omega,BL12:Mot:goniokm:phi,Comment,Wait For,Value
+tetst,46.0,-44.0,(4.0 0.0 0.0),BL12:Det:PCharge:C,1.2999999523162842

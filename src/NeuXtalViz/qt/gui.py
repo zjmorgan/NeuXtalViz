@@ -68,7 +68,7 @@ class NeuXtalViz(QMainWindow):
 
         self._topaz_path = "/SNS/TOPAZ"
 
-        icon = os.path.join(os.path.dirname(__file__), "icons/NeuXtalViz.png")
+        icon = os.path.join(os.path.dirname(__file__), "icons/neuxtalviz.png")
         self.setWindowIcon(QIcon(icon))
         self.setWindowTitle("NeuXtalViz {}".format(__version__))
         # self.resize(1200, 900)
@@ -139,9 +139,9 @@ class NeuXtalViz(QMainWindow):
         topaz_action.triggered.connect(self.topaz_reduction_GUI)
         app_menu.addAction(topaz_action)
 
-        crystalplan_action = QAction("CrystalPlan", self)
-        crystalplan_action.triggered.connect(self.crystalplan_reduction_GUI)
-        app_menu.addAction(crystalplan_action)
+        garnet_action = QAction("garnet", self)
+        garnet_action.triggered.connect(self.garnet_reduction_GUI)
+        app_menu.addAction(garnet_action)
 
         app_menu = self.menuBar().addMenu("Analysis")
 
@@ -193,11 +193,11 @@ class NeuXtalViz(QMainWindow):
         except subprocess.CalledProcessError as e:
             QMessageBox.critical(self, "Error", f"Failed to execute shelxle:\n{e}")
 
-    def crystalplan_reduction_GUI(self):
+    def garnet_reduction_GUI(self):
         try:
-            subprocess.Popen(["crystalplan"])
+            subprocess.Popen(["/SNS/software/scd/garnet.sh"])
         except subprocess.CalledProcessError as e:
-            QMessageBox.critical(self, "Error", f"Failed to execute crystalplan:\n{e}")
+            QMessageBox.critical(self, "Error", f"Failed to execute garnet:\n{e}")
 
     def olex2_reduction_GUI(self):
         try:

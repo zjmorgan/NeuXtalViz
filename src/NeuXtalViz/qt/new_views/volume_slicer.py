@@ -11,6 +11,7 @@ from qtpy.QtWidgets import (
     QLineEdit,
     QSlider,
     QFileDialog,
+    QCheckBox,
 )
 
 from qtpy.QtGui import QDoubleValidator
@@ -69,9 +70,13 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         validator = QDoubleValidator(-100, 100, 5, notation=notation)
 
+        self.container = QWidget()
+        self.container.setVisible(False)
+
         plots_layout = QVBoxLayout()
         slice_params_layout = QHBoxLayout()
         view_params_layout = QHBoxLayout()
+        collabsible_layout = QVBoxLayout(self.container)
         cut_params_layout = QHBoxLayout()
         draw_layout = QHBoxLayout()
 
@@ -145,7 +150,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         cut_thickness_label = QLabel("Thickness:", self)
 
         self.slice_thickness_line = QLineEdit("0.1")
-        self.cut_thickness_line = QLineEdit("0.1")
+        self.cut_thickness_line = QLineEdit("0.5")
 
         self.slice_thickness_line.setValidator(validator)
         self.cut_thickness_line.setValidator(validator)
@@ -208,6 +213,9 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.save_slice_button = QPushButton("Save Slice", self)
         self.save_cut_button = QPushButton("Save Cut", self)
 
+        self.toggle_line_box = QCheckBox("Show Line Cut")
+        self.toggle_line_box.setChecked(False)
+
         slider_layout.addLayout(bar_layout)
 
         slice_params_layout.addWidget(self.slice_combo)
@@ -215,6 +223,8 @@ class VolumeSlicerView(NeuXtalVizWidget):
         slice_params_layout.addWidget(self.slice_line)
         slice_params_layout.addWidget(slice_thickness_label)
         slice_params_layout.addWidget(self.slice_thickness_line)
+        slice_params_layout.addWidget(self.toggle_line_box)
+        slice_params_layout.addStretch(1)
         slice_params_layout.addWidget(self.save_slice_button)
         slice_params_layout.addWidget(self.slice_scale_combo)
 
@@ -226,6 +236,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         view_params_layout.addWidget(self.ymin_line)
         view_params_layout.addWidget(ymax_label)
         view_params_layout.addWidget(self.ymax_line)
+        view_params_layout.addStretch(1)
         view_params_layout.addWidget(self.vlim_combo)
         view_params_layout.addWidget(vmin_label)
         view_params_layout.addWidget(self.vmin_line)
@@ -237,6 +248,7 @@ class VolumeSlicerView(NeuXtalVizWidget):
         cut_params_layout.addWidget(self.cut_line)
         cut_params_layout.addWidget(cut_thickness_label)
         cut_params_layout.addWidget(self.cut_thickness_line)
+        cut_params_layout.addStretch(1)
         cut_params_layout.addWidget(self.save_cut_button)
         cut_params_layout.addWidget(self.cut_scale_combo)
 
@@ -267,8 +279,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
         plots_layout.addLayout(image_layout)
         plots_layout.addLayout(slice_params_layout)
         plots_layout.addLayout(view_params_layout)
-        plots_layout.addLayout(line_layout)
-        plots_layout.addLayout(cut_params_layout)
+
+        collabsible_layout.addLayout(line_layout)
+        collabsible_layout.addLayout(cut_params_layout)
+
+        plots_layout.addWidget(self.container)
 
         self.fig_slice = self.canvas_slice.figure
         self.fig_cut = self.canvas_cut.figure
@@ -280,31 +295,26 @@ class VolumeSlicerView(NeuXtalVizWidget):
 
         slice_tab.setLayout(plots_layout)
 
+        self.toggle_line_box.toggled.connect(self.toggle_container)
+
     def connect_bindings(self):
         super().connect_bindings()
 
-        self.view_model.slice_lim_bind.connect(
-            "slice_lim", self.set_slice_lim
-        )
-        self.view_model.cut_lim_bind.connect(
-            "cut_lim", self.set_cut_lim
-        )
-        self.view_model.redraw_data_bind.connect(
-            "redraw_data", self.redraw_data
-        )
-        self.view_model.slice_data_bind.connect(
-            "slice_data", self.slice_data
-        )
+    def toggle_container(self, state):
+        self.container.setVisible(state)
+        self.update_lines(state)
+
+    def connect_save_slice(self, save_slice):
+        self.save_slice_button.clicked.connect(save_slice)
+
+        self.view_model.slice_lim_bind.connect("slice_lim", self.set_slice_lim)
+        self.view_model.cut_lim_bind.connect("cut_lim", self.set_cut_lim)
+        self.view_model.redraw_data_bind.connect("redraw_data", self.redraw_data)
+        self.view_model.slice_data_bind.connect("slice_data", self.slice_data)
         self.view_model.cut_data_bind.connect("cut_data", self.cut_data)
-        self.view_model.add_histo_bind.connect(
-            "add_histo", self.add_histo
-        )
-        self.view_model.add_slice_bind.connect(
-            "add_slice", self.add_slice
-        )
-        self.view_model.add_cut_bind.connect(
-            "add_cut", self.add_cut
-        )
+        self.view_model.add_histo_bind.connect("add_histo", self.add_histo)
+        self.view_model.add_slice_bind.connect("add_slice", self.add_slice)
+        self.view_model.add_cut_bind.connect("add_cut", self.add_cut)
 
     def connect_widgets(self):
         super().connect_widgets()
@@ -327,13 +337,17 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.min_slider.valueChanged.connect(self.update_colorbar_min)
         self.max_slider.valueChanged.connect(self.update_colorbar_max)
         self.vlim_combo.currentTextChanged.connect(self.view_model.set_vlim_clip_type)
-        self.slice_scale_combo.currentTextChanged.connect(self.view_model.set_slice_scale)
+        self.slice_scale_combo.currentTextChanged.connect(
+            self.view_model.set_slice_scale
+        )
         self.cut_scale_combo.currentTextChanged.connect(self.view_model.set_cut_scale)
         self.slice_line.textChanged.connect(
             partial(self.view_model.set_number, "slice_value")
         )
         self.slice_line.editingFinished.connect(self.redraw_data)
-        self.cut_line.textChanged.connect(partial(self.view_model.set_number, "cut_value"))
+        self.cut_line.textChanged.connect(
+            partial(self.view_model.set_number, "cut_value")
+        )
         self.cut_line.editingFinished.connect(self.view_model.update_cut)
         self.vmin_line.textChanged.connect(partial(self.view_model.set_number, "vmin"))
         self.vmin_line.editingFinished.connect(self.view_model.update_cvals)
@@ -697,6 +711,13 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.canvas_slice.draw_idle()
         self.canvas_slice.flush_events()
 
+    def update_lines(self, alpha):
+        lines = self.ax_slice.get_lines()
+        for line in lines:
+            line.set_alpha(alpha)
+        self.canvas_slice.draw_idle()
+        self.canvas_slice.flush_events()
+
     def add_cut(self, cut_dict):
         x = cut_dict["x"]
         y = cut_dict["y"]
@@ -731,8 +752,10 @@ class VolumeSlicerView(NeuXtalVizWidget):
             l1 = xlim, [val + delta, val + delta]
             direction = "horizontal"
 
-        self.ax_slice.plot(*l0, "w--", linewidth=1, transform=self.transform)
-        self.ax_slice.plot(*l1, "w--", linewidth=1, transform=self.transform)
+        l = self.toggle_line_box.isChecked()
+
+        self.ax_slice.plot(*l0, "w--", lw=1, alpha=l, transform=self.transform)
+        self.ax_slice.plot(*l1, "w--", lw=1, alpha=l, transform=self.transform)
 
         self.ax_cut.clear()
 
@@ -762,7 +785,11 @@ class VolumeSlicerView(NeuXtalVizWidget):
         self.fig_slice.canvas.mpl_connect("motion_notify_event", self.on_motion)
 
     def on_press(self, event):
-        if event.inaxes == self.ax_slice and self.fig_slice.canvas.toolbar.mode == "":
+        if (
+            event.inaxes == self.ax_slice
+            and self.fig_slice.canvas.toolbar.mode == ""
+            and self.toggle_line_box.isChecked()
+        ):
             self.linecut["is_dragging"] = True
 
     def on_release(self, event):
