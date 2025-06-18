@@ -1,7 +1,7 @@
 [project]
 name = "NeuXtalViz"
 description = "Neutron Scattering Single Crystal Visualization"
-version = "0.2.0"
+dynamic = ["version"]
 requires-python = ">=3.10"
 license = { text = "GPL3.0" }
 
@@ -15,9 +15,8 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.poetry]
-name = "NeuXtalViz"
-version = "0.2.0"
-packages = [{ include = "NeuXtalViz", from = "src" }]
+version = "0.1.0"  # This version is only for building a wheel via Poetry for Docker builds and doesn't need to be updated.
+packages = [{ from = "src", include = "NeuXtalViz" }]
 
 [tool.versioningit.vcs]
 method = "git"

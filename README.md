@@ -49,11 +49,11 @@ Create conda environment
 Activate garnet environment
 `conda activate nxv`
 
-Install in editable mode for developlment
+Install in editable mode for development
 `python -m pip install -e .`
 
 Run the GUI
-`python src/NeuXtalViz.py`
+`python src/NeuXtalViz/main.py qt`
 
 Obtain latests changes
 ```git pull```

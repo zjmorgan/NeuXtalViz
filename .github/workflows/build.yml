@@ -27,14 +27,14 @@ jobs:
         uses: actions/checkout@v4
       -
         name: Parse version
-        run: echo "VERSION=$(cat pyproject.toml | grep "version =" | head -n 1 | awk '{ print $3 }' | tr -d '"')" >> $GITHUB_ENV
+        run: echo "VERSION=$(cat src/NeuXtalViz/_version.py | grep "__version__ =" | head -n 1 | awk '{ print $3 }' | tr -d '"' | cut -f1 -d '+')" >> $GITHUB_ENV
       -
         name: Check image already exists
-        run: if [ -n "$(docker manifest inspect ghcr.io/evilkermit/neuxtalviz:${{ env.VERSION }})" ]; then echo "Image already exists, update the version and try again." && exit 1; fi
+        run: if [ -n "$(docker manifest inspect ghcr.io/${{ github.actor }}/neuxtalviz:${{ env.VERSION }})" ]; then echo "Image already exists, update the version and try again." && exit 1; fi
       -
         name: Build and push
         uses: docker/build-push-action@v6
         with:
           file: dockerfiles/Dockerfile
           push: true
-          tags: ghcr.io/evilkermit/neuxtalviz:latest,ghcr.io/evilkermit/neuxtalviz:${{ env.VERSION }}
+          tags: ghcr.io/${{ github.actor }}/neuxtalviz:latest,ghcr.io/${{ github.actor }}/neuxtalviz:${{ env.VERSION }}
