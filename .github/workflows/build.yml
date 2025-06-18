@@ -2,6 +2,8 @@ name: ci
 
 on:
   push:
+    branches:
+      - main
 
 jobs:
   docker:
@@ -26,6 +28,9 @@ jobs:
       -
         name: Parse version
         run: echo "VERSION=$(cat pyproject.toml | grep "version =" | head -n 1 | awk '{ print $3 }' | tr -d '"')" >> $GITHUB_ENV
+      -
+        name: Check image already exists
+        run: if [ -n "$(docker manifest inspect ghcr.io/evilkermit/neuxtalviz:${{ env.VERSION }})" ]; then echo "Image already exists, update the version and try again." && exit 1; fi
       -
         name: Build and push
         uses: docker/build-push-action@v6
