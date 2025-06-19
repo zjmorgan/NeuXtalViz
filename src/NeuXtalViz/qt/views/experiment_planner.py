@@ -24,7 +24,7 @@ from qtpy.QtCore import Qt, Signal
 
 import numpy as np
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import pyvista as pv
 
 from matplotlib.backends.backend_qtagg import FigureCanvas
@@ -81,6 +81,17 @@ class ExperimentView(NeuXtalVizWidget):
         self.load_UB_button = QPushButton("Load UB", self)
         self.optimize_button = QPushButton("Optimize Coverage", self)
         self.delete_button = QPushButton("Delete Highlighted", self)
+        self.highlight_button = QPushButton("Highlight All", self)
+
+        self.count_combo = QComboBox(self)
+        self.update_button = QPushButton("Update Highlighted", self)
+        self.count_line = QLineEdit("1.0")
+        self.title_line = QLineEdit("Scan Title")
+
+        notation = QDoubleValidator.StandardNotation
+        validator = QDoubleValidator(0.001, 10000, 5, notation=notation)
+
+        self.count_line.setValidator(validator)
 
         self.save_plan_button = QPushButton("Save CSV", self)
         self.save_experiment_button = QPushButton("Save Experiment", self)
@@ -140,6 +151,19 @@ class ExperimentView(NeuXtalVizWidget):
         self.motor_table.horizontalHeader().setSectionResizeMode(resize)
         self.motor_table.setHorizontalHeaderLabels(labels)
 
+        self.mesh_table = QTableWidget()
+
+        self.mesh_table.setRowCount(0)
+        self.mesh_table.setColumnCount(4)
+
+        labels = ["Motor", "Min", "Max", "Angles"]
+
+        self.mesh_table.horizontalHeader().setStretchLastSection(True)
+        self.mesh_table.horizontalHeader().setSectionResizeMode(resize)
+        self.mesh_table.setHorizontalHeaderLabels(labels)
+
+        self.mesh_button = QPushButton("Add Mesh", self)
+
         settings_layout = QHBoxLayout()
 
         settings_layout.addWidget(self.load_UB_button)
@@ -174,13 +198,19 @@ class ExperimentView(NeuXtalVizWidget):
         mode_layout.addStretch(1)
 
         planning_layout = QHBoxLayout()
+        planning_layout.addWidget(self.title_line)
+        planning_layout.addWidget(self.count_combo)
+        planning_layout.addWidget(self.count_line)
+        planning_layout.addWidget(self.update_button)
+        planning_layout.addStretch(1)
         planning_layout.addWidget(settings_label)
         planning_layout.addWidget(self.settings_line)
-        planning_layout.addStretch(1)
         planning_layout.addWidget(self.optimize_button)
 
         save_layout = QHBoxLayout()
         save_layout.addWidget(self.delete_button)
+        save_layout.addWidget(self.highlight_button)
+        save_layout.addWidget(self.mesh_button)
         save_layout.addStretch(1)
         save_layout.addWidget(self.save_plan_button)
         save_layout.addWidget(self.save_experiment_button)
@@ -188,17 +218,37 @@ class ExperimentView(NeuXtalVizWidget):
 
         goniometer_layout.addLayout(mode_layout)
         goniometer_layout.addWidget(self.goniometer_table)
+
+        cal_layout = QGridLayout()
+
+        self.cal_line = QLineEdit("")
+        self.mask_line = QLineEdit("")
+
+        self.cal_browse_button = QPushButton("Detector", self)
+        self.mask_browse_button = QPushButton("Mask", self)
+
+        cal_layout.addWidget(self.cal_line, 0, 0)
+        cal_layout.addWidget(self.cal_browse_button, 0, 1)
+
+        cal_layout.addWidget(self.mask_line, 1, 0)
+        cal_layout.addWidget(self.mask_browse_button, 1, 1)
+
+        motor_layout.addLayout(cal_layout)
         motor_layout.addWidget(self.motor_table)
+
         plan_layout.addLayout(planning_layout)
         plan_layout.addWidget(self.plan_table)
+        plan_layout.addWidget(self.mesh_table)
         plan_layout.addLayout(save_layout)
+        plan_layout.setStretch(1, 2)
+        plan_layout.setStretch(2, 1)
 
         goniometer_tab.setLayout(goniometer_layout)
         motor_tab.setLayout(motor_layout)
         plan_tab.setLayout(plan_layout)
 
         values_tab.addTab(goniometer_tab, "Goniometers")
-        values_tab.addTab(motor_tab, "Motors")
+        values_tab.addTab(motor_tab, "Calibration/Motors")
         values_tab.addTab(plan_tab, "Plan")
 
         result_layout.addWidget(values_tab)
@@ -213,10 +263,10 @@ class ExperimentView(NeuXtalVizWidget):
         fig = self.canvas_cov.figure
 
         self.ax_cov = fig.subplots(3, 1, sharex=True)
-        self.ax_cov[2].set_xlabel("Resolution [Å]")
+        self.ax_cov[2].set_xlabel("Resolution Shell [Å]")
         self.ax_cov[0].set_ylabel("Completeness [%]")
         self.ax_cov[1].set_ylabel("Multiplicity")
-        self.ax_cov[2].set_ylabel("Reflections")
+        self.ax_cov[2].set_ylabel("Unique Reflections")
 
         coverage_layout.addLayout(settings_layout)
         coverage_layout.addLayout(params_layout)
@@ -259,8 +309,33 @@ class ExperimentView(NeuXtalVizWidget):
         self.k2_line.setValidator(validator)
         self.l2_line.setValidator(validator)
 
+        gamma_label = QLabel("γ [°]", self)
+        nu_label = QLabel("ν [°]", self)
+        intersect_label = QLabel("λ [Å]", self)
+
+        self.horizontal_line = QLineEdit()
+        self.vertical_line = QLineEdit()
+        self.intersect_line = QLineEdit()
+
+        self.horizontal_line.setReadOnly(True)
+        self.vertical_line.setReadOnly(True)
+        self.intersect_line.setReadOnly(True)
+
+        self.horizontal_alt_line = QLineEdit()
+        self.vertical_alt_line = QLineEdit()
+        self.intersect_alt_line = QLineEdit()
+
+        self.horizontal_alt_line.setReadOnly(True)
+        self.vertical_alt_line.setReadOnly(True)
+        self.intersect_alt_line.setReadOnly(True)
+
         self.calculate_single_button = QPushButton("Individual Peak", self)
         self.calculate_double_button = QPushButton("Simultaneous Peaks", self)
+
+        self.calculate_single_alt_button = QPushButton("Individual Peak", self)
+
+        self.equivalents_box = QCheckBox("Allow Equivalents", self)
+        self.equivalents_box.setChecked(False)
 
         calculator_layout.addWidget(h_label, 0, 1, Qt.AlignCenter)
         calculator_layout.addWidget(k_label, 0, 2, Qt.AlignCenter)
@@ -271,12 +346,27 @@ class ExperimentView(NeuXtalVizWidget):
         calculator_layout.addWidget(self.k1_line, 1, 2)
         calculator_layout.addWidget(self.l1_line, 1, 3)
         calculator_layout.addWidget(self.calculate_single_button, 1, 4)
+        calculator_layout.addWidget(self.equivalents_box, 1, 5)
 
         calculator_layout.addWidget(peak_2_label, 2, 0)
         calculator_layout.addWidget(self.h2_line, 2, 1)
         calculator_layout.addWidget(self.k2_line, 2, 2)
         calculator_layout.addWidget(self.l2_line, 2, 3)
-        calculator_layout.addWidget(self.calculate_double_button, 2, 4)
+        calculator_layout.addWidget(self.calculate_single_alt_button, 2, 4)
+        calculator_layout.addWidget(self.calculate_double_button, 2, 5)
+
+        calculator_layout.addWidget(gamma_label, 0, 6, Qt.AlignCenter)
+        calculator_layout.addWidget(nu_label, 0, 7, Qt.AlignCenter)
+        calculator_layout.addWidget(intersect_label, 0, 8, Qt.AlignCenter)
+
+        calculator_layout.addWidget(self.horizontal_line, 1, 6)
+        calculator_layout.addWidget(self.horizontal_alt_line, 2, 6)
+
+        calculator_layout.addWidget(self.vertical_line, 1, 7)
+        calculator_layout.addWidget(self.vertical_alt_line, 2, 7)
+
+        calculator_layout.addWidget(self.intersect_line, 1, 8)
+        calculator_layout.addWidget(self.intersect_alt_line, 2, 8)
 
         peak_layout.addLayout(calculator_layout)
 
@@ -288,6 +378,8 @@ class ExperimentView(NeuXtalVizWidget):
         self.fig_inst = self.canvas_inst.figure
         self.ax_inst = self.fig_inst.subplots(1, 1)
         self.ax_inst.clear()
+        self.ax_inst.invert_xaxis()
+
         self.cb_inst = None
         self.cb_inst_alt = None
 
@@ -296,19 +388,13 @@ class ExperimentView(NeuXtalVizWidget):
         self.add_button = QPushButton("Add Orientation", self)
 
         self.angles_line = QLineEdit()
-        self.horizontal_line = QLineEdit()
-        self.vertical_line = QLineEdit()
 
-        self.angles_line.setEnabled(False)
-        self.horizontal_line.setEnabled(False)
-        self.vertical_line.setEnabled(False)
+        self.angles_line.setReadOnly(True)
 
         self.angles_combo = QComboBox(self)
 
         orientation_layout.addWidget(self.angles_combo)
         orientation_layout.addWidget(self.angles_line)
-        orientation_layout.addWidget(self.horizontal_line)
-        orientation_layout.addWidget(self.vertical_line)
         orientation_layout.addWidget(self.add_button)
 
         peak_layout.addLayout(orientation_layout)
@@ -340,11 +426,17 @@ class ExperimentView(NeuXtalVizWidget):
     def connect_delete_angles(self, delete_angles):
         self.delete_button.clicked.connect(delete_angles)
 
+    def connect_highlight_angles(self, highlight_angles):
+        self.highlight_button.clicked.connect(highlight_angles)
+
     def connect_calculate_single(self, calculate_single):
         self.calculate_single_button.clicked.connect(calculate_single)
 
     def connect_calculate_double(self, calculate_double):
         self.calculate_double_button.clicked.connect(calculate_double)
+
+    def connect_calculate_single_alt(self, calculate_single):
+        self.calculate_single_alt_button.clicked.connect(calculate_single)
 
     def connect_switch_crystal(self, switch_crystal):
         self.crystal_combo.activated.connect(switch_crystal)
@@ -364,6 +456,9 @@ class ExperimentView(NeuXtalVizWidget):
     def connect_optimize(self, optimize):
         self.optimize_button.clicked.connect(optimize)
 
+    def connect_mesh(self, mesh):
+        self.mesh_button.clicked.connect(mesh)
+
     def connect_load_UB(self, load_UB):
         self.load_UB_button.clicked.connect(load_UB)
 
@@ -378,6 +473,55 @@ class ExperimentView(NeuXtalVizWidget):
 
     def connect_wavelength(self, update_wavelength):
         self.wl_min_line.editingFinished.connect(update_wavelength)
+
+    def connect_update(self, update):
+        self.update_button.clicked.connect(update)
+
+    def connect_load_mask(self, load_mask):
+        self.mask_browse_button.clicked.connect(load_mask)
+
+    def connect_load_detector(self, load_detector_cal):
+        self.cal_browse_button.clicked.connect(load_detector_cal)
+
+    def get_detector_calibration(self):
+        return self.cal_line.text()
+
+    def set_detector_calibration(self, filename):
+        return self.cal_line.setText(filename)
+
+    def get_mask(self):
+        return self.mask_line.text()
+
+    def set_mask(self, filename):
+        return self.mask_line.setText(filename)
+
+    def load_detector_cal_dialog(self, path=""):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        file_filters = "Calibration files (*.DetCal *.detcal *.xml)"
+
+        filename, _ = file_dialog.getOpenFileName(
+            self, "Load calibration file", path, file_filters, options=options
+        )
+
+        return filename
+
+    def load_mask_dialog(self, path=""):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.AnyFile)
+
+        file_filters = "Mask files (*.xml)"
+
+        filename, _ = file_dialog.getOpenFileName(
+            self, "Load mask file", path, file_filters, options=options
+        )
 
     def load_UB_file_dialog(self):
         options = QFileDialog.Options()
@@ -513,10 +657,28 @@ class ExperimentView(NeuXtalVizWidget):
         for mode in modes:
             self.mode_combo.addItem(mode)
 
+    def set_counting_options(self, options):
+        self.count_combo.clear()
+        for option in options:
+            self.count_combo.addItem(option)
+
+    def get_counting_options(self):
+        return [
+            self.count_combo.itemText(i)
+            for i in range(self.count_combo.count())
+        ]
+
+    def get_counting_index(self):
+        return self.count_combo.currentIndex()
+
+    def get_count_value(self):
+        if self.count_line.hasAcceptableInput():
+            return float(self.count_line.text())
+
     def set_peak_list(self, rows):
         self.angles_combo.blockSignals(True)
         self.angles_combo.clear()
-        self.angles_combo.addItem("0")
+        self.angles_combo.addItem("0: Missing")
         for row in range(rows):
             self.angles_combo.addItem((str(row + 1)))
         self.angles_combo.blockSignals(False)
@@ -524,8 +686,8 @@ class ExperimentView(NeuXtalVizWidget):
     def get_peak_list(self):
         val = self.angles_combo.currentText()
         if val is not None:
-            if val.isdigit():
-                return int(val) - 1
+            if val.split(":")[0].isdigit():
+                return int(val.split(":")[0]) - 1
 
     def set_wavelength(self, wavelength):
         self.wl_min_line.blockSignals(True)
@@ -537,7 +699,7 @@ class ExperimentView(NeuXtalVizWidget):
         else:
             self.wl_min_line.setText(str(wavelength))
             self.wl_max_line.setText(str(wavelength))
-            self.wl_max_line.setEnabled(False)
+            self.wl_max_line.setReadOnly(True)
         self.wl_min_line.blockSignals(False)
         self.wl_max_line.blockSignals(False)
 
@@ -553,10 +715,11 @@ class ExperimentView(NeuXtalVizWidget):
         if not self.wl_max_line.isEnabled():
             self.wl_max_line.setText(str(lamda_min))
 
-    def update_tables(self, goniometers, motors):
+    def update_tables(self, title, goniometers, motors):
         self.goniometer_table.clearContents()
         self.goniometer_table.setRowCount(0)
         self.goniometer_table.setRowCount(len(goniometers))
+        self.goniometer_table.blockSignals(True)
 
         free = []
         for row, gon in enumerate(goniometers):
@@ -573,6 +736,8 @@ class ExperimentView(NeuXtalVizWidget):
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             else:
                 free.append(angle)
+        self.goniometer_table.itemChanged.connect(self.update_limits)
+        self.goniometer_table.blockSignals(False)
 
         self.motor_table.setRowCount(0)
         self.motor_table.setRowCount(len(motors))
@@ -588,9 +753,10 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.blockSignals(True)
         self.plan_table.clearContents()
         self.plan_table.setRowCount(0)
-        self.plan_table.setColumnCount(len(free) + 2)
+        self.plan_table.setColumnCount(0)
+        self.plan_table.setColumnCount(len(free) + 5)
 
-        labels = free + ["Comment", "Use"]
+        labels = [title] + free + ["Comment", "Wait For", "Value", "Use"]
 
         resize = QHeaderView.Stretch
 
@@ -601,6 +767,54 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.itemChanged.connect(self.handle_item_changed)
         self.plan_table.blockSignals(False)
 
+        self.mesh_table.clearContents()
+        self.mesh_table.setRowCount(0)
+        self.mesh_table.setRowCount(len(free))
+
+        row = 0
+        for gon in goniometers:
+            angle, amin, amax = gon
+            if not float(amin) == float(amax):
+                amin, amax = str(amin), str(amax)
+                self.mesh_table.setItem(row, 0, QTableWidgetItem(angle))
+                self.mesh_table.setItem(row, 1, QTableWidgetItem(amin))
+                self.mesh_table.setItem(row, 2, QTableWidgetItem(amax))
+                self.mesh_table.setItem(row, 3, QTableWidgetItem("1"))
+                row += 1
+
+    def update_limits(self, item):
+        text = item.text()
+        row, col = item.row(), item.column()
+
+        angle = self.goniometer_table.item(row, 0).text()
+
+        rows = self.mesh_table.rowCount()
+
+        if text.replace(".", "").isnumeric() and len(text.split(".")) <= 2:
+            value = float(text)
+            if value.is_integer():
+                value = int(value)
+            for row in range(rows):
+                if angle == self.mesh_table.item(row, 0).text():
+                    text = QTableWidgetItem(str(value))
+                    self.mesh_table.setItem(row, col, text)
+
+    def get_mesh_angles(self):
+        rows = self.mesh_table.rowCount()
+
+        all_angles = self.get_all_angles()
+        n = len(all_angles)
+
+        limits = self.get_goniometer_limits()
+        angles = [1] * n
+
+        for row in range(rows):
+            ind = all_angles.index(self.mesh_table.item(row, 0).text())
+            limits[ind][0] = float(self.mesh_table.item(row, 1).text())
+            limits[ind][1] = float(self.mesh_table.item(row, 2).text())
+            angles[ind] = int(float(self.mesh_table.item(row, 3).text()))
+        return limits, angles
+
     def delete_angles(self):
         self.plan_table.blockSignals(True)
 
@@ -609,6 +823,39 @@ class ExperimentView(NeuXtalVizWidget):
             self.plan_table.removeRow(row)
 
         self.set_peak_list(self.get_number_of_orientations())
+        self.plan_table.blockSignals(False)
+
+        return rows
+
+    def highlight_angles(self):
+        self.plan_table.setSelectionBehavior(self.plan_table.SelectRows)
+        self.plan_table.selectAll()
+
+    def get_title(self):
+        return self.title_line.text()
+
+    def update_counting(self):
+        self.plan_table.blockSignals(True)
+
+        title = self.get_title()
+        index = self.get_counting_index()
+        value = self.get_count_value()
+
+        col = self.plan_table.columnCount() - 3
+
+        rows = set(index.row() for index in self.plan_table.selectedIndexes())
+        for row in rows:
+            if title is not None:
+                item = QTableWidgetItem(title)
+                self.plan_table.setItem(row, 0, item)
+            if index is not None:
+                widget = self.plan_table.cellWidget(row, col)
+                if isinstance(widget, QComboBox):
+                    widget.setCurrentIndex(index)
+            if value is not None:
+                item = QTableWidgetItem("{:.3f}".format(value))
+                self.plan_table.setItem(row, col + 1, item)
+
         self.plan_table.blockSignals(False)
 
         return rows
@@ -623,10 +870,11 @@ class ExperimentView(NeuXtalVizWidget):
         return angles
 
     def get_free_angles(self):
-        cols = self.plan_table.columnCount() - 2
+        cols = self.plan_table.columnCount() - 5
 
         angles = [
-            self.plan_table.horizontalHeaderItem(i).text() for i in range(cols)
+            self.plan_table.horizontalHeaderItem(i + 1).text()
+            for i in range(cols)
         ]
 
         return angles
@@ -644,8 +892,40 @@ class ExperimentView(NeuXtalVizWidget):
 
         return use
 
-    def get_all_comments(self):
+    def get_all_titles(self):
+        title = []
+        for row in range(self.get_number_of_orientations()):
+            item = self.plan_table.item(row, 0).text()
+            title.append(item)
+
+        return title
+
+    def get_all_values(self):
         col = self.plan_table.columnCount() - 2
+
+        value = []
+        for row in range(self.get_number_of_orientations()):
+            item = self.plan_table.item(row, col).text()
+            item = float(item) if item.replace(".", "").isnumeric() else 0.0
+            value.append(item)
+
+        return value
+
+    def get_all_countings(self):
+        col = self.plan_table.columnCount() - 3
+
+        count = []
+        for row in range(self.get_number_of_orientations()):
+            widget = self.plan_table.cellWidget(row, col)
+            if isinstance(widget, QComboBox):
+                count.append(widget.currentText())
+            else:
+                count.append("")
+
+        return count
+
+    def get_all_comments(self):
+        col = self.plan_table.columnCount() - 4
 
         comment = []
         for row in range(self.get_number_of_orientations()):
@@ -666,25 +946,25 @@ class ExperimentView(NeuXtalVizWidget):
             return int(self.settings_line.text())
 
     def get_optimized_settings(self):
-        col = self.plan_table.columnCount() - 2
+        col = self.plan_table.columnCount() - 5
 
         opt = []
         for row in range(self.get_number_of_orientations()):
-            item = self.plan_table.item(row, col)
+            item = self.plan_table.item(row, col + 1)
             opt.append(item.text() == "CrystalPlan")
 
         return opt
 
     def get_angle_setting(self, row):
-        cols = self.plan_table.columnCount() - 2
+        cols = self.plan_table.columnCount() - 5
 
         setting = []
         for col in range(cols):
-            setting.append(float(self.plan_table.item(row, col).text()))
+            setting.append(float(self.plan_table.item(row, col + 1).text()))
 
         return setting
 
-    def add_orientation(self, comment, angles):
+    def add_orientation(self, title, comment, angles):
         row = self.get_number_of_orientations()
         self.plan_table.blockSignals(True)
         self.plan_table.setSortingEnabled(False)
@@ -692,12 +972,32 @@ class ExperimentView(NeuXtalVizWidget):
 
         col = 0
 
+        item = QTableWidgetItem(title)
+        self.plan_table.setItem(row, col, item)
+        col += 1
+
         for angle in angles:
             item = QTableWidgetItem("{:.1f}".format(angle))
             self.plan_table.setItem(row, col, item)
             col += 1
 
         self.plan_table.setItem(row, col, QTableWidgetItem(comment))
+        col += 1
+
+        combobox = QComboBox()
+        options = self.get_counting_options()
+        for option in options:
+            combobox.addItem(option)
+        index = self.get_counting_index()
+        if index is not None:
+            combobox.setCurrentIndex(index)
+        self.plan_table.setCellWidget(row, col, combobox)
+        col += 1
+
+        val = self.get_count_value()
+        if val is not None:
+            item = QTableWidgetItem("{:.3f}".format(val))
+            self.plan_table.setItem(row, col, item)
         col += 1
 
         flags = Qt.ItemIsUserCheckable | Qt.ItemIsEnabled
@@ -712,7 +1012,7 @@ class ExperimentView(NeuXtalVizWidget):
         self.plan_table.blockSignals(False)
         self.plan_table.setSortingEnabled(True)
 
-    def add_settings(self, settings, comments, use):
+    def add_settings(self, titles, settings, comments, counts, values, use):
         self.plan_table.setUpdatesEnabled(False)
         self.plan_table.setSortingEnabled(False)
         self.plan_table.blockSignals(True)
@@ -722,12 +1022,29 @@ class ExperimentView(NeuXtalVizWidget):
         for row, angles in enumerate(settings):
             col = 0
 
+            item = QTableWidgetItem(titles[row])
+            self.plan_table.setItem(row, col, item)
+            col += 1
+
             for angle in angles:
                 item = QTableWidgetItem("{:.1f}".format(angle))
                 self.plan_table.setItem(row, col, item)
                 col += 1
 
             self.plan_table.setItem(row, col, QTableWidgetItem(comments[row]))
+            col += 1
+
+            combobox = QComboBox()
+            options = self.get_counting_options()
+            for option in options:
+                combobox.addItem(option)
+            index = options.index(counts[row])
+            combobox.setCurrentIndex(index)
+            self.plan_table.setCellWidget(row, col, combobox)
+            col += 1
+
+            item = QTableWidgetItem("{:.3f}".format(values[row]))
+            self.plan_table.setItem(row, col, item)
             col += 1
 
             flags = Qt.ItemIsUserCheckable | Qt.ItemIsEnabled
@@ -906,14 +1223,28 @@ class ExperimentView(NeuXtalVizWidget):
 
         return params_1, params_2
 
-    def plot_statistics(self, shel, comp, mult, refl):
+    def plot_statistics(self, sym, asym):
         self.ax_cov[0].clear()
         self.ax_cov[1].clear()
         self.ax_cov[2].clear()
 
-        self.ax_cov[0].bar(shel, comp, color="C0")
-        self.ax_cov[1].bar(shel, mult, color="C1")
-        self.ax_cov[2].bar(shel, refl, color="C2")
+        color = plt.get_cmap("tab20").colors
+
+        width = 1 / 3
+
+        shel, comp, mult, refl = sym
+
+        x = np.arange(len(shel))
+
+        self.ax_cov[0].bar(x, comp, width, color=color[0])
+        self.ax_cov[1].bar(x, mult, width, color=color[2])
+        self.ax_cov[2].bar(x, refl, width, color=color[4])
+
+        shel, comp, mult, refl = asym
+
+        self.ax_cov[0].bar(x + width, comp, width, color=color[1])
+        self.ax_cov[1].bar(x + width, mult, width, color=color[3])
+        self.ax_cov[2].bar(x + width, refl, width, color=color[5])
 
         self.ax_cov[0].set_ylim(0, 100)
 
@@ -921,10 +1252,14 @@ class ExperimentView(NeuXtalVizWidget):
         self.ax_cov[1].minorticks_on()
         self.ax_cov[2].minorticks_on()
 
-        self.ax_cov[2].set_xlabel("Resolution [Å]")
+        self.ax_cov[2].set_xlabel("Resolution Shell [Å]")
         self.ax_cov[0].set_ylabel("Completeness [%]")
         self.ax_cov[1].set_ylabel("Redundancy")
-        self.ax_cov[2].set_ylabel("Reflections")
+        self.ax_cov[2].set_ylabel("Unique Reflections")
+
+        self.ax_cov[0].set_xticks(x + width, shel)
+        self.ax_cov[1].set_xticks(x + width, shel)
+        self.ax_cov[2].set_xticks(x + width, shel)
 
         self.canvas_cov.draw_idle()
         self.canvas_cov.flush_events()
@@ -939,6 +1274,7 @@ class ExperimentView(NeuXtalVizWidget):
             self.cb_inst_alt = None
 
         self.ax_inst.clear()
+        self.ax_inst.invert_xaxis()
 
         self.ax_inst.scatter(
             gamma_inst, nu_inst, color="lightgray", marker="o", rasterized=True
@@ -993,6 +1329,7 @@ class ExperimentView(NeuXtalVizWidget):
             self.cb_inst_alt = None
 
         self.ax_inst.clear()
+        self.ax_inst.invert_xaxis()
 
         self.ax_inst.scatter(
             gamma_inst, nu_inst, color="lightgray", marker="o", rasterized=True
@@ -1041,6 +1378,22 @@ class ExperimentView(NeuXtalVizWidget):
         self.canvas_inst.draw_idle()
         self.canvas_inst.flush_events()
 
+    def get_intersect(self):
+        if self.intersect_line.hasAcceptableInput():
+            return float(self.intersect_line.text())
+
+    def set_intersect(self, val):
+        self.intersect_line.setText(str(round(val, 2)))
+
+    def get_intersect_alternate(self):
+        if self.intersect_alt_line.hasAcceptableInput():
+            if self.intersect_alt_line.text() != "":
+                return float(self.intersect_alt_line.text())
+
+    def set_intersect_alternate(self, val):
+        value = str(round(val, 2)) if val is not None else ""
+        self.intersect_alt_line.setText(value)
+
     def get_horizontal(self):
         if self.horizontal_line.hasAcceptableInput():
             return float(self.horizontal_line.text())
@@ -1054,6 +1407,24 @@ class ExperimentView(NeuXtalVizWidget):
 
     def set_vertical(self, val):
         self.vertical_line.setText(str(round(val, 2)))
+
+    def get_horizontal_alternate(self):
+        if self.horizontal_alt_line.hasAcceptableInput():
+            if self.horizontal_alt_line.text() != "":
+                return float(self.horizontal_alt_line.text())
+
+    def get_vertical_alternate(self):
+        if self.vertical_alt_line.hasAcceptableInput():
+            if self.vertical_alt_line.text() != "":
+                return float(self.vertical_alt_line.text())
+
+    def set_horizontal_alternate(self, val):
+        value = str(round(val, 2)) if val is not None else ""
+        self.horizontal_alt_line.setText(value)
+
+    def set_vertical_alternate(self, val):
+        value = str(round(val, 2)) if val is not None else ""
+        self.vertical_alt_line.setText(value)
 
     def set_angles(self, values):
         ang = "(" + ", ".join(np.array(values).astype(str)) + ")"
@@ -1086,8 +1457,21 @@ class ExperimentView(NeuXtalVizWidget):
         self.ax_inst.axvline(x=horz, color="k", linestyle="--")
         self.ax_inst.axhline(y=vert, color="k", linestyle="--")
 
+        horz_alt = self.get_horizontal_alternate()
+        vert_alt = self.get_vertical_alternate()
+
+        if horz_alt is not None and vert_alt is not None:
+            self.ax_inst.axvline(x=horz_alt, color="k", linestyle=":")
+            self.ax_inst.axhline(y=vert_alt, color="k", linestyle=":")
+
         self.canvas_inst.draw_idle()
         self.canvas_inst.flush_events()
 
     def connect_roi_ready(self, lookup):
         self.roi_ready.connect(lookup)
+
+    def use_equivalents(self):
+        return self.equivalents_box.isChecked()
+
+    def use_symmetry(self):
+        return self.symmetry_box.isChecked()

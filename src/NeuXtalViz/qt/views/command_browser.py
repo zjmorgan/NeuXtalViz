@@ -67,11 +67,13 @@ class CommandBrowser(QMainWindow):
         xprep_action = command_menu.addAction("xprep")
         xprep_action.triggered.connect(self.switch_xprep)
         shelxl_action = command_menu.addAction("shelxl")
-        shelxl_action.triggered.connect(self.switch_shelxt)
+        shelxl_action.triggered.connect(self.switch_shelxl)
         shelxt_action = command_menu.addAction("shelxt")
         shelxt_action.triggered.connect(self.switch_shelxt)
         discus_action = command_menu.addAction("discus")
         discus_action.triggered.connect(self.switch_discus)
+
+        self.switch_xprep()
 
     def switch_command(self, command):
         self.command = command

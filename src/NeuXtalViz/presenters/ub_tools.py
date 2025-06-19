@@ -21,6 +21,8 @@ class UB(NeuXtalVizPresenter):
 
         self.view.connect_convert_Q(self.convert_Q)
         self.view.connect_find_peaks(self.find_peaks)
+        self.view.connect_find_spacing(self.update_find_spacing)
+        self.view.connect_find_distance(self.update_find_distance)
         self.view.connect_index_peaks(self.index_peaks)
         self.view.connect_predict_peaks(self.predict_peaks)
         self.view.connect_integrate_peaks(self.integrate_peaks)
@@ -82,8 +84,19 @@ class UB(NeuXtalVizPresenter):
         self.view.connect_slice_line(self.reslice)
 
         self.slice_idle = True
+        self.volume_idle = True
 
         self.view.connect_cluster(self.cluster)
+
+    def update_find_spacing(self):
+        d = self.view.get_find_peaks_spacing()
+        Q = 2 * np.pi / d
+        self.view.set_find_peaks_distance(Q)
+
+    def update_find_distance(self):
+        Q = self.view.get_find_peaks_distance()
+        d = 2 * np.pi / Q
+        self.view.set_find_peaks_spacing(d)
 
     def hand_index_fractional(self):
         mod_info = self.get_modulation_info()
@@ -156,6 +169,7 @@ class UB(NeuXtalVizPresenter):
         exp = self.view.get_experiment()
         lorentz = self.view.get_lorentz()
         time_stop = self.view.get_time_stop()
+        d_min = self.view.get_convert_min_d()
 
         validate = [IPTS, runs, wavelength]
 
@@ -170,7 +184,11 @@ class UB(NeuXtalVizPresenter):
             progress("Data loading...", 10)
 
             data_load = self.model.load_data(
-                instrument, IPTS, runs, exp, time_stop
+                instrument,
+                IPTS,
+                runs,
+                exp,
+                time_stop,
             )
 
             if data_load is None:
@@ -188,7 +206,7 @@ class UB(NeuXtalVizPresenter):
 
             progress("Data converting...", 70)
 
-            self.model.convert_data(instrument, wavelength, lorentz)
+            self.model.convert_data(instrument, wavelength, lorentz, d_min)
 
             progress("Data converted...", 99)
 
@@ -329,7 +347,9 @@ class UB(NeuXtalVizPresenter):
     def visualize(self):
         Q_hist = self.model.get_Q_info()
 
-        if Q_hist is not None:
+        if Q_hist is not None and self.volume_idle:
+            self.volume_idle = False
+
             self.update_processing()
 
             self.update_processing("Updating view...", 50)
@@ -351,6 +371,8 @@ class UB(NeuXtalVizPresenter):
                 self.view.update_peaks_table(peaks)
 
             self.update_complete("Data visualized!")
+
+            self.volume_idle = True
 
     def update_lattice_info(self):
         params = self.model.get_lattice_constants()
@@ -377,16 +399,22 @@ class UB(NeuXtalVizPresenter):
 
     def find_peaks_process(self, progress):
         if self.model.has_Q():
-            dist = self.view.get_find_peaks_distance()
+            Q_min = self.view.get_find_peaks_distance()
+            d_max = self.view.get_find_peaks_spacing()
             params = self.view.get_find_peaks_parameters()
             edge = self.view.get_find_peaks_edge()
+            no_al = self.view.get_avoid_aluminum()
 
-            if dist is not None and params is not None:
+            if Q_min is not None and params is not None:
                 progress("Processing...", 1)
 
                 progress("Finding peaks...", 10)
 
-                self.model.find_peaks(dist, *params, edge)
+                self.model.find_peaks(Q_min, *params, edge)
+                d_min = self.model.get_d_min()
+
+                if no_al and d_min < d_max:
+                    self.model.avoid_aluminum_contamination(d_min, d_max)
 
                 progress("Peaks found...", 90)
 
@@ -984,7 +1012,7 @@ class UB(NeuXtalVizPresenter):
         if result is not None:
             self.view.reset_slider()
             self.view.update_slice(result)
-            self.slice_idle = True
+        self.slice_idle = True
 
     def convert_to_hkl_process(self, progress):
         proj = self.view.get_projection_matrix()
@@ -1053,10 +1081,12 @@ class UB(NeuXtalVizPresenter):
             progress("Invalid parameters.", 0)
 
             peak_info = self.model.get_cluster_info()
+            print(peak_info)
             if peak_info is not None:
                 progress("Clustering peaks.", 25)
 
                 success = self.model.cluster_peaks(peak_info, *params)
+                print(success)
 
                 if success:
                     progress("Peaks clustered!", 100)

@@ -380,7 +380,7 @@ class VolumeSlicerViewModel(NeuXtalVizViewModel):
             thick = self.vs_controls.slice_thickness
             value = self.vs_controls.slice_value
 
-            if thick is not None:
+            if thick is not None and value is not None:
                 progress("Processing...", 1)
 
                 progress("Updating slice...", 50)

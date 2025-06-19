@@ -4,13 +4,13 @@ channels:
   - mantid/label/nightly
 dependencies:
   - python
+  - poetry
   - numpy
   - scipy
   - matplotlib
   - pycifrw
   - h5py
   - pyvista>=0.45.2
-  - pyvistaqt
   - pytest
   - mantid
   - scikit-learn
@@ -21,10 +21,8 @@ dependencies:
   - multiprocess
   - black
   - pip:
-    - pyqtdarktheme
     - blinker
     - nova-mvvm
-    - nova-trame>=0.17.2
-    - pyqt5
+    - nova-trame>=0.20.2
     - trame-matplotlib
     - trame-vtk

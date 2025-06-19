@@ -137,7 +137,7 @@ class UBView(NeuXtalVizWidget):
         self.beta_line = QLineEdit()
         self.gamma_line = QLineEdit()
 
-        pattern = r"^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?\(\d+\)$"
+        pattern = r"^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?(\(\d+\))?$$"
         regex = QRegExp(pattern)
         validator = QRegExpValidator(regex)
 
@@ -356,9 +356,14 @@ class UBView(NeuXtalVizWidget):
         self.wl_min_line.setValidator(validator)
         self.wl_max_line.setValidator(validator)
 
+        d_min_label = QLabel("d(min):", self)
+
+        self.convert_min_d_line = QLineEdit("0.7")
+        self.convert_min_d_line.setValidator(validator)
+
         validator = QIntValidator(1, 1000, self)
 
-        self.filter_time_line = QLineEdit("300")
+        self.filter_time_line = QLineEdit("")
         self.filter_time_line.setValidator(validator)
 
         self.cal_browse_button = QPushButton("Detector", self)
@@ -394,6 +399,8 @@ class UBView(NeuXtalVizWidget):
         convert_to_q_action_layout.addWidget(filter_time_label)
         convert_to_q_action_layout.addWidget(self.filter_time_line)
         convert_to_q_action_layout.addStretch(1)
+        convert_to_q_action_layout.addWidget(d_min_label)
+        convert_to_q_action_layout.addWidget(self.convert_min_d_line)
         convert_to_q_action_layout.addLayout(wavelength_params_layout)
 
         convert_to_q_tab_layout.addLayout(experiment_params_layout)
@@ -417,9 +424,13 @@ class UBView(NeuXtalVizWidget):
 
         max_peaks_label = QLabel("Max Peaks:")
         min_distance_label = QLabel("Min Distance:")
+        max_spacing_label = QLabel("Max Spacing:")
         density_threshold_label = QLabel("Min Density:")
         find_edge_label = QLabel("Edge Pixels:")
         distance_unit_label = QLabel("Å⁻¹")
+        angstrom_unit_label = QLabel("Å")
+        self.aluminum_box = QCheckBox("Avoid Aluminum", self)
+        self.aluminum_box.setChecked(True)
 
         validator = QIntValidator(10, 1000, self)
 
@@ -435,8 +446,13 @@ class UBView(NeuXtalVizWidget):
 
         validator = QDoubleValidator(0.01, 10, 4, notation=notation)
 
-        self.min_distance_line = QLineEdit("0.2")
+        self.min_distance_line = QLineEdit("0.20")
         self.min_distance_line.setValidator(validator)
+
+        validator = QDoubleValidator(0.1, 100, 4, notation=notation)
+
+        self.max_spacing_line = QLineEdit("31.46")
+        self.max_spacing_line.setValidator(validator)
 
         validator = QIntValidator(0, 64, self)
 
@@ -447,11 +463,16 @@ class UBView(NeuXtalVizWidget):
 
         find_params_layout.addWidget(max_peaks_label, 0, 0)
         find_params_layout.addWidget(self.max_peaks_line, 0, 1)
-        find_params_layout.addWidget(density_threshold_label, 0, 2)
-        find_params_layout.addWidget(self.density_threshold_line, 0, 3)
-        find_params_layout.addWidget(min_distance_label, 1, 0)
-        find_params_layout.addWidget(self.min_distance_line, 1, 1)
-        find_params_layout.addWidget(distance_unit_label, 1, 2)
+        find_params_layout.addWidget(min_distance_label, 0, 2)
+        find_params_layout.addWidget(self.min_distance_line, 0, 3)
+        find_params_layout.addWidget(distance_unit_label, 0, 4)
+        find_params_layout.addWidget(max_spacing_label, 1, 2)
+        find_params_layout.addWidget(self.max_spacing_line, 1, 3)
+        find_params_layout.addWidget(angstrom_unit_label, 1, 4)
+
+        find_params_layout.addWidget(density_threshold_label, 1, 0)
+        find_params_layout.addWidget(self.density_threshold_line, 1, 1)
+
         find_params_layout.addWidget(find_edge_label, 2, 0)
         find_params_layout.addWidget(self.find_edge_line, 2, 1)
 
@@ -459,6 +480,7 @@ class UBView(NeuXtalVizWidget):
 
         find_action_layout = QHBoxLayout()
         find_action_layout.addWidget(self.find_button)
+        find_action_layout.addWidget(self.aluminum_box)
         find_action_layout.addStretch(1)
 
         find_tab_layout.addLayout(find_params_layout)
@@ -1369,10 +1391,10 @@ class UBView(NeuXtalVizWidget):
 
         validator = QDoubleValidator(0, 180, 5, notation=notation)
 
-        self.vertical_roi_line = QLineEdit("5")
+        self.vertical_roi_line = QLineEdit("2")
         self.vertical_roi_line.setValidator(validator)
 
-        self.horizontal_roi_line = QLineEdit("5")
+        self.horizontal_roi_line = QLineEdit("2")
         self.horizontal_roi_line.setValidator(validator)
 
         angle_layout = QHBoxLayout()
@@ -1581,6 +1603,12 @@ class UBView(NeuXtalVizWidget):
     def connect_find_peaks(self, find_peaks):
         self.find_button.clicked.connect(find_peaks)
 
+    def connect_find_distance(self, update):
+        self.min_distance_line.editingFinished.connect(update)
+
+    def connect_find_spacing(self, update):
+        self.max_spacing_line.editingFinished.connect(update)
+
     def connect_find_conventional(self, find_conventional):
         self.conventional_button.clicked.connect(find_conventional)
 
@@ -1759,7 +1787,7 @@ class UBView(NeuXtalVizWidget):
         file_filters = "Tube files (*.h5 *.nxs)"
 
         filename, _ = file_dialog.getOpenFileName(
-            self, "Load calibration file", path, file_filters, options=options
+            self, "Load tube file", path, file_filters, options=options
         )
 
         return filename
@@ -1917,7 +1945,7 @@ class UBView(NeuXtalVizWidget):
 
         if "SNS" in filepath:
             self.filter_time_line.setEnabled(True)
-            self.filter_time_line.setText("300")
+            self.filter_time_line.setText("")
             self.tube_line.setEnabled(False)
             self.tube_browse_button.setEnabled(False)
             if "CORELLI" in filepath:
@@ -2002,33 +2030,36 @@ class UBView(NeuXtalVizWidget):
         if self.filter_time_line.hasAcceptableInput():
             return self.filter_time_line.text()
 
+    def get_convert_min_d(self):
+        if self.convert_min_d_line.hasAcceptableInput():
+            return float(self.convert_min_d_line.text())
+
     def add_Q_viz(self, Q_dict):
         self.clear_scene()
 
         signal = Q_dict.get("signal")
-        x = Q_dict.get("x")
-        y = Q_dict.get("y")
-        z = Q_dict.get("z")
+        spacing = Q_dict.get("spacing")
+        min_lim = Q_dict.get("min_lim")
+        max_lim = Q_dict.get("max_lim")
 
-        if all([elem is not None for elem in [signal, x, y, z]]):
-            points = np.column_stack([x, y, z])
+        grid = pv.ImageData(
+            spacing=spacing, dimensions=signal.shape, origin=min_lim
+        )
 
-            point_cloud = pv.PolyData(points)
-            point_cloud["scalars"] = signal
+        grid["scalars"] = signal.T.flatten()
 
-            self.plotter.add_mesh(
-                point_cloud,
-                scalars="scalars",
-                cmap="binary",
-                show_scalar_bar=False,
-                opacity=1,
-                log_scale=True,
-                point_size=3.5,
-                smooth_shading=True,
-                culling=False,
-                emissive=False,
-                style="points_gaussian",
-            )
+        # cmax = np.nanmax(signal)
+
+        _ = self.plotter.add_volume(
+            grid,
+            opacity="linear",
+            show_scalar_bar=False,
+            cmap="binary",
+            # clim=[0.0001*cmax, cmax],
+            # log_scale=True,
+            # shade=True,
+            culling=True,
+        )
 
         transforms = Q_dict.get("transforms")
         intensities = Q_dict.get("intensities")
@@ -2039,8 +2070,32 @@ class UBView(NeuXtalVizWidget):
 
         integrate = np.any(intensities)
 
+        mesh = pv.Line(
+            pointa=(min_lim[0], 0, 0), pointb=(max_lim[0], 0, 0), resolution=1
+        )
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
+
+        mesh = pv.Line(
+            pointa=(0, min_lim[1], 0), pointb=(0, max_lim[1], 0), resolution=1
+        )
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
+
+        mesh = pv.Line(
+            pointa=(0, 0, min_lim[2]), pointb=(0, 0, max_lim[2]), resolution=1
+        )
+
+        self.plotter.add_mesh(
+            mesh, color="k", style="wireframe", render_lines_as_tubes=True
+        )
+
         if all([elem is not None for elem in params]) and len(numbers) > 0:
-            sphere = pv.Icosphere(radius=1, nsub=1)
+            sphere = pv.Icosphere(radius=1, nsub=0)
 
             geoms, self.indexing = [], {}
             for i, (T, I, ind, no) in enumerate(zip(*params)):
@@ -2055,7 +2110,7 @@ class UBView(NeuXtalVizWidget):
             mu = np.nanmean(intensities)
             sigma = np.nanstd(intensities)
 
-            cmap = "viridis" if integrate else ["lightblue", "lightgreen"]
+            cmap = "turbo" if integrate else ["lightblue", "lightgreen"]
             n_colors = 256 if integrate else 2
             clim = [mu - 3 * sigma, mu + 3 * sigma] if integrate else [0, 1]
 
@@ -2193,11 +2248,26 @@ class UBView(NeuXtalVizWidget):
         if param.hasAcceptableInput():
             return float(param.text())
 
+    def get_find_peaks_spacing(self):
+        param = self.max_spacing_line
+
+        if param.hasAcceptableInput():
+            return float(param.text())
+
+    def set_find_peaks_distance(self, val):
+        self.min_distance_line.setText("{:.2f}".format(val))
+
+    def set_find_peaks_spacing(self, val):
+        self.max_spacing_line.setText("{:.2f}".format(val))
+
     def get_find_peaks_edge(self):
         param = self.find_edge_line
 
         if param.hasAcceptableInput():
             return int(param.text())
+
+    def get_avoid_aluminum(self):
+        return self.aluminum_box.isChecked()
 
     def get_calculate_UB_tol(self):
         param = self.calculate_tolerance_line
@@ -2699,7 +2769,7 @@ class UBView(NeuXtalVizWidget):
         self.check_k_line.setText(str(round(k, 4)))
         self.check_l_line.setText(str(round(l, 4)))
 
-    def update_instrument_view(self, inst_view, norm="log"):
+    def update_instrument_view(self, inst_view, norm="linear"):
         gamma = inst_view["gamma"]
         nu = inst_view["nu"]
         counts = inst_view["counts"]
@@ -2709,9 +2779,18 @@ class UBView(NeuXtalVizWidget):
             self.cb_inst = None
 
         self.ax_inst.clear()
+        self.ax_inst.invert_xaxis()
 
         self.im = self.ax_inst.scatter(
-            gamma, nu, c=counts, marker="o", norm=norm, rasterized=True
+            gamma,
+            nu,
+            c=counts,
+            s=1,
+            marker="o",
+            norm=norm,
+            vmin=0,
+            vmax=np.percentile(counts, 95),
+            rasterized=True,
         )
 
         self.ax_inst.set_aspect(1)

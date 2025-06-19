@@ -1,6 +1,7 @@
 import os
 
 import csv
+import itertools
 
 from mantid.simpleapi import (
     CreatePeaksWorkspace,
@@ -17,6 +18,10 @@ from mantid.simpleapi import (
     LoadIsawUB,
     LoadEmptyInstrument,
     LoadInstrument,
+    LoadMask,
+    LoadIsawDetCal,
+    LoadParameterFile,
+    MaskDetectors,
     ExtractMonitors,
     PreprocessDetectorsToMD,
     GroupDetectors,
@@ -115,9 +120,9 @@ point_group_centering = {
     "112": ["P", "C"],
     "11m": ["P", "C"],
     "112/m": ["P", "C"],
-    "222": ["P", "I", "C", "A", "B"],
-    "mm2": ["P", "I", "C", "A", "B"],
-    "mmm": ["P", "I", "C", "A", "B"],
+    "222": ["P", "I", "F", "C", "A", "B"],
+    "mm2": ["P", "I", "F", "C", "A", "B"],
+    "mmm": ["P", "I", "F", "C", "A", "B"],
     "4": ["P", "I"],
     "-4": ["P", "I"],
     "4/m": ["P", "I"],
@@ -126,11 +131,11 @@ point_group_centering = {
     "-42m": ["P", "I"],
     "-4m2": ["P", "I"],
     "4/mmm": ["P", "I"],
-    "3 r": ["R"],
-    "-3 r": ["R"],
-    "32 r": ["R"],
-    "3m r": ["R"],
-    "-3m r": ["R"],
+    "3 r": ["P"],
+    "-3 r": ["P"],
+    "32 r": ["P"],
+    "3m r": ["P"],
+    "-3m r": ["P"],
     "3": ["Robv", "Rrev"],
     "-3": ["Robv", "Rrev"],
     "312": ["Robv", "Rrev"],
@@ -201,7 +206,7 @@ class ExperimentModel(NeuXtalVizModel):
             OutputWorkspace="coverage",
         )
 
-    def initialize_instrument(self, instrument, logs):
+    def initialize_instrument(self, instrument, logs, cal, mask):
         inst = self.get_instrument_name(instrument)
 
         if not mtd.doesExist("instrument"):
@@ -218,11 +223,25 @@ class ExperimentModel(NeuXtalVizModel):
                     NumberType="Double",
                 )
 
-            LoadInstrument(
-                Workspace="instrument",
-                RewriteSpectraMap=False,
-                InstrumentName=inst,
-            )
+            if len(logs.keys()) > 0:
+                LoadInstrument(
+                    Workspace="instrument",
+                    RewriteSpectraMap=False,
+                    InstrumentName=inst,
+                )
+
+            if cal != "" and os.path.exists(cal):
+                if os.path.splitext(cal)[1] == ".xml":
+                    LoadParameterFile(Workspace="instrument", Filename=cal)
+                else:
+                    LoadIsawDetCal(InputWorkspace="instrument", Filename=cal)
+
+            if mask != "" and os.path.exists(mask):
+                if not mtd.doesExist("mask"):
+                    LoadMask(
+                        Instrument=inst, InputFile=mask, OutputWOrkspace="mask"
+                    )
+                MaskDetectors(Workspace="instrument", MaskedWorkspace="mask")
 
             ExtractMonitors(
                 InputWorkspace="instrument",
@@ -244,6 +263,15 @@ class ExperimentModel(NeuXtalVizModel):
                 Instrument=inst,
                 Pixel="0-{},{}-{}".format(mask_rows, rows - mask_rows, rows),
             )
+
+            banks = beamlines[instrument]["MaskBanks"]
+
+            for bank in banks:
+                MaskBTP(
+                    Workspace="instrument",
+                    Instrument=inst,
+                    Bank=bank,
+                )
 
             PreprocessDetectorsToMD(
                 InputWorkspace="instrument", OutputWorkspace="detectors"
@@ -317,6 +345,24 @@ class ExperimentModel(NeuXtalVizModel):
             self.nu = np.rad2deg(np.arcsin(y / L2))
             self.gamma = np.rad2deg(np.arctan2(x, z))
 
+    def get_calibration_file_path(self, instrument):
+        inst = beamlines[instrument]
+
+        return os.path.join(
+            "/",
+            inst["Facility"],
+            inst["InstrumentName"],
+            "shared",
+            "calibration",
+        )
+
+    def get_vanadium_file_path(self, instrument):
+        inst = beamlines[instrument]
+
+        return os.path.join(
+            "/", inst["Facility"], inst["InstrumentName"], "shared", "Vanadium"
+        )
+
     def remove_instrument(self):
         if mtd.doesExist("instrument"):
             DeleteWorkspace(Workspace="instrument")
@@ -336,21 +382,32 @@ class ExperimentModel(NeuXtalVizModel):
     def get_symmetry(self, point_group, centering):
         return str(point_group), str(centering)
 
-    def create_plan(self, names, settings, comments, use):
+    def create_plan(self, table):
+        pv, names, titles, settings, comments, counts, values, use = table
+
         CreateEmptyTableWorkspace(OutputWorkspace="plan")
+
+        mtd["plan"].addColumn("str", pv)
 
         for name in names:
             mtd["plan"].addColumn("float", name)
 
-        mtd["plan"].addColumn("str", "comment")
-        mtd["plan"].addColumn("bool", "use")
+        mtd["plan"].addColumn("str", "Comment")
+        mtd["plan"].addColumn("str", "Wait For")
+        mtd["plan"].addColumn("float", "Value")
+        mtd["plan"].addColumn("bool", "Use")
 
-        for setting, comment, active in zip(settings, comments, use):
+        for title, setting, comment, count, value, active in zip(
+            titles, settings, comments, counts, values, use
+        ):
             row = {}
+            row[pv] = title
             for angle, name in zip(setting, names):
                 row[name] = np.round(angle, 2)
-            row["comment"] = comment
-            row["use"] = active
+            row["Comment"] = comment
+            row["Wait For"] = count
+            row["Value"] = value
+            row["Use"] = active
             mtd["plan"].addRow(row)
 
     def create_sample(self, instrument, mode, UB, wavelength, d_min):
@@ -419,7 +476,7 @@ class ExperimentModel(NeuXtalVizModel):
                 LogType="String",
             )
 
-    def update_goniometer_motors(self, limits, motors):
+    def update_goniometer_motors(self, limits, motors, cal, mask):
         if mtd.doesExist("sample"):
             mtd["sample"].run()["limits"] = np.array(limits).flatten().tolist()
 
@@ -428,6 +485,9 @@ class ExperimentModel(NeuXtalVizModel):
                 values.append(motors[key])
             if len(values) > 0:
                 mtd["sample"].run()["motors"] = values
+
+            mtd["sample"].run()["cal"] = cal
+            mtd["sample"].run()["mask"] = mask
 
     def load_UB(self, filename):
         LoadIsawUB(InputWorkspace="coverage", Filename=filename)
@@ -454,6 +514,12 @@ class ExperimentModel(NeuXtalVizModel):
 
     def get_modes(self, instrument):
         return list(beamlines[instrument]["Goniometer"].keys())
+
+    def get_counting_options(self, instrument):
+        return beamlines[instrument]["Counting"]
+
+    def get_scan_log(self, instrument):
+        return beamlines[instrument]["Title"]
 
     def get_axes_polarities(self, instrument, mode):
         goniometers = beamlines[instrument]["Goniometer"][mode]
@@ -492,14 +558,14 @@ class ExperimentModel(NeuXtalVizModel):
 
     def save_plan(self, filename):
         plan_dict = mtd["plan"].toDict().copy()
-        use_angle = plan_dict["use"]
+        use_angle = plan_dict["Use"]
 
         for key in plan_dict.keys():
             items = plan_dict[key]
             items = [item for item, use in zip(items, use_angle) if use]
             plan_dict[key] = items
 
-        plan_dict.pop("use")
+        plan_dict.pop("Use")
 
         with open(filename, mode="w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=plan_dict.keys())
@@ -534,6 +600,8 @@ class ExperimentModel(NeuXtalVizModel):
         pg = mtd[sample].run().getProperty("point_group").value
         lc = mtd[sample].run().getProperty("lattice_centering").value
         lims = mtd[sample].run().getProperty("limits").value
+        mask = mtd[sample].run().getProperty("mask").value
+        cal = mtd[sample].run().getProperty("cal").value
         lims = np.array(lims).reshape(-1, 2).tolist()
         vals = []
         if mtd[sample].run().hasProperty("motors"):
@@ -544,22 +612,25 @@ class ExperimentModel(NeuXtalVizModel):
         else:
             wl = [wl_min, wl_max]
 
-        cols = mtd[plan].columnCount() - 2
+        cols = mtd[plan].columnCount() - 5
         rows = mtd[plan].rowCount()
 
-        use = mtd[plan].column(cols + 1)
-        comments = mtd[plan].column(cols)
+        titles = mtd[plan].column(0)
+        comments = mtd[plan].column(cols + 1)
+        counts = mtd[plan].column(cols + 2)
+        values = mtd[plan].column(cols + 3)
+        use = mtd[plan].column(cols + 4)
 
         settings = []
         for row in range(rows):
             angles = []
             for col in range(cols):
-                angle = mtd[plan].cell(row, col)
+                angle = mtd[plan].cell(row, col + 1)
                 angles.append(angle)
             settings.append(angles)
 
-        plan = (settings, comments, use)
-        config = (instrument, mode, wl, d_min, lims, vals)
+        plan = (titles, settings, comments, counts, values, use)
+        config = (instrument, mode, wl, d_min, lims, vals, cal, mask)
         symm = (cs, pg, lc)
 
         return plan, config, symm
@@ -585,6 +656,11 @@ class ExperimentModel(NeuXtalVizModel):
     def _calculate_matrices(self, axes, polarities, limits, step):
         self.generate_axes(axes, polarities)
 
+        free = 0
+        for limit in limits:
+            free += 1 - np.isclose(limit[0], limit[1])
+        step *= free
+
         angular_coverage = []
         for limit in limits:
             angular_coverage.append(np.arange(limit[0], limit[1] + step, step))
@@ -595,7 +671,7 @@ class ExperimentModel(NeuXtalVizModel):
         angle_settings = np.meshgrid(*angular_coverage, indexing="ij")
         angle_settings = np.reshape(angle_settings, (len(polarities), -1)).T
 
-        self.angles = angle_settings.copy()
+        angles = angle_settings.copy()
 
         angle_settings = angle_settings * polarities
         angle_settings = np.deg2rad(angle_settings)
@@ -613,9 +689,46 @@ class ExperimentModel(NeuXtalVizModel):
                 R = R @ all_rotations[i, j, :, :]
             Rs.append(R)
 
-        return Rs
+        return Rs, angles
 
     def individual_peak(
+        self, hkl, wavelength, axes, polarities, limits, equiv, pg, step=1
+    ):
+        pg = PointGroupFactory.createPointGroup(pg)
+
+        hkls = pg.getEquivalents(hkl) if equiv else [hkl]
+
+        angles, angles_gamma, angles_nu, angles_lamda = [], [], [], []
+
+        for hkl in hkls:
+            settings, values = self.calculate_individual_peak(
+                hkl, wavelength, axes, polarities, limits, step
+            )
+
+            gamma, nu, lamda = values
+
+            angles.append(settings)
+            angles_gamma.append(gamma)
+            angles_nu.append(nu)
+            angles_lamda.append(lamda)
+
+        angles = np.row_stack(angles)
+        gamma = np.concatenate(angles_gamma)
+        nu = np.concatenate(angles_nu)
+        lamda = np.concatenate(angles_lamda)
+
+        self.angles = angles
+        self.angles_gamma = gamma
+        self.angles_nu = nu
+        self.angles_lamda = lamda
+
+        self.angles_gamma_alt = None
+        self.angles_nu_alt = None
+        self.angles_lamda_alt = None
+
+        return gamma, nu, lamda
+
+    def calculate_individual_peak(
         self, hkl, wavelength, axes, polarities, limits, step=1
     ):
         self.comment = "(" + " ".join(np.array(hkl).astype(str)) + ")"
@@ -641,7 +754,7 @@ class ExperimentModel(NeuXtalVizModel):
 
         Q = np.sqrt(np.dot(Q_sample, Q_sample))
 
-        Rs = self._calculate_matrices(axes, polarities, limits, step)
+        Rs, angles = self._calculate_matrices(axes, polarities, limits, step)
 
         mtd["peak"].run().getGoniometer().setR(np.eye(3))
         mtd["peaks"].run().getGoniometer().setR(np.eye(3))
@@ -660,9 +773,7 @@ class ExperimentModel(NeuXtalVizModel):
         nu = np.rad2deg(np.arcsin(kf[:, 1] / k))[mask]
         lamda = lamda[mask]
 
-        self.angles = self.angles[mask]
-        self.angles_gamma = gamma.copy()
-        self.angles_nu = nu.copy()
+        settings = angles[mask]
 
         if len(lamda) > 0:
             k = 2 * np.pi / lamda
@@ -681,13 +792,71 @@ class ExperimentModel(NeuXtalVizModel):
             nu = nu[mask]
             lamda = lamda[mask]
 
-            self.angles = self.angles[mask]
-            self.angles_gamma = gamma.copy()
-            self.angles_nu = nu.copy()
+            settings = settings[mask]
 
-        return gamma, nu, lamda
+        return settings, (gamma, nu, lamda)
 
     def simultaneous_peaks(
+        self,
+        hkl_1,
+        hkl_2,
+        wavelength,
+        axes,
+        polarities,
+        limits,
+        equiv,
+        pg,
+        step=1,
+    ):
+        pg = PointGroupFactory.createPointGroup(pg)
+
+        hkls_1 = pg.getEquivalents(hkl_1) if equiv else [hkl_1]
+        hkls_2 = pg.getEquivalents(hkl_2) if equiv else [hkl_2]
+
+        pairs = list(itertools.product(hkls_1, hkls_2))
+
+        angles, angles_gamma, angles_nu, angles_lamda = [], [], [], []
+
+        angles_gamma_alt, angles_nu_alt, angles_lamda_alt = [], [], []
+
+        for hkl_1, hkl_2 in pairs:
+            settings, values0, values1 = self.simultaneous_peaks_hkl(
+                hkl_1, hkl_2, wavelength, axes, polarities, limits, step
+            )
+
+            gamma0, nu0, lamda0 = values0
+            gamma1, nu1, lamda1 = values1
+
+            angles.append(settings)
+            angles_gamma.append(gamma0)
+            angles_nu.append(nu0)
+            angles_lamda.append(lamda0)
+
+            angles_gamma_alt.append(gamma1)
+            angles_nu_alt.append(nu1)
+            angles_lamda_alt.append(lamda1)
+
+        angles = np.row_stack(angles)
+        gamma = np.concatenate(angles_gamma)
+        nu = np.concatenate(angles_nu)
+        lamda = np.concatenate(angles_lamda)
+
+        gamma_alt = np.concatenate(angles_gamma_alt)
+        nu_alt = np.concatenate(angles_nu_alt)
+        lamda_alt = np.concatenate(angles_lamda_alt)
+
+        self.angles = angles
+        self.angles_gamma = gamma
+        self.angles_nu = nu
+        self.angles_lamda = lamda
+
+        self.angles_gamma_alt = gamma_alt
+        self.angles_nu_alt = nu_alt
+        self.angles_lamda_alt = lamda_alt
+
+        return (gamma, nu, lamda), (gamma_alt, nu_alt, lamda_alt)
+
+    def simultaneous_peaks_hkl(
         self, hkl_1, hkl_2, wavelength, axes, polarities, limits, step=1
     ):
         self.comment = "(" + " ".join(np.array(hkl_1).astype(str)) + ")"
@@ -716,7 +885,7 @@ class ExperimentModel(NeuXtalVizModel):
         Q0 = np.sqrt(np.dot(Q0_sample, Q0_sample))
         Q1 = np.sqrt(np.dot(Q1_sample, Q1_sample))
 
-        Rs = self._calculate_matrices(axes, polarities, limits, step)
+        Rs, angles = self._calculate_matrices(axes, polarities, limits, step)
 
         Q0_lab = np.einsum("kij,j->ki", Rs, Q0_sample)
         Q1_lab = np.einsum("kij,j->ki", Rs, Q1_sample)
@@ -749,9 +918,7 @@ class ExperimentModel(NeuXtalVizModel):
         lamda0 = lamda0[mask]
         lamda1 = lamda1[mask]
 
-        self.angles = self.angles[mask]
-        self.angles_gamma = gamma0.copy()
-        self.angles_nu = nu0.copy()
+        angles = angles[mask]
 
         if len(lamda0) > 0:
             k0 = 2 * np.pi / lamda0
@@ -790,11 +957,9 @@ class ExperimentModel(NeuXtalVizModel):
             lamda0 = lamda0[mask]
             lamda1 = lamda1[mask]
 
-            self.angles = self.angles[mask]
-            self.angles_gamma = gamma0.copy()
-            self.angles_nu = nu0.copy()
+            angles = angles[mask]
 
-        return (gamma0, nu0, lamda0), (gamma1, nu1, lamda1)
+        return angles, (gamma0, nu0, lamda0), (gamma1, nu1, lamda1)
 
     def get_angles(self, gamma, nu):
         if len(self.angles_gamma) > 0:
@@ -804,13 +969,49 @@ class ExperimentModel(NeuXtalVizModel):
 
             angles = self.angles[i]
 
-            return angles, self.angles_gamma[i], self.angles_nu[i]
+            gamma = self.angles_gamma[i]
+            nu = self.angles_nu[i]
+            lamda = self.angles_lamda[i]
+
+            gamma_alt = nu_alt = lamda_alt = None
+
+            if self.angles_lamda_alt is not None:
+                gamma_alt = self.angles_gamma_alt[i]
+                nu_alt = self.angles_nu_alt[i]
+                lamda_alt = self.angles_lamda_alt[i]
+
+            return angles, gamma, nu, lamda, gamma_alt, nu_alt, lamda_alt
+
+    def add_mesh(
+        self, mesh_angles, wavelength, d_min, rows, free_angles, all_angles
+    ):
+        limits, ns = mesh_angles
+
+        mins, maxs = zip(*limits)
+
+        axes = [
+            np.linspace(lo, hi, n + 1)[:-1]
+            for lo, hi, n in zip(mins, maxs, ns)
+        ]
+
+        grids = np.meshgrid(*axes, indexing="ij")
+        points = np.stack(grids, axis=-1).reshape(-1, len(limits))
+
+        indices = [all_angles.index(free) for free in free_angles]
+
+        values = []
+        for i, angles in enumerate(points):
+            self.add_orientation(angles, wavelength, d_min, rows + i)
+            values.append(angles[indices])
+
+        return values
 
     def add_orientation(self, angles, wavelength, d_min, rows):
         if np.isclose(wavelength[0], wavelength[1]):
             wavelength = [0.975 * wavelength[0], 1.025 * wavelength[1]]
 
-        axes = self.axes.copy()
+        axes = np.array(self.axes).copy().tolist()
+        print(axes, angles)
 
         for i, angle in enumerate(angles):
             axes[i] = axes[i].format(angle)
@@ -936,7 +1137,8 @@ class ExperimentModel(NeuXtalVizModel):
         return np.array([h, k, l, d, lamda]).T.tolist()
 
     def calculate_statistics(self, point_group, lattice_centering, use, d_min):
-        shel, comp, mult, refl = [], [], [], []
+        shel_sym, comp_sym, mult_sym, refl_sym = [], [], [], []
+        shel_asym, comp_asym, mult_asym, refl_asym = [], [], [], []
         if mtd.doesExist("combined"):
             CloneWorkspace(
                 InputWorkspace="combined", OutputWorkspace="filtered"
@@ -962,7 +1164,7 @@ class ExperimentModel(NeuXtalVizModel):
 
                 pg, lc = self.get_symmetry(point_group, lattice_centering)
 
-                output = CountReflections(
+                symmetric = CountReflections(
                     InputWorkspace="filtered",
                     PointGroup=pg,
                     LatticeCentering=lc,
@@ -971,15 +1173,15 @@ class ExperimentModel(NeuXtalVizModel):
                     MissingReflectionsWorkspace="missing",
                 )
 
-                unique, completeness, redundancy, multiple, _ = output
+                unique, completeness, redundancy, multiple, _ = symmetric
 
-                shel = ["Overall"]
-                comp = [completeness * 100]
-                mult = [redundancy]
-                refl = [unique]
+                shel_sym = ["Overall"]
+                comp_sym = [completeness * 100]
+                mult_sym = [redundancy]
+                refl_sym = [unique]
 
                 for i in range(len(d) - 1):
-                    output = CountReflections(
+                    symmetric = CountReflections(
                         InputWorkspace="filtered",
                         PointGroup=pg,
                         LatticeCentering=lc,
@@ -988,14 +1190,52 @@ class ExperimentModel(NeuXtalVizModel):
                         MissingReflectionsWorkspace="",
                     )
 
-                    unique, completeness, redundancy, multiple = output
+                    unique, completeness, redundancy, multiple = symmetric
 
-                    shel.append("{:.2f}-{:.2f}".format(d[i], d[i + 1]))
-                    comp.append(completeness * 100)
-                    mult.append(redundancy)
-                    refl.append(unique)
+                    shel_sym.append("{:.2f}-{:.2f}".format(d[i], d[i + 1]))
+                    comp_sym.append(completeness * 100)
+                    mult_sym.append(redundancy)
+                    refl_sym.append(unique)
 
-        return shel, comp, mult, refl
+                asymmetric = CountReflections(
+                    InputWorkspace="filtered",
+                    PointGroup="1",
+                    LatticeCentering=lc,
+                    MinDSpacing=d_min,
+                    MaxDSpacing=d_max,
+                    MissingReflectionsWorkspace="missing",
+                )
+
+                unique, completeness, redundancy, multiple, _ = asymmetric
+
+                shel_asym = ["Overall"]
+                comp_asym = [completeness * 100]
+                mult_asym = [redundancy]
+                refl_asym = [unique]
+
+                for i in range(len(d) - 1):
+                    asymmetric = CountReflections(
+                        InputWorkspace="filtered",
+                        PointGroup="1",
+                        LatticeCentering=lc,
+                        MinDSpacing=d[i + 1],
+                        MaxDSpacing=d[i],
+                        MissingReflectionsWorkspace="",
+                    )
+
+                    unique, completeness, redundancy, multiple = asymmetric
+
+                    shel_asym.append("{:.2f}-{:.2f}".format(d[i], d[i + 1]))
+                    comp_asym.append(completeness * 100)
+                    mult_asym.append(redundancy)
+                    refl_asym.append(unique)
+            else:
+                return None
+
+        sym = (shel_sym, comp_sym, mult_sym, refl_sym)
+        asym = (shel_asym, comp_asym, mult_asym, refl_asym)
+
+        return sym, asym
 
     def hsl_to_rgb(self, hue, saturation, lightness):
         h = np.array(hue)
@@ -1038,63 +1278,64 @@ class ExperimentModel(NeuXtalVizModel):
         UB = mtd["coverage"].sample().getOrientedLattice().getUB().copy()
         # UB_inv = np.linalg.inv(UB)
 
-        h = mtd["filtered"].column("h")
-        k = mtd["filtered"].column("k")
-        l = mtd["filtered"].column("l")
+        if mtd.doesExist("filtered"):
+            h = mtd["filtered"].column("h")
+            k = mtd["filtered"].column("k")
+            l = mtd["filtered"].column("l")
 
-        hkls = np.array([h, k, l]).T.astype(int).tolist()
+            hkls = np.array([h, k, l]).T.astype(int).tolist()
 
-        hkl_dict = {}
-        hkl_dict[(0, 0, 0)] = 0
-        for hkl in hkls:
-            if centering_conditions[lattice_centering](*hkl):
-                equiv_hkls = pg.getEquivalents(hkl)
-                for equiv_hkl in equiv_hkls:
-                    key = tuple(equiv_hkl)
-                    no = hkl_dict.get(key)
-                    if no is None:
-                        no = 1
-                    else:
-                        no += 1
-                    hkl_dict[key] = no
+            hkl_dict = {}
+            hkl_dict[(0, 0, 0)] = 0
+            for hkl in hkls:
+                if centering_conditions[lattice_centering](*hkl):
+                    equiv_hkls = pg.getEquivalents(hkl)
+                    for equiv_hkl in equiv_hkls:
+                        key = tuple(equiv_hkl)
+                        no = hkl_dict.get(key)
+                        if no is None:
+                            no = 1
+                        else:
+                            no += 1
+                        hkl_dict[key] = no
 
-        nos = np.array([value for value in hkl_dict.values()])
-        hkls = np.array([key for key in hkl_dict.keys()])
+            nos = np.array([value for value in hkl_dict.values()])
+            hkls = np.array([key for key in hkl_dict.keys()])
 
-        r = np.sqrt(hkls[:, 0] ** 2 + hkls[:, 1] ** 2 + hkls[:, 2] ** 2)
-        theta = np.arccos(hkls[:, 2] / r)
-        phi = np.arctan2(hkls[:, 1], hkls[:, 0])
+            r = np.sqrt(hkls[:, 0] ** 2 + hkls[:, 1] ** 2 + hkls[:, 2] ** 2)
+            theta = np.arccos(hkls[:, 2] / r)
+            phi = np.arctan2(hkls[:, 1], hkls[:, 0])
 
-        hue = phi * 180 / np.pi + 180
-        saturation = np.ones_like(hue)
-        lightness = theta / np.pi
+            hue = phi * 180 / np.pi + 180
+            saturation = np.ones_like(hue)
+            lightness = theta / np.pi
 
-        rgb = self.hsl_to_rgb(hue, saturation, lightness)
-        coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
+            rgb = self.hsl_to_rgb(hue, saturation, lightness)
+            coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
 
-        coverage_dict["colors"] = (rgb * 255).astype(np.uint8)
-        coverage_dict["sizes"] = nos / nos.max()
-        coverage_dict["coords"] = coords
+            coverage_dict["colors"] = (rgb * 255).astype(np.uint8)
+            coverage_dict["sizes"] = nos / nos.max()
+            coverage_dict["coords"] = coords
 
-        hkls = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+            hkls = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
-        r = np.sqrt(hkls[:, 0] ** 2 + hkls[:, 1] ** 2 + hkls[:, 2] ** 2)
-        theta = np.arccos(hkls[:, 2] / r)
-        phi = np.arctan2(hkls[:, 1], hkls[:, 0])
+            r = np.sqrt(hkls[:, 0] ** 2 + hkls[:, 1] ** 2 + hkls[:, 2] ** 2)
+            theta = np.arccos(hkls[:, 2] / r)
+            phi = np.arctan2(hkls[:, 1], hkls[:, 0])
 
-        hue = phi * 180 / np.pi + 180
-        saturation = np.ones_like(hue)
-        lightness = theta / np.pi
+            hue = phi * 180 / np.pi + 180
+            saturation = np.ones_like(hue)
+            lightness = theta / np.pi
 
-        coverage_dict["axis_coords"] = coords
+            coverage_dict["axis_coords"] = coords
 
-        rgb = self.hsl_to_rgb(hue, saturation, lightness)
-        coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
+            rgb = self.hsl_to_rgb(hue, saturation, lightness)
+            coords = np.einsum("ij,nj->ni", 2 * np.pi * UB, hkls)
 
-        coverage_dict["axis_colors"] = (rgb * 255).astype(np.uint8)
-        coverage_dict["axis_coords"] = coords
+            coverage_dict["axis_colors"] = (rgb * 255).astype(np.uint8)
+            coverage_dict["axis_coords"] = coords
 
-        return coverage_dict
+            return coverage_dict
 
     def crystal_plan(self, *args):
         return CrystalPlan(*args)

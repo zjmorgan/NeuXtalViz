@@ -1,0 +1,2 @@
+# This version is only for building a wheel via Poetry for Docker builds and doesn't need to be updated.
+Version: 0.1.0

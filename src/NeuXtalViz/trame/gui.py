@@ -16,4 +16,4 @@ def trame(server: Server = None, *args: Any, **kwargs: Any) -> None:
             kwargs[key] = int(value)
         except Exception:
             pass
-    app.server.start(**kwargs, open_browser=False)
+    app.server.start(**kwargs, host="0.0.0.0", open_browser=False, port=8080, timeout=0)

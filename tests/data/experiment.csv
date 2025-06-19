@@ -1,5 +1,2 @@
-# BL12:Mot:goniokm:omega , BL12:Mot:goniokm:phi , comment , use 
-# float , float , str , bool 
-92.3,90.5,CrystalPlan,true
--111.1,-126.8,CrystalPlan,true
-106.2,-124.6,CrystalPlan,true
+BL12:CS:RunInfo:Title,BL12:Mot:goniokm:omega,BL12:Mot:goniokm:phi,Comment,Wait For,Value
+Scan Title,18.0,132.0,(2.0 0.0 0.0),BL12:Det:PCharge:C,0.0

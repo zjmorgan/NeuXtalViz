@@ -8,11 +8,9 @@ import numpy as np
 import pyvista as pv
 from matplotlib.figure import Figure
 from matplotlib.transforms import Affine2D
-from nova.trame.view.components import InputField
+from nova.trame.view.components import FileUpload, InputField
 from nova.trame.view.components.visualization import MatplotlibFigure
 from nova.trame.view.layouts import GridLayout, HBoxLayout, VBoxLayout
-from trame.app.file_upload import ClientFile
-from trame.widgets import html
 from trame.widgets import vuetify3 as vuetify
 
 from NeuXtalViz.trame.views.components.visualization_panel import VisualizationPanel
@@ -48,6 +46,7 @@ class VolumeSlicerView:
         self.view_model.add_slice_bind.connect(self.add_slice)
         self.view_model.add_cut_bind.connect(self.add_cut)
 
+        self.last_nxs_length = 0
         self.histo = None
         ensure_future(self.add_histo_loop())
 
@@ -58,6 +57,31 @@ class VolumeSlicerView:
         return self.server.state
 
     def create_ui(self):
+        @self.state.change("nxs_file")
+        def load_NXS(nxs_file, **kwargs):
+            if (
+                nxs_file is None
+                or not isinstance(nxs_file, str)
+                or len(nxs_file) == self.last_nxs_length
+            ):
+                return
+            self.last_nxs_length = len(nxs_file)
+
+            with NamedTemporaryFile(suffix=".nxs", delete=False) as _file:
+                _file.write(nxs_file.encode("latin1"))
+                nxs_filename = _file.name
+
+            self.view_model.update_processing("Processing...", 1)
+            self.view_model.update_processing("Loading NeXus file...", 10)
+
+            self.loading_data = True
+            thread = Thread(
+                target=partial(self.load_in_background, nxs_filename), daemon=True
+            )
+            thread.start()
+
+            create_task(self.monitor_load())
+
         with GridLayout(classes="bg-white pa-2", columns=2):
             self.base_view = VisualizationPanel(self.server, self.view_model)
 
@@ -68,15 +92,11 @@ class VolumeSlicerView:
                     InputField(v_model="vs_controls.opacity_range", type="select")
                     InputField(v_model="vs_controls.clim_clip_type", type="select")
                     InputField(v_model="vs_controls.cbar", type="select")
-                    with html.Div():
-                        InputField(
-                            ref="fread",
-                            classes="d-none",
-                            type="file",
-                            __events=["change"],
-                            change=(self.load_NXS, "[$event.target.files]"),
-                        )
-                        vuetify.VBtn("Load NXS", click="trame.refs.fread.click()")
+                    FileUpload(
+                        v_model="nxs_file",
+                        base_paths=["/HFIR", "/SNS"],
+                        label="Load NXS",
+                    )
 
                 with HBoxLayout():
                     self.fig_slice = Figure(layout="constrained")
@@ -141,26 +161,6 @@ class VolumeSlicerView:
         self.view_model.update_processing("Loading NeXus file...", 80)
         self.view_model.update_processing("NeXus file loaded!", 100)
         self.redraw_data()
-
-    def load_NXS(self, files):
-        if len(files) < 1:
-            return
-
-        nxs_file = ClientFile(files[0])
-        with NamedTemporaryFile(suffix=".nxs", delete=False) as _file:
-            _file.write(nxs_file.content)
-            nxs_filename = _file.name
-
-        self.view_model.update_processing("Processing...", 1)
-        self.view_model.update_processing("Loading NeXus file...", 10)
-
-        self.loading_data = True
-        thread = Thread(
-            target=partial(self.load_in_background, nxs_filename), daemon=True
-        )
-        thread.start()
-
-        create_task(self.monitor_load())
 
     def redraw_in_background(self):
         self.redrawing_result = self.view_model.redraw_data_process()
