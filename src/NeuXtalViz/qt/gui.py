@@ -3,6 +3,7 @@ import sys
 import traceback
 import subprocess
 
+
 os.environ["QT_API"] = "pyqt5"
 
 from qtpy.QtWidgets import (
@@ -31,23 +32,25 @@ qdarktheme.enable_hi_dpi()
 # import qdarkstyle
 # from qdarkstyle.light.palette import LightPalette
 
-from NeuXtalViz.views.crystal_structure_tools import CrystalStructureView
+from nova.mvvm.pyqt5_binding import PyQt5Binding
+
+from NeuXtalViz.qt.views.crystal_structure_tools import CrystalStructureView
 from NeuXtalViz.models.crystal_structure_tools import CrystalStructureModel
 from NeuXtalViz.presenters.crystal_structure_tools import CrystalStructure
 
-from NeuXtalViz.views.ub_tools import UBView
+from NeuXtalViz.qt.views.ub_tools import UBView
 from NeuXtalViz.models.ub_tools import UBModel
 from NeuXtalViz.presenters.ub_tools import UB
 
-from NeuXtalViz.views.sample_tools import SampleView
+from NeuXtalViz.qt.views.sample_tools import SampleView
 from NeuXtalViz.models.sample_tools import SampleModel
 from NeuXtalViz.presenters.sample_tools import Sample
 
-from NeuXtalViz.views.volume_slicer import VolumeSlicerView
+from NeuXtalViz.qt.new_views.volume_slicer import VolumeSlicerView
 from NeuXtalViz.models.volume_slicer import VolumeSlicerModel
-from NeuXtalViz.presenters.volume_slicer import VolumeSlicer
+from NeuXtalViz.view_models.volume_slicer import VolumeSlicerViewModel
 
-from NeuXtalViz.views.experiment_planner import ExperimentView
+from NeuXtalViz.qt.views.experiment_planner import ExperimentView
 from NeuXtalViz.models.experiment_planner import ExperimentModel
 from NeuXtalViz.presenters.experiment_planner import Experiment
 
@@ -79,6 +82,8 @@ class NeuXtalViz(QMainWindow):
 
         app_menu = self.menuBar().addMenu("Applications")
 
+        binding = PyQt5Binding()
+
         cs_action = QAction("Crystal Structure", self)
         cs_action.triggered.connect(lambda: app_stack.setCurrentIndex(0))
         app_menu.addAction(cs_action)
@@ -101,9 +106,9 @@ class NeuXtalViz(QMainWindow):
         self.s = Sample(s_view, s_model)
         app_stack.addWidget(s_view)
 
-        vs_view = VolumeSlicerView(self)
         vs_model = VolumeSlicerModel()
-        self.vs = VolumeSlicer(vs_view, vs_model)
+        vs_viewmodel = VolumeSlicerViewModel(vs_model, binding)
+        vs_view = VolumeSlicerView(vs_viewmodel, self)
         app_stack.addWidget(vs_view)
 
         layout.addWidget(app_stack)
@@ -186,33 +191,25 @@ class NeuXtalViz(QMainWindow):
         try:
             subprocess.Popen(["shelxle"])
         except subprocess.CalledProcessError as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to execute shelxle:\n{e}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to execute shelxle:\n{e}")
 
     def garnet_reduction_GUI(self):
         try:
             subprocess.Popen(["/SNS/software/scd/garnet.sh"])
         except subprocess.CalledProcessError as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to execute garnet:\n{e}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to execute garnet:\n{e}")
 
     def olex2_reduction_GUI(self):
         try:
             subprocess.Popen(["olex2"])
         except subprocess.CalledProcessError as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to execute olex2:\n{e}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to execute olex2:\n{e}")
 
     def fullprof_reduction_GUI(self):
         try:
             subprocess.Popen(["fullprof"])
         except subprocess.CalledProcessError as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to execute fullprof:\n{e}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to execute fullprof:\n{e}")
 
     def structdiff_GUI(self):
         path = os.path.dirname(__file__)
@@ -220,9 +217,7 @@ class NeuXtalViz(QMainWindow):
         try:
             subprocess.Popen(["python", file])
         except subprocess.CalledProcessError as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to execute structdiff:\n{e}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to execute structdiff:\n{e}")
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -246,7 +241,3 @@ def gui():
     window = NeuXtalViz()
     window.show()
     sys.exit(app.exec_())
-
-
-if __name__ == "__main__":
-    gui()

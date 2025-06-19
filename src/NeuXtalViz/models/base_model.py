@@ -63,8 +63,8 @@ class NeuXtalVizModel:
 
             u, v = ol.getuVector(), ol.getvVector()
 
-            u = np.array(u) / np.abs(u).max()
-            v = np.array(v) / np.abs(v).max()
+            u = list(np.array(u) / np.abs(u).max())
+            v = list(np.array(v) / np.abs(v).max())
 
             return *params, u, v
 

@@ -1,3 +1,5 @@
+from functools import partial
+
 from qtpy.QtWidgets import (
     QWidget,
     QFrame,
@@ -23,7 +25,7 @@ import pyvista as pv
 
 from pyvistaqt import QtInteractor
 
-from NeuXtalViz.views.utilities import Worker, ThreadPool
+from NeuXtalViz.qt.views.utilities import Worker, ThreadPool
 
 # themes = {'Default': pv.themes.Theme(),
 #           'Document': pv.themes.DocumentTheme(),
@@ -32,12 +34,13 @@ from NeuXtalViz.views.utilities import Worker, ThreadPool
 
 
 class NeuXtalVizWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, view_model, parent=None):
         super().__init__(parent)
+
+        self.view_model = view_model
 
         self.proj_box = QCheckBox("Parallel Projection", self)
         self.proj_box.setChecked(True)
-        self.proj_box.clicked.connect(self.change_projection)
 
         self.reset_button = QPushButton("Reset View", self)
         self.reset_button.clicked.connect(self.reset_view)
@@ -50,7 +53,6 @@ class NeuXtalVizWidget(QWidget):
 
         self.axes_box = QCheckBox("Show Axes", self)
         self.axes_box.setChecked(True)
-        self.axes_box.clicked.connect(self.show_axes)
 
         self.save_button = QPushButton("Save Screenshot", self)
 
@@ -111,14 +113,12 @@ class NeuXtalVizWidget(QWidget):
         view_tab = QTabWidget()
 
         self.view_combo = QComboBox(self)
-        self.view_combo.addItem("[hkl]")
-        self.view_combo.addItem("[uvw]")
-        self.view_combo.currentIndexChanged.connect(self.update_labels)
+        self.view_combo.addItem("hkl")
+        self.view_combo.addItem("uvw")
 
         self.viewup_combo = QComboBox(self)
-        self.viewup_combo.addItem("[hkl]")
-        self.viewup_combo.addItem("[uvw]")
-        self.viewup_combo.currentIndexChanged.connect(self.update_labels)
+        self.viewup_combo.addItem("hkl")
+        self.viewup_combo.addItem("uvw")
 
         notation = QDoubleValidator.StandardNotation
 
@@ -305,6 +305,49 @@ class NeuXtalVizWidget(QWidget):
 
         return info_tab
 
+    def connect_bindings(self):
+        self.view_model.show_axes_bind.connect("show_axes", self.show_axes)
+        self.view_model.parallel_projection_bind.connect(
+            "parallel_projection", self.change_projection
+        )
+
+        self.view_model.lattice_parameters_bind.connect(
+            "oriented_lattice", self.set_oriented_lattice_parameters
+        )
+        self.view_model.progress_bind.connect("progress", self.set_step)
+        self.view_model.status_bind.connect("status", self.set_info)
+        self.view_model.up_vector_bind.connect("up_vector", self.view_up_vector)
+        self.view_model.update_labels_bind.connect("update_labels", self.update_labels)
+        self.view_model.vector_bind.connect("vector", self.view_vector)
+
+    def connect_widgets(self):
+        self.view_combo.currentIndexChanged.connect(self.view_model.update_axis_type)
+        self.axis1_line.textChanged.connect(partial(self.view_model.update_manual_axis, 0))
+        self.axis2_line.textChanged.connect(partial(self.view_model.update_manual_axis, 1))
+        self.axis3_line.textChanged.connect(partial(self.view_model.update_manual_axis, 2))
+        self.viewup_combo.currentIndexChanged.connect(self.view_model.update_up_axis_type)
+        self.axisup1_line.textChanged.connect(
+            partial(self.view_model.update_manual_up_axis, 0)
+        )
+        self.axisup2_line.textChanged.connect(
+            partial(self.view_model.update_manual_up_axis, 1)
+        )
+        self.axisup3_line.textChanged.connect(
+            partial(self.view_model.update_manual_up_axis, 2)
+        )
+        self.manual_button.clicked.connect(self.view_model.view_manual)
+        self.manualup_button.clicked.connect(self.view_model.view_up_manual)
+        self.a_star_button.clicked.connect(self.view_model.view_bc_star)
+        self.b_star_button.clicked.connect(self.view_model.view_ca_star)
+        self.c_star_button.clicked.connect(self.view_model.view_ab_star)
+        self.a_button.clicked.connect(self.view_model.view_bc)
+        self.b_button.clicked.connect(self.view_model.view_ca)
+        self.c_button.clicked.connect(self.view_model.view_ab)
+        self.save_button.clicked.connect(self.save_screenshot)
+        self.recip_box.clicked.connect(self.view_model.change_lattice)
+        self.axes_box.clicked.connect(self.view_model.change_axes)
+        self.proj_box.clicked.connect(self.view_model.change_projection)
+
     def start_worker_pool(self, worker):
         """
         Create a worker pool.
@@ -347,123 +390,29 @@ class NeuXtalVizWidget(QWidget):
 
         self.progress_bar.setValue(progress)
 
-    def set_oriented_lattice_parameters(
-        self, a, b, c, alpha, beta, gamma, u, v
-    ):
+    def set_oriented_lattice_parameters(self, ol):
         """
         Update the oriented lattice paramters.
 
-        Parameters
-        ----------
+        Parameters (destructured from ol list)
+        --------------------------------------
         a, b, c : float
             Lattice constants.
         alpha, beta, gamma : float
             Lattice angles.
-
         """
-
-        self.ub_a_line.setText("{:.5f}".format(a))
-        self.ub_b_line.setText("{:.5f}".format(b))
-        self.ub_c_line.setText("{:.5f}".format(c))
-        self.ub_alpha_line.setText("{:.3f}".format(alpha))
-        self.ub_beta_line.setText("{:.3f}".format(beta))
-        self.ub_gamma_line.setText("{:.3f}".format(gamma))
-        self.ub_u1_line.setText("{:.4f}".format(u[0]))
-        self.ub_u2_line.setText("{:.4f}".format(u[1]))
-        self.ub_u3_line.setText("{:.4f}".format(u[2]))
-        self.ub_v1_line.setText("{:.4f}".format(v[0]))
-        self.ub_v2_line.setText("{:.4f}".format(v[1]))
-        self.ub_v3_line.setText("{:.4f}".format(v[2]))
-
-    def connect_manual_axis(self, view_manual):
-        """
-        Manual axis view connection.
-
-        Parameters
-        ----------
-        view_manual : function
-            Manual axis view handler.
-
-        """
-
-        self.manual_button.clicked.connect(view_manual)
-
-    def connect_manual_up_axis(self, view_manual):
-        """
-        Manual axis upv iew connection.
-
-        Parameters
-        ----------
-        view_manual : function
-            Manual axis up view handler.
-
-        """
-
-        self.manualup_button.clicked.connect(view_manual)
-
-    def connect_reciprocal_axes(self, view_a_star, view_b_star, view_c_star):
-        """
-        Reciprocal axes view connections.
-
-        Parameters
-        ----------
-        view_a_star : function
-            :math:`a^\ast`-axis view handler.
-        view_b_star : function
-            :math:`b^\ast`-axis view handler.
-        view_c_star : function
-            :math:`c^\ast`-axis view handler.
-
-        """
-
-        self.a_star_button.clicked.connect(view_a_star)
-        self.b_star_button.clicked.connect(view_b_star)
-        self.c_star_button.clicked.connect(view_c_star)
-
-    def connect_real_axes(self, view_a, view_b, view_c):
-        """
-        Real axes view connections.
-
-        Parameters
-        ----------
-        view_a : function
-            :math:`a`-axis view handler.
-        view_b : function
-            :math:`b`-axis view handler.
-        view_c : function
-            :math:`c`-axis view handler.
-
-        """
-
-        self.a_button.clicked.connect(view_a)
-        self.b_button.clicked.connect(view_b)
-        self.c_button.clicked.connect(view_c)
-
-    def connect_save_screenshot(self, save_screenshot):
-        """
-        Screenshot connection.
-
-        Parameters
-        ----------
-        save_screenshot : function
-            Screenshot handler.
-
-        """
-
-        self.save_button.clicked.connect(save_screenshot)
-
-    def connect_reciprocal_real_compass(self, change_lattice):
-        """
-        Reciprocal/real axis compass
-
-        Parameters
-        ----------
-        change_lattice : function
-            Lattice handler.
-
-        """
-
-        self.recip_box.clicked.connect(change_lattice)
+        self.ub_a_line.setText("{:.5f}".format(ol.a))
+        self.ub_b_line.setText("{:.5f}".format(ol.b))
+        self.ub_c_line.setText("{:.5f}".format(ol.c))
+        self.ub_alpha_line.setText("{:.3f}".format(ol.alpha))
+        self.ub_beta_line.setText("{:.3f}".format(ol.beta))
+        self.ub_gamma_line.setText("{:.3f}".format(ol.gamma))
+        self.ub_u1_line.setText("{:.4f}".format(ol.u[0]))
+        self.ub_u2_line.setText("{:.4f}".format(ol.u[1]))
+        self.ub_u3_line.setText("{:.4f}".format(ol.u[2]))
+        self.ub_v1_line.setText("{:.4f}".format(ol.v[0]))
+        self.ub_v2_line.setText("{:.4f}".format(ol.v[1]))
+        self.ub_v3_line.setText("{:.4f}".format(ol.v[2]))
 
     def change_projection(self):
         """
@@ -518,7 +467,10 @@ class NeuXtalVizWidget(QWidget):
 
         """
 
-        self.plotter.screenshot(filename)
+        filename = self.save_screenshot_file_dialog()
+
+        if filename:
+            self.plotter.screenshot(filename)
 
     def save_screenshot_file_dialog(self):
         options = QFileDialog.Options()
@@ -533,56 +485,21 @@ class NeuXtalVizWidget(QWidget):
 
         return filename
 
-    def set_transform(self, T):
-        """
-        Apply a transform to the axes.
+    def show_axes(self, data):
+        T, reciprocal_lattice, show_axes = data
 
-        Parameters
-        ----------
-        T : 3x3 2d array
-            Trasformation matrix.
-
-        """
-
-        if self.axes_show():
-            if T is not None:
-                self.T = T
-                self.show_axes()
-
-    def reciprocal_lattice(self):
-        """
-        State of reciprocal lattice vectors.
-
-        """
-
-        return self.recip_box.isChecked()
-
-    def show_axes(self):
-        if not self.axes_show():
+        if not show_axes:
             self.plotter.hide_axes()
-        elif self.T is not None:
+        elif T is not None:
             t = pv._vtk.vtkMatrix4x4()
             for i in range(3):
                 for j in range(3):
-                    t.SetElement(i, j, self.T[i, j])
-            if self.reciprocal_lattice():
-                actor = self.plotter.add_axes(
-                    xlabel="a*", ylabel="b*", zlabel="c*"
-                )
-
+                    t.SetElement(i, j, T[i, j])
+            if reciprocal_lattice:
+                actor = self.plotter.add_axes(xlabel="a*", ylabel="b*", zlabel="c*")
             else:
-                actor = self.plotter.add_axes(
-                    xlabel="a", ylabel="b", zlabel="c"
-                )
+                actor = self.plotter.add_axes(xlabel="a", ylabel="b", zlabel="c")
             actor.SetUserMatrix(t)
-
-    def axes_show(self):
-        """
-        State of axes.
-
-        """
-
-        return self.axes_box.isChecked()
 
     def view_vector(self, vecs):
         """
@@ -614,7 +531,7 @@ class NeuXtalVizWidget(QWidget):
 
         self.plotter.set_viewup(vec)
 
-    def update_labels(self):
+    def update_labels(self, _):
         """
         Change the axes labels between Miller and fractional notation.
 
@@ -622,7 +539,7 @@ class NeuXtalVizWidget(QWidget):
 
         axes_type = self.view_combo.currentText()
 
-        if axes_type == "[hkl]":
+        if axes_type == "hkl":
             self.axis1_label.setText("h")
             self.axis2_label.setText("k")
             self.axis3_label.setText("l")
@@ -633,7 +550,7 @@ class NeuXtalVizWidget(QWidget):
 
         axesup_type = self.viewup_combo.currentText()
 
-        if axesup_type == "[hkl]":
+        if axesup_type == "hkl":
             self.axisup1_label.setText("h")
             self.axisup2_label.setText("k")
             self.axisup3_label.setText("l")
@@ -648,7 +565,7 @@ class NeuXtalVizWidget(QWidget):
 
         Returns
         -------
-        axes_type : str, [hkl] or [uvw]
+        axes_type : str, 'hkl' or 'uvw'
             Miller index or fractional coordinate.
         ind : 3-element 1d array-like
             Indices.

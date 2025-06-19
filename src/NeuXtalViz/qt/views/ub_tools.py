@@ -38,7 +38,7 @@ from mpl_toolkits.axisartist.grid_finder import (
     MaxNLocator,
 )
 
-from NeuXtalViz.views.base_view import NeuXtalVizWidget
+from NeuXtalViz.qt.views.base_view import NeuXtalVizWidget
 
 cmaps = {
     "Sequential": "viridis",
